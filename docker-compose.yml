@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Base de datos PostgreSQL
+  db:
+    image: postgres:16-alpine
+    container_name: trackie_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: trackie
+    ports:
+      - "5433:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - trackie-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Backend - trackie
+  backend:
+    build:
+      context: ./trackie
+      dockerfile: Dockerfile
+    container_name: trackie_backend
+    environment:
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: trackie
+      NODE_ENV: development
+      UPLOAD_DIR: /usr/src/app/uploads/stats
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./trackie:/app
+      - /app/node_modules
+      - ./trackie/uploads:/usr/src/app/uploads
+    networks:
+      - trackie-network
+
+  # Frontend - trackie_frontend
+  frontend:
+    build:
+      context: ./trackie_frontend
+      dockerfile: Dockerfile
+    container_name: trackie_frontend
+    environment:
+      EXPO_PUBLIC_API_URL: http://localhost:3000
+      REACT_APP_API_URL: http://localhost:3000
+      # Para desarrollo con Docker, descomenta la línea de abajo
+      # EXPO_PUBLIC_API_URL: http://backend:3000
+    ports:
+      - "8081:8081"    # Expo web
+      - "19000:19000"  # Metro bundler
+      - "19001:19001"  # Metro bundler
+      - "19002:19002"  # Metro bundler
+    depends_on:
+      - backend
+    volumes:
+      - ./trackie_frontend:/app
+      - /app/node_modules
+    networks:
+      - trackie-network
+    stdin_open: true
+    tty: true
+
+networks:
+  trackie-network:
+    driver: bridge
+
+volumes:
+  db_data:
