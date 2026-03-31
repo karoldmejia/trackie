@@ -25,21 +25,25 @@ import { SettingsController } from './controllers/settings.controller';
     ConfigModule.forRoot({
       isGlobal: true,
     }),
-    
+
     // Configuración de TypeORM
     TypeOrmModule.forRoot({
       type: 'postgres',
-      host: process.env.POSTGRES_HOST || 'localhost',
+      url: process.env.DATABASE_URL,
+      host: process.env.POSTGRES_HOST,
       port: 5432,
-      username: process.env.POSTGRES_USER || 'postgres',
-      password: process.env.POSTGRES_PASSWORD || 'postgres',
-      database: process.env.POSTGRES_DB || 'trackie',
+      username: process.env.POSTGRES_USER,
+      password: process.env.POSTGRES_PASSWORD,
+      database: process.env.POSTGRES_DB,
       entities: [DailyLog, WeightLog, Settings],
       synchronize: true,
+      ssl: process.env.DATABASE_URL
+        ? { rejectUnauthorized: false }
+        : false,
     }),
-    
+
     TypeOrmModule.forFeature([DailyLog, WeightLog, Settings]),
-    
+
     MulterModule.register({
       limits: {
         fileSize: 5 * 1024 * 1024, // 5MB por archivo
@@ -49,4 +53,4 @@ import { SettingsController } from './controllers/settings.controller';
   controllers: [DailyLogController, WeightLogController, SettingsController],
   providers: [DailyLogService, WeightLogService, SettingsService, UploadService],
 })
-export class AppModule {}
+export class AppModule { }
