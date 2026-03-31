@@ -13,10 +13,10 @@ Trackie es una aplicación móvil para llevar el control de hábitos personales 
 
 * React Native (frontend)
 * NestJS (backend)
-* PostgreSQL (Supabase)
+* PostgreSQL
 * Docker (contenedorización)
 * Railway (deploy)
 
 ## Notas
 
-Proyecto personal desarrollado con fines de aprendizaje y portafolio.
+Proyecto personal desarrollado con fines de aprendizaje! :)
