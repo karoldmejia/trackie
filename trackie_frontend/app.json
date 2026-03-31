@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "trackie_frontend",
-    "slug": "trackie_frontend",
+    "name": "trackie",
+    "slug": "trackie",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/home_logo.png",
     "scheme": "trackiefrontend",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
