@@ -1,4 +1,3 @@
-import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { WeightLog } from '@/services/weightLog.service';
 import { theme } from '@/theme';
@@ -17,7 +16,7 @@ export const WeightLogList: React.FC<WeightLogListProps> = ({
     logs,
     onLogPress,
     formatDisplayDate,
-    maxItems = 5,
+    maxItems = 300,
 }) => {
     if (logs.length === 0) return null;
 
@@ -26,15 +25,8 @@ export const WeightLogList: React.FC<WeightLogListProps> = ({
     return (
         <View style={styles.historySection}>
             <View style={styles.historyHeader}>
-                <Icon
-                    name="History"
-                    size={16}
-                    color={theme.colors.textLight}
-                    padding={0}
-                    backgroundColor='transparent'
-                />
                 <ThemedText variant="medium" size={12} color={theme.colors.textLight} style={styles.historyTitle}>
-                    REGISTROS RECIENTES
+                    PROMEDIO POR SEMANA
                 </ThemedText>
             </View>
 

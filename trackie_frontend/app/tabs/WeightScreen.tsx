@@ -2,17 +2,17 @@ import { SearchModal } from '@/components/home/SearchModal';
 import { Icon } from '@/components/icon';
 import { LongButton } from '@/components/LongButton';
 import { NavBar } from '@/components/navbar';
+import { WeeklySearchResults } from '@/components/weight/WeeklySearchResults';
 import { WeightLogForm } from '@/components/weight/WeightLogForm';
 import { WeightLogList } from '@/components/weight/WeightLogList';
 import { WeightMetricsGrid } from '@/components/weight/WeightMetricsGrid';
 import { WeightProgressCard } from '@/components/weight/WeightProgressCard';
-import { WeightSearchResults } from '@/components/weight/WeightSearchResults';
 import { Settings, settingsService } from '@/services/settingsService';
 import { CreateWeightLogDto, WeightLog, weightLogService } from '@/services/weightLog.service';
 import { theme } from '@/theme';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 const logo = require('@/assets/home_logo.png');
@@ -29,8 +29,114 @@ const WeightScreen: React.FC = () => {
   const [searchModalVisible, setSearchModalVisible] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<WeightLog[]>([]);
+  const [isSearchingWeekly, setIsSearchingWeekly] = useState(false);
+  const [weeklySearchResults, setWeeklySearchResults] = useState<WeightLog[]>([]);
+
   const [currentSearchDate, setCurrentSearchDate] = useState<string | undefined>();
   const router = useRouter();
+
+  // Función para parsear fecha local (YYYY-MM-DD)
+  const parseLocalDate = (dateString: string): Date => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  // Función para formatear fecha local (YYYY-MM-DD)
+  const formatLocalDate = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  // Función para formatear fecha para mostrar (DD/MM/YYYY)
+  const formatDisplayDateFull = (date: Date): string => {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+
+  // Función para obtener el inicio de semana según weekStartDay
+  const getWeekStartDate = (date: Date, weekStartDay: number): Date => {
+    const currentDay = date.getDay(); // 0=domingo, 1=lunes, ..., 6=sábado
+    let daysToSubtract = currentDay - weekStartDay;
+    if (daysToSubtract < 0) {
+      daysToSubtract += 7;
+    }
+    const weekStart = new Date(date);
+    weekStart.setDate(date.getDate() - daysToSubtract);
+    weekStart.setHours(0, 0, 0, 0);
+    return weekStart;
+  };
+
+  // Función para obtener el fin de semana
+  const getWeekEndDate = (weekStart: Date): Date => {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setHours(23, 59, 59, 999);
+    return weekEnd;
+  };
+
+  const calculateWeeksFromLogs = (logs: WeightLog[], weekStartDay: number = 1): WeightLog[] => {
+    if (!logs.length) return [];
+
+    const weeks: WeightLog[] = [];
+    const sortedLogs = [...logs].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    let currentWeek: WeightLog[] = [];
+    let weekStartDate: Date | null = null;
+
+    for (const log of sortedLogs) {
+      const logDate = parseLocalDate(log.date);
+      const weekStart = getWeekStartDate(logDate, weekStartDay);
+      const weekStartStr = formatLocalDate(weekStart);
+
+      if (!weekStartDate || weekStartStr !== formatLocalDate(weekStartDate)) {
+        if (currentWeek.length > 0 && weekStartDate) {
+          const avgWeight = currentWeek.reduce((sum, l) => sum + l.weight, 0) / currentWeek.length;
+          const avgWaist = currentWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / currentWeek.length;
+          const avgBodyfat = currentWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / currentWeek.length;
+          const avgMuscle = currentWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / currentWeek.length;
+
+          weeks.push({
+            id: weekStartStr,
+            date: weekStartStr,
+            weight: avgWeight,
+            waist: avgWaist || undefined,
+            bodyfat: avgBodyfat || undefined,
+            skeletalMuscle: avgMuscle || undefined,
+            photos: [],
+          });
+        }
+        currentWeek = [log];
+        weekStartDate = weekStart;
+      } else {
+        currentWeek.push(log);
+      }
+    }
+
+    if (currentWeek.length > 0 && weekStartDate) {
+      const avgWeight = currentWeek.reduce((sum, l) => sum + l.weight, 0) / currentWeek.length;
+      const avgWaist = currentWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / currentWeek.length;
+      const avgBodyfat = currentWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / currentWeek.length;
+      const avgMuscle = currentWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / currentWeek.length;
+
+      weeks.push({
+        id: formatLocalDate(weekStartDate),
+        date: formatLocalDate(weekStartDate),
+        weight: avgWeight,
+        waist: avgWaist || undefined,
+        bodyfat: avgBodyfat || undefined,
+        skeletalMuscle: avgMuscle || undefined,
+        photos: [],
+      });
+    }
+
+    return weeks.reverse();
+  };
 
   const handleSearchPress = () => {
     setSearchModalVisible(true);
@@ -39,24 +145,32 @@ const WeightScreen: React.FC = () => {
   const handleSearch = async (date: string) => {
     try {
       setCurrentSearchDate(date);
-      const result = await weightLogService.getByDate(date).catch(() => null);
-      if (result) {
-        setSearchResults([result]);
-      } else {
-        setSearchResults([]);
-      }
-      setIsSearching(true);
+      const allLogsData = await weightLogService.getAll().catch(() => []);
+
+      // Calcular semanas usando el weekStartDay de settings
+      const weeks = calculateWeeksFromLogs(allLogsData, settings?.weekStartDay ?? 1);
+
+      // Encontrar la semana que contiene la fecha buscada
+      const targetDate = parseLocalDate(date);
+      const result = weeks.filter(week => {
+        const weekStart = parseLocalDate(week.date);
+        const weekEnd = getWeekEndDate(weekStart);
+        return targetDate >= weekStart && targetDate <= weekEnd;
+      });
+
+      setWeeklySearchResults(result);
+      setIsSearchingWeekly(true);
       setSearchModalVisible(false);
     } catch (error) {
       console.error('Error searching:', error);
-      setSearchResults([]);
-      setIsSearching(true);
+      setWeeklySearchResults([]);
+      setIsSearchingWeekly(true);
     }
   };
 
   const handleClearSearch = () => {
-    setIsSearching(false);
-    setSearchResults([]);
+    setIsSearchingWeekly(false);
+    setWeeklySearchResults([]);
     setCurrentSearchDate(undefined);
   };
 
@@ -65,8 +179,6 @@ const WeightScreen: React.FC = () => {
   };
 
   const handleLogPress = (log: WeightLog) => {
-    setEditingLog(log);
-    setEditFormVisible(true);
   };
 
   const handleMetricPress = (metric: string) => {
@@ -90,105 +202,108 @@ const WeightScreen: React.FC = () => {
     router.push('/PhotoGallery');
   };
 
-const handleFormSubmit = async (data: {
+  const handleAllLogsPress = () => {
+    router.push('/AllWeightLogs');
+  };
+  const handleFormSubmit = async (data: {
     date: string;
     weight: string;
     waist: string;
     bodyfat: string;
     skeletalMuscle: string;
     photos: string[];
-}) => {
+  }) => {
     try {
-        const weightValue = parseFloat(data.weight);
-        if (isNaN(weightValue) || weightValue <= 0) {
-            console.error('Peso inválido:', data.weight);
-            return;
-        }
+      const weightValue = parseFloat(data.weight);
+      if (isNaN(weightValue) || weightValue <= 0) {
+        console.error('Peso inválido:', data.weight);
+        return;
+      }
 
-        const newLog: CreateWeightLogDto = {
-            date: data.date,
-            weight: weightValue,
-        };
+      const newLog: CreateWeightLogDto = {
+        date: data.date,
+        weight: weightValue,
+      };
 
-        if (data.waist && !isNaN(parseFloat(data.waist)) && parseFloat(data.waist) > 0) {
-            newLog.waist = parseFloat(data.waist);
-        }
+      if (data.waist && !isNaN(parseFloat(data.waist)) && parseFloat(data.waist) > 0) {
+        newLog.waist = parseFloat(data.waist);
+      }
 
-        if (data.bodyfat && !isNaN(parseFloat(data.bodyfat)) && parseFloat(data.bodyfat) > 0) {
-            newLog.bodyfat = parseFloat(data.bodyfat);
-        }
+      if (data.bodyfat && !isNaN(parseFloat(data.bodyfat)) && parseFloat(data.bodyfat) > 0) {
+        newLog.bodyfat = parseFloat(data.bodyfat);
+      }
 
-        if (data.skeletalMuscle && !isNaN(parseFloat(data.skeletalMuscle)) && parseFloat(data.skeletalMuscle) > 0) {
-            newLog.skeletalMuscle = parseFloat(data.skeletalMuscle);
-        }
+      if (data.skeletalMuscle && !isNaN(parseFloat(data.skeletalMuscle)) && parseFloat(data.skeletalMuscle) > 0) {
+        newLog.skeletalMuscle = parseFloat(data.skeletalMuscle);
+      }
 
-        if (data.photos && data.photos.length > 0) {
-            const files: any[] = [];
-            const photosToDelete: string[] = [];
-            const existingPhotos = editingLog?.photos || [];
+      if (data.photos && data.photos.length > 0) {
+        const files: any[] = [];
+        const photosToDelete: string[] = [];
+        const existingPhotos = editingLog?.photos || [];
 
-            for (const uri of data.photos) {
-                if (uri.includes('/uploads/') || uri.includes('railway.app')) {
-                }
-                // Nueva foto local
-                else if (uri.startsWith('file://')) {
-                    try {
-                        // Verificar que el archivo existe
-                        const fileInfo = await FileSystem.getInfoAsync(uri);
-                        
-                        if (fileInfo.exists) {
-                            
-                            // Leer el archivo como base64
-                            const base64 = await FileSystem.readAsStringAsync(uri, {
-                                encoding: 'base64',
-                            });
-                            
-                            // Determinar extensión
-                            const extension = uri.split('.').pop()?.split('?')[0] || 'jpg';
-                            const mimeType = extension === 'jpg' ? 'jpeg' : extension;
-                            const fileName = `photo_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
-                            
-                            // Crear objeto con base64
-                            files.push({
-                                uri: `data:image/${mimeType};base64,${base64}`,
-                                name: fileName,
-                                type: `image/${mimeType}`,
-                            });
-                            
-                        } else {
-                            console.error('Archivo no encontrado:', uri);
-                        }
-                    } catch (error) {
-                        console.error('Error procesando foto:', error);
-                    }
-                }
+        for (const uri of data.photos) {
+          if (uri.includes('/uploads/') || uri.includes('railway.app')) {
+          }
+          // Nueva foto local
+          else if (uri.startsWith('file://')) {
+            try {
+              // Verificar que el archivo existe
+              const fileInfo = await FileSystem.getInfoAsync(uri);
+
+              if (fileInfo.exists) {
+
+                // Leer el archivo como base64
+                const base64 = await FileSystem.readAsStringAsync(uri, {
+                  encoding: 'base64',
+                });
+
+                // Determinar extensión
+                const extension = uri.split('.').pop()?.split('?')[0] || 'jpg';
+                const mimeType = extension === 'jpg' ? 'jpeg' : extension;
+                const fileName = `photo_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+
+                // Crear objeto con base64
+                files.push({
+                  uri: `data:image/${mimeType};base64,${base64}`,
+                  name: fileName,
+                  type: `image/${mimeType}`,
+                });
+
+              } else {
+                console.error('Archivo no encontrado:', uri);
+              }
+            } catch (error) {
+              console.error('Error procesando foto:', error);
             }
-
-            // Calcular fotos a eliminar
-            if (editingLog && editingLog.photos) {
-                for (const oldPhoto of editingLog.photos) {
-                    if (!data.photos.includes(oldPhoto)) {
-                        photosToDelete.push(oldPhoto);
-                    }
-                }
-            }
-            if (files.length > 0) {
-                newLog.photos = files as any;
-            }
-            if (photosToDelete.length > 0) {
-                newLog.photosToDelete = photosToDelete;
-            }
+          }
         }
 
-        await weightLogService.upsert(newLog);
-        await fetchData();
-        setFormVisible(false);
-        setEditFormVisible(false);
-        setEditingLog(null);
+        // Calcular fotos a eliminar
+        if (editingLog && editingLog.photos) {
+          for (const oldPhoto of editingLog.photos) {
+            if (!data.photos.includes(oldPhoto)) {
+              photosToDelete.push(oldPhoto);
+            }
+          }
+        }
+        if (files.length > 0) {
+          newLog.photos = files as any;
+        }
+        if (photosToDelete.length > 0) {
+          newLog.photosToDelete = photosToDelete;
+        }
+      }
+
+      await weightLogService.upsert(newLog);
+      await fetchData();
+      setFormVisible(false);
+      setEditFormVisible(false);
+      setEditingLog(null);
     } catch (error) {
-        console.error('Error saving weight log:', error);
+      console.error('Error saving weight log:', error);
     }
-};
+  };
 
   const fetchData = async () => {
     try {
@@ -221,6 +336,67 @@ const handleFormSubmit = async (data: {
     }
     setRefreshing(false);
   };
+
+  const weeklyAveragesAsLogs = useMemo(() => {
+    if (!allLogs.length || !settings) return [];
+
+    const weekStartDay = settings?.weekStartDay ?? 1; // Por defecto lunes (1)
+    const weeks: WeightLog[] = [];
+    const sortedLogs = [...allLogs].sort((a, b) =>
+      new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
+
+    let currentWeek: WeightLog[] = [];
+    let weekStartDate: Date | null = null;
+
+    for (const log of sortedLogs) {
+      const logDate = parseLocalDate(log.date);
+      const weekStart = getWeekStartDate(logDate, weekStartDay);
+      const weekStartStr = formatLocalDate(weekStart);
+
+      if (!weekStartDate || weekStartStr !== formatLocalDate(weekStartDate)) {
+        if (currentWeek.length > 0 && weekStartDate) {
+          const avgWeight = currentWeek.reduce((sum, l) => sum + l.weight, 0) / currentWeek.length;
+          const avgWaist = currentWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / currentWeek.length;
+          const avgBodyfat = currentWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / currentWeek.length;
+          const avgMuscle = currentWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / currentWeek.length;
+
+          weeks.push({
+            id: weekStartStr,
+            date: weekStartStr,
+            weight: avgWeight,
+            waist: avgWaist || undefined,
+            bodyfat: avgBodyfat || undefined,
+            skeletalMuscle: avgMuscle || undefined,
+            photos: [],
+          });
+        }
+        currentWeek = [log];
+        weekStartDate = weekStart;
+      } else {
+        currentWeek.push(log);
+      }
+    }
+
+    if (currentWeek.length > 0 && weekStartDate) {
+      const avgWeight = currentWeek.reduce((sum, l) => sum + l.weight, 0) / currentWeek.length;
+      const avgWaist = currentWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / currentWeek.length;
+      const avgBodyfat = currentWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / currentWeek.length;
+      const avgMuscle = currentWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / currentWeek.length;
+
+      weeks.push({
+        id: formatLocalDate(weekStartDate),
+        date: formatLocalDate(weekStartDate),
+        weight: avgWeight,
+        waist: avgWaist || undefined,
+        bodyfat: avgBodyfat || undefined,
+        skeletalMuscle: avgMuscle || undefined,
+        photos: [],
+      });
+    }
+
+    return weeks.reverse();
+  }, [allLogs, settings]);
 
   useEffect(() => {
     fetchData();
@@ -283,22 +459,33 @@ const handleFormSubmit = async (data: {
           <LongButton onPress={handleGalleryPress} />
         </View>
 
-        {isSearching ? (
-          <WeightSearchResults
-            results={searchResults}
+        <View style={styles.gallerySection}>
+          <LongButton onPress={handleAllLogsPress}
+            text='Todos mis registros'
+            iconLeft='Package2'
+          />
+        </View>
+
+        {isSearchingWeekly ? (
+          <WeeklySearchResults
+            results={weeklySearchResults}
+            searchDate={currentSearchDate}
             onLogPress={handleLogPress}
             onClearSearch={handleClearSearch}
-            searchDate={currentSearchDate}
             formatDisplayDate={formatDisplayDate}
           />
         ) : (
           <WeightLogList
-            logs={allLogs}
+            logs={weeklyAveragesAsLogs}
             onLogPress={handleLogPress}
-            formatDisplayDate={formatDisplayDate}
-            maxItems={5}
-          />
-        )}
+            formatDisplayDate={(date) => {
+              const weekStart = parseLocalDate(date);
+              const weekEnd = getWeekEndDate(weekStart);
+              const startStr = formatDisplayDateFull(weekStart);
+              const endStr = formatDisplayDateFull(weekEnd);
+              return `${startStr} - ${endStr}`;
+            }}
+          />)}
       </ScrollView>
 
       <SearchModal
@@ -362,6 +549,5 @@ const styles = StyleSheet.create({
   },
   gallerySection: {
     marginTop: 16,
-    marginBottom: 8,
   },
 });

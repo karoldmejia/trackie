@@ -16,7 +16,7 @@ interface LongButtonProps {
 
 export const LongButton: React.FC<LongButtonProps> = ({
     onPress,
-    text = 'Ver galería de fotos',
+    text = 'Galería de fotos',
     iconLeft = 'Image',
     iconRight = 'ChevronRight',
     backgroundColor = theme.colors.white,
