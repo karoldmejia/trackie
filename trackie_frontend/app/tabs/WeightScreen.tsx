@@ -10,7 +10,7 @@ import { WeightSearchResults } from '@/components/weight/WeightSearchResults';
 import { Settings, settingsService } from '@/services/settingsService';
 import { CreateWeightLogDto, WeightLog, weightLogService } from '@/services/weightLog.service';
 import { theme } from '@/theme';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
@@ -90,99 +90,105 @@ const WeightScreen: React.FC = () => {
     router.push('/PhotoGallery');
   };
 
-  const handleFormSubmit = async (data: {
+const handleFormSubmit = async (data: {
     date: string;
     weight: string;
     waist: string;
     bodyfat: string;
     skeletalMuscle: string;
     photos: string[];
-  }) => {
+}) => {
     try {
-      const weightValue = parseFloat(data.weight);
-      if (isNaN(weightValue) || weightValue <= 0) {
-        console.error('Peso inválido:', data.weight);
-        return;
-      }
+        const weightValue = parseFloat(data.weight);
+        if (isNaN(weightValue) || weightValue <= 0) {
+            console.error('Peso inválido:', data.weight);
+            return;
+        }
 
-      const newLog: CreateWeightLogDto = {
-        date: data.date,
-        weight: weightValue,
-      };
+        const newLog: CreateWeightLogDto = {
+            date: data.date,
+            weight: weightValue,
+        };
 
-      if (data.waist && !isNaN(parseFloat(data.waist)) && parseFloat(data.waist) > 0) {
-        newLog.waist = parseFloat(data.waist);
-      }
+        if (data.waist && !isNaN(parseFloat(data.waist)) && parseFloat(data.waist) > 0) {
+            newLog.waist = parseFloat(data.waist);
+        }
 
-      if (data.bodyfat && !isNaN(parseFloat(data.bodyfat)) && parseFloat(data.bodyfat) > 0) {
-        newLog.bodyfat = parseFloat(data.bodyfat);
-      }
+        if (data.bodyfat && !isNaN(parseFloat(data.bodyfat)) && parseFloat(data.bodyfat) > 0) {
+            newLog.bodyfat = parseFloat(data.bodyfat);
+        }
 
-      if (data.skeletalMuscle && !isNaN(parseFloat(data.skeletalMuscle)) && parseFloat(data.skeletalMuscle) > 0) {
-        newLog.skeletalMuscle = parseFloat(data.skeletalMuscle);
-      }
+        if (data.skeletalMuscle && !isNaN(parseFloat(data.skeletalMuscle)) && parseFloat(data.skeletalMuscle) > 0) {
+            newLog.skeletalMuscle = parseFloat(data.skeletalMuscle);
+        }
 
-      if (data.photos && data.photos.length > 0) {
-        const files: any[] = [];
-        const photosToDelete: string[] = [];
-        const existingPhotos = editingLog?.photos || [];
+        if (data.photos && data.photos.length > 0) {
+            const files: any[] = [];
+            const photosToDelete: string[] = [];
+            const existingPhotos = editingLog?.photos || [];
 
-        for (const uri of data.photos) {
-          if (uri.includes('/uploads/') || uri.includes('railway.app')) {
-            // Foto existente
-          } else if (uri.startsWith('file://')) {
-            try {
-              const fileInfo = await FileSystem.getInfoAsync(uri);
-              if (fileInfo.exists) {
-                // Leer como base64
-                const base64 = await FileSystem.readAsStringAsync(uri, {
-                  encoding: 'base64',
-                });
-
-                const extension = uri.split('.').pop()?.split('?')[0] || 'jpg';
-                const mimeType = extension === 'jpg' ? 'jpeg' : extension;
-                const fileName = `photo_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
-
-                // Crear objeto base64
-                files.push({
-                  uri: `data:image/${mimeType};base64,${base64}`,
-                  name: fileName,
-                  type: `image/${mimeType}`,
-                });
-              }
-            } catch (error) {
-              console.error('Error procesando foto:', error);
+            for (const uri of data.photos) {
+                if (uri.includes('/uploads/') || uri.includes('railway.app')) {
+                }
+                // Nueva foto local
+                else if (uri.startsWith('file://')) {
+                    try {
+                        // Verificar que el archivo existe
+                        const fileInfo = await FileSystem.getInfoAsync(uri);
+                        
+                        if (fileInfo.exists) {
+                            
+                            // Leer el archivo como base64
+                            const base64 = await FileSystem.readAsStringAsync(uri, {
+                                encoding: 'base64',
+                            });
+                            
+                            // Determinar extensión
+                            const extension = uri.split('.').pop()?.split('?')[0] || 'jpg';
+                            const mimeType = extension === 'jpg' ? 'jpeg' : extension;
+                            const fileName = `photo_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+                            
+                            // Crear objeto con base64
+                            files.push({
+                                uri: `data:image/${mimeType};base64,${base64}`,
+                                name: fileName,
+                                type: `image/${mimeType}`,
+                            });
+                            
+                        } else {
+                            console.error('Archivo no encontrado:', uri);
+                        }
+                    } catch (error) {
+                        console.error('Error procesando foto:', error);
+                    }
+                }
             }
-          }
-        }
 
-        if (editingLog && editingLog.photos) {
-          for (const oldPhoto of editingLog.photos) {
-            if (!data.photos.includes(oldPhoto)) {
-              photosToDelete.push(oldPhoto);
+            // Calcular fotos a eliminar
+            if (editingLog && editingLog.photos) {
+                for (const oldPhoto of editingLog.photos) {
+                    if (!data.photos.includes(oldPhoto)) {
+                        photosToDelete.push(oldPhoto);
+                    }
+                }
             }
-          }
+            if (files.length > 0) {
+                newLog.photos = files as any;
+            }
+            if (photosToDelete.length > 0) {
+                newLog.photosToDelete = photosToDelete;
+            }
         }
 
-        if (files.length > 0) {
-          newLog.photos = files as any;
-          console.log('📸 Nuevas fotos (base64):', files.length);
-        }
-        if (photosToDelete.length > 0) {
-          newLog.photosToDelete = photosToDelete;
-          console.log('🗑️ Fotos a eliminar:', photosToDelete.length);
-        }
-      }
-
-      await weightLogService.upsert(newLog);
-      await fetchData();
-      setFormVisible(false);
-      setEditFormVisible(false);
-      setEditingLog(null);
+        await weightLogService.upsert(newLog);
+        await fetchData();
+        setFormVisible(false);
+        setEditFormVisible(false);
+        setEditingLog(null);
     } catch (error) {
-      console.error('Error saving weight log:', error);
+        console.error('Error saving weight log:', error);
     }
-  };
+};
 
   const fetchData = async () => {
     try {
