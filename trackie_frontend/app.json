@@ -10,7 +10,12 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.karoldmejiaa.trackie"
+      "bundleIdentifier": "com.karoldmejiaa.trackie",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Esta aplicación necesita acceso a la cámara para tomar fotos de tus progresos de peso",
+        "NSPhotoLibraryUsageDescription": "Esta aplicación necesita acceso a tu galería para seleccionar fotos de tus progresos de peso",
+        "NSPhotoLibraryAddUsageDescription": "Esta aplicación necesita guardar fotos en tu galería"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +24,12 @@
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
-      "permissions": [],
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECORD_AUDIO"
+      ],
       "package": "com.karoldmejiaa.trackie"
     },
     "web": {
@@ -41,6 +51,13 @@
         }
       ],
       "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Esta aplicación necesita acceder a tus fotos para guardar tus progresos de peso.",
+          "cameraPermission": "Esta aplicación necesita acceder a tu cámara para tomar fotos de tus progresos."
+        }
+      ],
       "react-native-video"
     ],
     "experiments": {

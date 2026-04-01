@@ -3,7 +3,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/theme';
 import * as ImagePicker from 'expo-image-picker';
 import React, { useCallback, useState } from 'react';
-import { Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Alert, Image, Platform, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000';
 
@@ -27,8 +27,43 @@ export const WeightImagePicker: React.FC<WeightImagePickerProps> = ({
         return `${API_BASE_URL}${uri}`;
     }, []);
 
+    // Solicitar permisos antes de abrir la galería
+    const requestPermissions = async (): Promise<boolean> => {
+        if (Platform.OS === 'android') {
+            // Solicitar permisos de galería
+            const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            
+            if (mediaStatus !== 'granted') {
+                Alert.alert(
+                    'Permiso requerido',
+                    'Se necesita acceso a la galería para seleccionar fotos.',
+                    [{ text: 'OK' }]
+                );
+                return false;
+            }
+        }
+        
+        if (Platform.OS === 'ios') {
+            const { status: mediaStatus } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (mediaStatus !== 'granted') {
+                Alert.alert(
+                    'Permiso requerido',
+                    'Se necesita acceso a la galería.',
+                    [{ text: 'OK' }]
+                );
+                return false;
+            }
+        }
+        
+        return true;
+    };
+
     const pickImage = useCallback(async () => {
         if (images.length >= maxImages) return;
+
+        // Primero solicitar permisos
+        const hasPermission = await requestPermissions();
+        if (!hasPermission) return;
 
         try {
             setIsLoading(true);
@@ -45,6 +80,7 @@ export const WeightImagePicker: React.FC<WeightImagePickerProps> = ({
             }
         } catch (error) {
             console.error('Error picking image:', error);
+            Alert.alert('Error', 'No se pudo seleccionar la imagen');
         } finally {
             setIsLoading(false);
         }
