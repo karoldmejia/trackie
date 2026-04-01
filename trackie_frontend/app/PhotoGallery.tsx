@@ -378,8 +378,7 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         overflow: 'hidden',
         backgroundColor: theme.colors.white,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.05)',
+        borderWidth: 0,
     },
     photo: {
         width: '100%',

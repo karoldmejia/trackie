@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     stackedContainer: {
-        gap: 2,
+        gap: 4,
         padding: 16,
     },
     cardWrapper: {

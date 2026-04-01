@@ -7,6 +7,7 @@ import {
     Animated,
     Dimensions,
     KeyboardAvoidingView,
+    Modal,
     Platform,
     StyleSheet,
     TouchableOpacity,
@@ -145,26 +146,31 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
     if (!visible) return null;
 
     return (
-        <View style={styles.overlay}>
+        <Modal
+            visible={visible}
+            transparent={true}
+            animationType="slide"
+            onRequestClose={handleClose}
+        >
             <TouchableWithoutFeedback onPress={handleClose}>
                 <View style={styles.backdrop} />
             </TouchableWithoutFeedback>
-            
-            <Animated.View 
+
+            <Animated.View
                 style={[
                     styles.container,
                     { transform: [{ translateY }], height: screenHeight * 0.6 }
                 ]}
             >
-                <KeyboardAvoidingView 
+                <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
                     style={styles.keyboardView}
                 >
                     <View style={styles.handle} />
-                    
-                    <ThemedText 
-                        variant="medium" 
-                        size={12} 
+
+                    <ThemedText
+                        variant="medium"
+                        size={12}
                         color={theme.colors.textLight}
                         style={styles.title}
                     >
@@ -176,32 +182,32 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
                         {!hideDatePicker && (
                             <>
                                 <View style={styles.dateRow}>
-                                    <TouchableOpacity 
+                                    <TouchableOpacity
                                         style={styles.dateButton}
                                         onPress={() => setShowDatePicker(true)}
                                         activeOpacity={0.7}
                                     >
                                         <View style={styles.dateIconContainer}>
-                                            <Icon 
-                                                name="Calendar" 
-                                                size={18} 
+                                            <Icon
+                                                name="Calendar"
+                                                size={18}
                                                 color={theme.colors.placeholder}
                                                 backgroundColor="transparent"
                                                 padding={0}
                                             />
                                         </View>
                                         <View style={styles.dateTextContainer}>
-                                            <ThemedText 
-                                                variant="regular" 
-                                                size={14} 
+                                            <ThemedText
+                                                variant="regular"
+                                                size={14}
                                                 color={theme.colors.placeholder}
                                             >
                                                 {formatDate(date)}
                                             </ThemedText>
                                         </View>
-                                        <Icon 
-                                            name="ChevronDown" 
-                                            size={20} 
+                                        <Icon
+                                            name="ChevronDown"
+                                            size={20}
                                             color={theme.colors.placeholder}
                                             backgroundColor="transparent"
                                             padding={0}
@@ -262,7 +268,7 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
                             <View style={styles.halfColumn}>
                                 <FormInput
                                     icon="BicepsFlexed"
-                                    placeholder="M. esquelético (%)"
+                                    placeholder="Músculo (%)"
                                     value={skeletalMuscle}
                                     onChangeText={setSkeletalMuscle}
                                     keyboardType="numeric"
@@ -282,7 +288,7 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
                         </View>
 
                         {/* Botón de guardar */}
-                        <TouchableOpacity 
+                        <TouchableOpacity
                             style={styles.submitButton}
                             onPress={handleSubmit}
                             activeOpacity={0.8}
@@ -294,7 +300,7 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
                     </View>
                 </KeyboardAvoidingView>
             </Animated.View>
-        </View>
+        </Modal>
     );
 };
 

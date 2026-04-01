@@ -7,7 +7,7 @@ import { Settings, settingsService } from '@/services/settingsService';
 import { theme } from '@/theme';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'; // ← Agregar ScrollView
 
 const CaloriesOverviewScreen: React.FC = () => {
     const router = useRouter();
@@ -36,7 +36,6 @@ const CaloriesOverviewScreen: React.FC = () => {
         return new Date(year, month - 1, day);
     };
 
-    // Función para formatear fecha local a string YYYY-MM-DD
     const formatLocalDate = (date: Date): string => {
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -238,7 +237,10 @@ const CaloriesOverviewScreen: React.FC = () => {
                 <View style={styles.rightPlaceholder} />
             </View>
 
-            <View style={styles.contentContainer}>
+            <ScrollView 
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >
                 {/* Gráfico */}
                 <View style={styles.chartWrapper}>
                     <LineChartComponent
@@ -285,7 +287,7 @@ const CaloriesOverviewScreen: React.FC = () => {
                         />
                     </View>
                 </View>
-            </View>
+            </ScrollView>
         </View>
     );
 };
@@ -318,11 +320,11 @@ const styles = StyleSheet.create({
     rightPlaceholder: {
         width: 40,
     },
-    contentContainer: {
-        flex: 1,
+    scrollContent: {
+        flexGrow: 1,
+        paddingBottom: 40,
     },
     chartWrapper: {
-        marginBottom: -10,
         padding: 16,
     },
     loadingContainer: {
@@ -331,7 +333,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     stackedContainer: {
-        gap: 2,
+        gap: 4,
         padding: 16,
     },
     cardWrapper: {

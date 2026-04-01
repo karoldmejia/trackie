@@ -81,7 +81,7 @@ const styles = StyleSheet.create({
     },
     leftContainer: {
         flex: 1,
-        minHeight: 200,
+        minHeight: 'auto',
     },
     rightContainer: {
         flex: 1,
@@ -89,6 +89,7 @@ const styles = StyleSheet.create({
     },
     cardWrapper: {
         width: '100%',
+        height: 'auto'
     },
     emptySpace: {
         flex: 1,

@@ -11,7 +11,7 @@ export const MetricsGrid: React.FC<MetricsGridProps> = ({ dailyLog }) => {
     const metrics = [
         { title: 'Calorías', value: dailyLog?.calories ?? 0, unit: '' },
         { title: 'Pasos', value: dailyLog?.steps ?? 0, unit: '' },
-        { title: 'Energéticas', value: dailyLog?.energyDrinks ?? 0, unit: '' },
+        { title: 'Energ.', value: dailyLog?.energyDrinks ?? 0, unit: '' },
         { title: 'Agua', value: dailyLog?.waterLiters ?? 0, unit: 'L' },
     ];
 
@@ -34,6 +34,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'space-between',
-        gap: 10,
+        gap: 8,
     },
 });

@@ -1,7 +1,12 @@
+import { theme } from '@/theme';
 import { Tabs } from 'expo-router';
 import { Dumbbell, Settings, UserRound } from 'lucide-react-native';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Dimensions, StyleSheet, View } from 'react-native';
+
+const { width: screenWidth } = Dimensions.get('window');
+const tabBarWidth = screenWidth * 0.50;
+const marginHorizontal = (screenWidth - tabBarWidth) / 2;
 
 export default function TabsLayout() {
   return (
@@ -14,21 +19,15 @@ export default function TabsLayout() {
         tabBarStyle: {
           position: 'absolute',
           bottom: 20,
-          left: '25%',
-          right: '25%',
-
+          marginHorizontal: marginHorizontal,
+          width: tabBarWidth,
           height: 60,
-
           backgroundColor: '#FFFFFF',
           borderTopWidth: 0,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 3},
-          shadowOpacity: 0.02,
           borderRadius: 20,
-          elevation: 10,
-
           flexDirection: 'row',
           alignItems: 'center',
+          justifyContent: 'space-evenly', // Distribuir uniformemente los íconos
         }
       }}
     >
@@ -100,9 +99,13 @@ const styles = StyleSheet.create({
     backgroundColor: '#F2F2F2',
     alignItems: 'center',
     justifyContent: 'center',
+    display: 'flex',
+    flexDirection: 'row',
+    // marginBottom: 30,
+    marginTop: 20,
   },
   iconBackgroundActive: {
-    backgroundColor: '#F7C8E4',
+    backgroundColor: theme.colors.primary,
     shadowColor: '#FFB6C1',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,

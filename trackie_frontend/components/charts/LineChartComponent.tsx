@@ -262,10 +262,7 @@ const styles = StyleSheet.create({
     container: {
         backgroundColor: theme.colors.white,
         padding: 16,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.005,
-        shadowRadius: 4,
+        shadowColor: 'transparent',
         elevation: 2,
     },
     rangeSelectorContainer: {

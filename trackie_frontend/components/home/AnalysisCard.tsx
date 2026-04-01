@@ -66,11 +66,8 @@ export const AnalysisCard: React.FC<AnalysisCardProps> = ({
 const styles = StyleSheet.create({
     container: {
         padding: 12,
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.05)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.0,
+        borderWidth: 0,
+        shadowColor: 'transparent',
         shadowRadius: 8,
         elevation: 2,
         flexDirection: 'row',

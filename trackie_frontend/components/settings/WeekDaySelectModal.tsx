@@ -54,10 +54,9 @@ export const WeekDaySelectModal: React.FC<WeekDaySelectModalProps> = ({
                                     <View style={styles.headerLeft}>
                                         <Icon
                                             name="Calendar"
-                                            size={20}
-                                            color={theme.colors.primary}
-                                            backgroundColor="transparent"
-                                            padding={0}
+                                            size={16}
+                                            color={theme.colors.placeholder}
+                                            backgroundColor={theme.colors.background}
                                         />
                                         <ThemedText variant="medium" size={16} color={theme.colors.text}>
                                             Inicio de semana
@@ -88,7 +87,7 @@ export const WeekDaySelectModal: React.FC<WeekDaySelectModalProps> = ({
                                             <ThemedText
                                                 variant="regular"
                                                 size={16}
-                                                color={currentValue === day.value ? theme.colors.primary : theme.colors.text}
+                                                color={currentValue === day.value ? theme.colors.error : theme.colors.text}
                                             >
                                                 {day.label}
                                             </ThemedText>
@@ -96,7 +95,7 @@ export const WeekDaySelectModal: React.FC<WeekDaySelectModalProps> = ({
                                                 <Icon
                                                     name="Check"
                                                     size={18}
-                                                    color={theme.colors.primary}
+                                                    color={theme.colors.error}
                                                     backgroundColor="transparent"
                                                     padding={0}
                                                 />

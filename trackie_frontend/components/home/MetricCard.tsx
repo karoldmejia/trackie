@@ -47,6 +47,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         gap: 6,
         elevation: 2,
+        shadowColor: 'transparent'
     },
     title: {
         textAlign: 'center',

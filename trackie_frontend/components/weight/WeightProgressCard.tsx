@@ -34,7 +34,7 @@ export const WeightProgressCard: React.FC<WeightProgressCardProps> = ({
                         </ThemedText>
                     </View>
 
-                    <ThemedText variant="bold" size={40} color={theme.colors.text} style={styles.percentage}>
+                    <ThemedText variant="bold" size={40} color={theme.colors.text}>
                         {Math.round(progress)}%
                     </ThemedText>
 
@@ -73,10 +73,7 @@ const styles = StyleSheet.create({
         padding: 20,
         marginTop: 10,
         marginBottom: 10,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
+        shadowColor: 'transparent',
         elevation: 3,
     },
     cardContent: {
@@ -101,9 +98,6 @@ const styles = StyleSheet.create({
     },
     title: {
         letterSpacing: 0.5,
-    },
-    percentage: {
-        marginBottom: 10,
     },
     addButton: {
         flexDirection: 'row',

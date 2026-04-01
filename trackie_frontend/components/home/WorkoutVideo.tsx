@@ -1,7 +1,7 @@
 import { theme } from '@/theme';
+import { ResizeMode, Video } from 'expo-av';
 import React, { useEffect, useRef, useState } from 'react';
 import { Dimensions, Platform, StyleSheet, View } from 'react-native';
-import Video, { VideoRef } from 'react-native-video';
 import { ThemedText } from '../ThemedText';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -23,7 +23,7 @@ export const WorkoutVideo: React.FC<WorkoutVideoProps> = ({
     workout, 
     videoSource 
 }) => {
-    const videoRef = useRef<VideoRef>(null);
+    const videoRef = useRef<Video>(null);
     const [isWeb, setIsWeb] = useState(false);
     
     const getTranslatedWorkout = (workoutValue?: string): string => {
@@ -45,50 +45,14 @@ export const WorkoutVideo: React.FC<WorkoutVideoProps> = ({
 
     useEffect(() => {
         setIsWeb(Platform.OS === 'web');
-    }, []);
+        
+        // Iniciar video cuando el componente se monta
+        if (videoRef.current && !isWeb) {
+            videoRef.current.playAsync();
+            videoRef.current.setIsLoopingAsync(true);
+        }
+    }, [isWeb]);
 
-    // Para web: usar elemento video nativo en lugar de react-native-video
-    if (isWeb) {
-        return (
-            <View style={styles.container}>
-                <View style={styles.videoContainer}>
-                    <video
-                        src={typeof videoSource === 'object' && videoSource.uri ? videoSource.uri : videoSource}
-                        style={{
-                            width: availableWidth,
-                            height: videoHeight,
-                            objectFit: 'contain',
-                        }}
-                        autoPlay
-                        loop
-                        muted
-                        playsInline
-                    />
-                </View>
-                
-                <View style={styles.textContainer}>
-                    <ThemedText 
-                        variant="medium" 
-                        size={10} 
-                        color={theme.colors.textLight || '#999'}
-                        style={styles.subtitle}
-                    >
-                        Entrenamiento del día
-                    </ThemedText>
-                    <ThemedText 
-                        variant="semiBold" 
-                        size={16} 
-                        color={hasWorkout ? theme.colors.text : theme.colors.textLight}
-                        style={styles.workoutText}
-                    >
-                        {workoutText}
-                    </ThemedText>
-                </View>
-            </View>
-        );
-    }
-
-    // Para nativo (Android/iOS)
     return (
         <View style={styles.container}>
             <View style={styles.videoContainer}>
@@ -96,21 +60,17 @@ export const WorkoutVideo: React.FC<WorkoutVideoProps> = ({
                     ref={videoRef}
                     source={videoSource}
                     style={[styles.video, { width: availableWidth, height: videoHeight }]}
-                    resizeMode="contain"
-                    repeat={true}
-                    paused={false}
-                    muted={true}
-                    controls={false}
-                    playInBackground={false}
-                    playWhenInactive={false}
-                    ignoreSilentSwitch="ignore"
+                    resizeMode={ResizeMode.CONTAIN}
+                    shouldPlay={true}
+                    isLooping={true}
+                    isMuted={true}
                 />
             </View>
             
             <View style={styles.textContainer}>
                 <ThemedText 
                     variant="medium" 
-                    size={12} 
+                    size={10} 
                     color={theme.colors.textLight || '#999'}
                     style={styles.subtitle}
                 >
@@ -134,21 +94,16 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.white,
         borderRadius: 20,
         overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.0035)',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
         elevation: 2,
-        height: '100%',
+        minHeight: 315,
+        shadowColor: 'transparent'
     },
     videoContainer: {
         width: '100%',
         backgroundColor: '#000',
         alignItems: 'center',
         justifyContent: 'center',
-        minHeight: 20,
+        minHeight: 220,
         position: 'relative',
     },
     video: {
@@ -162,7 +117,6 @@ const styles = StyleSheet.create({
     },
     subtitle: {
         textTransform: 'uppercase',
-        letterSpacing: 1,
         marginBottom: 6,
         textAlign: 'center',
     },

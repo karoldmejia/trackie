@@ -33,14 +33,11 @@ export const StatCard: React.FC<StatCardProps> = ({
     headerIconColor,
     headerIconSize = 20,
 }) => {
-    // Determinar si hay datos para hoy
     const hasData = currentValue !== undefined && currentValue !== null;
     
-    // Calcular diferencia para mostrar ícono y texto
     const calculateDifference = () => {
         if (limit === undefined) return null;
         
-        // Si no hay datos para hoy, mostrar el límite completo como restante/faltante
         if (!hasData) {
             const absoluteDifference = limit;
             
@@ -60,7 +57,6 @@ export const StatCard: React.FC<StatCardProps> = ({
             }
         }
         
-        // Si hay datos, calcular la diferencia normal
         const difference = limit - currentValue;
         const isPositive = difference > 0;
         const absoluteDifference = Math.abs(difference);
@@ -100,7 +96,6 @@ export const StatCard: React.FC<StatCardProps> = ({
     const differenceData = calculateDifference();
     const finalHeaderIconColor = headerIconColor || theme.colors.white;
     
-    // Determinar el valor a mostrar
     const displayValue = hasData ? value : 0;
     
     const cardContent = (
@@ -177,14 +172,13 @@ const styles = StyleSheet.create({
         width: '100%',
         borderRadius: 20,
         overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.05)',
+        borderWidth: 0,
         backgroundColor: theme.colors.white,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
+        shadowColor: 'transparent',
         shadowOpacity: 0.005,
         shadowRadius: 8,
         elevation: 2,
+        maxHeight: 150,
     },
     backgroundImage: {
         width: '100%',

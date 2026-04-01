@@ -1,4 +1,3 @@
-import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/theme';
 import React from 'react';
@@ -103,24 +102,16 @@ export const ProgressCircle: React.FC<ProgressCircleProps> = ({
                         r={12}
                         fill={theme.colors.text}
                     />
-                    <Icon
-                        name="Award"
-                        size={14}
-                        color={theme.colors.white}
-                        backgroundColor="transparent"
-                        padding={0}
-                        style={styles.iconInside}
-                    />
                 </G>
 
             </Svg>
 
             {/* Texto dentro del círculo interior */}
             <View style={styles.centerText}>
-                <ThemedText variant="bold" size={28} color={theme.colors.text}>
+                <ThemedText variant="bold" size={28} color={theme.colors.text} style={styles.weightText}>
                     {currentWeight}
                 </ThemedText>
-                <ThemedText variant="bold" size={14} color={theme.colors.textLight}>
+                <ThemedText variant="medium" size={14} color={theme.colors.textLight}>
                     {unit}
                 </ThemedText>
             </View>
@@ -137,10 +128,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         overflow: 'visible'
     },
+    weightText: {
+        marginBottom: -15,
+    },
     centerText: {
         position: 'absolute',
         alignItems: 'center',
         justifyContent: 'center',
+        gap: 2
     },
     iconInside: {
         position: 'absolute',

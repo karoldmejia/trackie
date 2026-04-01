@@ -7,7 +7,7 @@ import { Settings, settingsService } from '@/services/settingsService';
 import { theme } from '@/theme';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const StepsOverviewScreen: React.FC = () => {
     const router = useRouter();
@@ -239,8 +239,11 @@ const averageSteps = stats?.summary.averageSteps || 0;
                 <View style={styles.rightPlaceholder} />
             </View>
 
-            <View style={styles.contentContainer}>
-                {/* Gráfico */}
+            <ScrollView 
+                contentContainerStyle={styles.scrollContent}
+                showsVerticalScrollIndicator={false}
+            >   
+                         {/* Gráfico */}
                 <View style={styles.chartWrapper}>
                     <LineChartComponent
                         data={chartData}
@@ -286,7 +289,7 @@ const averageSteps = stats?.summary.averageSteps || 0;
                         />
                     </View>
                 </View>
-            </View>
+            </ScrollView>
         </View>
     );
 };
@@ -331,8 +334,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+        scrollContent: {
+        flexGrow: 1,
+        paddingBottom: 40,
+    },
     stackedContainer: {
-        gap: 2,
+        gap: 4,
         padding: 16,
     },
     cardWrapper: {
