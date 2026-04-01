@@ -204,28 +204,17 @@ export const MetricOverviewScreen: React.FC<MetricOverviewScreenProps> = ({
         fetchData();
     }, []);
 
-    // Obtener valores mínimo y máximo
-    const getMinValue = (): number => {
+        const getAverageValue = (): number => {
         if (!stats) return 0;
         switch (metricKey) {
-            case 'weight': return stats.min.weight;
-            case 'waist': return stats.min.waist;
-            case 'bodyfat': return stats.min.bodyfat;
-            case 'skeletalMuscle': return stats.min.skeletalMuscle;
+            case 'weight': return stats.average.weight;
+            case 'waist': return stats.average.waist;
+            case 'bodyfat': return stats.average.bodyfat;
+            case 'skeletalMuscle': return stats.average.skeletalMuscle;
             default: return 0;
         }
     };
 
-    const getMaxValue = (): number => {
-        if (!stats) return 0;
-        switch (metricKey) {
-            case 'weight': return stats.max.weight;
-            case 'waist': return stats.max.waist;
-            case 'bodyfat': return stats.max.bodyfat;
-            case 'skeletalMuscle': return stats.max.skeletalMuscle;
-            default: return 0;
-        }
-    };
 
     if (loading) {
         return (
@@ -248,8 +237,8 @@ export const MetricOverviewScreen: React.FC<MetricOverviewScreenProps> = ({
         );
     }
 
-    const minValue = getMinValue();
-    const maxValue = getMaxValue();
+        const averageValue = getAverageValue();
+
 
     return (
         <View style={styles.container}>
@@ -281,22 +270,11 @@ export const MetricOverviewScreen: React.FC<MetricOverviewScreenProps> = ({
                 </View>
 
                 <View style={styles.stackedContainer}>
-                    {/* Mínimo */}
                     <View style={styles.cardWrapper}>
                         <AnalysisCard
-                            icon="TrendingDown"
-                            title="MÍNIMO"
-                            value={`${minValue} ${unit}`}
-                            iconColor={theme.colors.white}
-                            backgroundColor={theme.colors.white}
-                        />
-                    </View>
-                    {/* Máximo */}
-                    <View style={styles.cardWrapper}>
-                        <AnalysisCard
-                            icon="TrendingUp"
-                            title="MÁXIMO"
-                            value={`${maxValue} ${unit}`}
+                            icon="TrendingUpDown"
+                            title="PROMEDIO"
+                            value={`${averageValue} ${unit}`}
                             iconColor={theme.colors.white}
                             backgroundColor={theme.colors.white}
                         />
