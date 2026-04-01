@@ -10,27 +10,27 @@ export interface WeightStats {
         weight: number;
         bodyfat: number;
         skeletalMuscle: number;
-        waist: number;  // 🆕
+        waist: number;
         date: string;
     };
     min: {
         weight: number;
         bodyfat: number;
         skeletalMuscle: number;
-        waist: number;  // 🆕
+        waist: number;
         date: string;
     };
     average: {
         weight: number;
         bodyfat: number;
         skeletalMuscle: number;
-        waist: number;  // 🆕
+        waist: number;
     };
     total: {
         weight: number;
         bodyfat: number;
         skeletalMuscle: number;
-        waist: number;  // 🆕
+        waist: number;
     };
     count: number;
     startDate: string;
@@ -79,28 +79,17 @@ export class WeightLogService {
     ) { }
 
     async create(dto: CreateWeightLogDto, photos?: Express.Multer.File[]): Promise<WeightLog> {
-        this.logger.log(`🔍 Buscando registro existente para fecha: ${dto.date}`);
         let existing = await this.weightLogRepo.findOne({ where: { date: dto.date } });
-
-        if (existing) {
-            this.logger.log(`✏️ Registro existente encontrado: ${existing.id}`);
-        } else {
-            this.logger.log(`➕ No existe registro para fecha ${dto.date}, se creará uno nuevo`);
-        }
 
         const logData = { ...dto };
 
         // Validar datos numéricos
-        this.logger.log(`📊 Datos a guardar: weight=${logData.weight}, bodyfat=${logData.bodyfat}, skeletalMuscle=${logData.skeletalMuscle}, waist=${logData.waist}`);
 
         if (photos && photos.length > 0) {
-            this.logger.log(`📸 Procesando ${photos.length} fotos...`);
             const photoUrls = await this.uploadService.savePhotos(photos);
-            this.logger.log(`✅ Fotos guardadas: ${photoUrls.length}`);
 
             if (existing && existing.photos && existing.photos.length > 0) {
                 logData.photos = [...new Set([...existing.photos, ...photoUrls])];
-                this.logger.log(`📸 Fotos combinadas: ${logData.photos.length}`);
             } else {
                 logData.photos = photoUrls;
             }
@@ -109,35 +98,66 @@ export class WeightLogService {
         }
 
         if (existing) {
-            this.logger.log(`✏️ Actualizando registro existente...`);
             Object.assign(existing, logData);
             const result = await this.weightLogRepo.save(existing);
-            this.logger.log(`✅ Registro actualizado: ${result.id}`);
             return result;
         } else {
-            this.logger.log(`➕ Creando nuevo registro...`);
             const log = this.weightLogRepo.create(logData);
             const result = await this.weightLogRepo.save(log);
-            this.logger.log(`✅ Nuevo registro creado: ${result.id}`);
             return result;
         }
     }
 
+    private isBase64Photo(photo: any): boolean {
+        if (typeof photo === 'string' && photo.startsWith('data:image')) {
+            return true;
+        }
+        return false;
+    }
+
     async upsert(dto: CreateWeightLogDto, photos?: Express.Multer.File[], photosToDelete?: string[]): Promise<WeightLog> {
-        this.logger.log(`🔄 Upsert llamado para fecha: ${dto.date}`);
+        this.logger.log(`Upsert para fecha: ${dto.date}`);
 
         let existing = await this.weightLogRepo.findOne({ where: { date: dto.date } });
 
-        // Eliminar fotos marcadas para borrar
+        // Procesar fotos para eliminar
         if (photosToDelete && photosToDelete.length > 0 && existing && existing.photos) {
             const remainingPhotos = existing.photos.filter(photo => !photosToDelete.includes(photo));
             existing.photos = remainingPhotos;
             await this.uploadService.deleteMultiplePhotos(photosToDelete);
+            this.logger.log(`Eliminadas ${photosToDelete.length} fotos`);
         }
 
-        // Si hay fotos nuevas, guardarlas
+        // Procesar fotos nuevas
         if (photos && photos.length > 0) {
-            const newPhotoUrls = await this.uploadService.savePhotos(photos);
+            // Separar fotos normales de base64
+            const normalFiles: Express.Multer.File[] = [];
+            const base64Files: string[] = [];
+
+            for (const photo of photos) {
+                if (this.isBase64Photo(photo)) {
+                    base64Files.push(photo as any);
+                } else {
+                    normalFiles.push(photo);
+                }
+            }
+
+            let newPhotoUrls: string[] = [];
+
+            // Procesar archivos normales
+            if (normalFiles.length > 0) {
+                const normalUrls = await this.uploadService.savePhotos(normalFiles);
+                newPhotoUrls.push(...normalUrls);
+                this.logger.log(`Guardadas ${normalFiles.length} fotos normales`);
+            }
+
+            // Procesar base64
+            if (base64Files.length > 0) {
+                const base64Urls = await this.uploadService.savePhotosFromBase64(base64Files);
+                newPhotoUrls.push(...base64Urls);
+                this.logger.log(`Guardadas ${base64Files.length} fotos desde base64`);
+            }
+
             if (existing) {
                 dto.photos = [...(existing.photos || []), ...newPhotoUrls];
             } else {
@@ -147,20 +167,20 @@ export class WeightLogService {
 
         if (existing) {
             Object.assign(existing, dto);
+            this.logger.log(`Actualizando registro existente`);
             return this.weightLogRepo.save(existing);
         } else {
             const log = this.weightLogRepo.create(dto);
+            this.logger.log(`Creando nuevo registro`);
             return this.weightLogRepo.save(log);
         }
     }
 
     async findLast(): Promise<WeightLog | null> {
-        this.logger.log(`🔍 Buscando último registro...`);
         const result = await this.weightLogRepo.findOne({
             where: {},
             order: { date: 'DESC' }
         });
-        this.logger.log(result ? `✅ Último registro encontrado: ${result.date} - ${result.weight}kg` : `⚠️ No hay registros`);
         return result;
     }
     /**
@@ -257,8 +277,8 @@ export class WeightLogService {
         let minBodyfat = { value: Infinity, date: '' };
         let maxMuscle = { value: -Infinity, date: '' };
         let minMuscle = { value: Infinity, date: '' };
-        let maxWaist = { value: -Infinity, date: '' };  // 🆕
-        let minWaist = { value: Infinity, date: '' };  // 🆕
+        let maxWaist = { value: -Infinity, date: '' };
+        let minWaist = { value: Infinity, date: '' };
 
         let totalWeight = 0;
         let totalBodyfat = 0;

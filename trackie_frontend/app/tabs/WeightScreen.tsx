@@ -128,31 +128,27 @@ const WeightScreen: React.FC = () => {
         const existingPhotos = editingLog?.photos || [];
 
         for (const uri of data.photos) {
-          // Foto existente del servidor
           if (uri.includes('/uploads/') || uri.includes('railway.app')) {
-            // Ya está en el servidor
-          }
-          // Nueva foto local
-          else if (uri.startsWith('file://')) {
+            // Foto existente
+          } else if (uri.startsWith('file://')) {
             try {
-              // Verificar que el archivo existe
               const fileInfo = await FileSystem.getInfoAsync(uri);
-
               if (fileInfo.exists) {
-
-                // Determinar extensión
-                const extension = uri.split('.').pop()?.split('?')[0] || 'jpg';
-                const fileName = `photo_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
-
-                // Enviar la URI directamente (sin convertir a base64)
-                files.push({
-                  uri: uri,
-                  name: fileName,
-                  type: `image/${extension === 'jpg' ? 'jpeg' : extension}`,
+                // Leer como base64
+                const base64 = await FileSystem.readAsStringAsync(uri, {
+                  encoding: 'base64',
                 });
 
-              } else {
-                console.error('Archivo no encontrado:', uri);
+                const extension = uri.split('.').pop()?.split('?')[0] || 'jpg';
+                const mimeType = extension === 'jpg' ? 'jpeg' : extension;
+                const fileName = `photo_${Date.now()}_${Math.random().toString(36).substring(7)}.${extension}`;
+
+                // Crear objeto base64
+                files.push({
+                  uri: `data:image/${mimeType};base64,${base64}`,
+                  name: fileName,
+                  type: `image/${mimeType}`,
+                });
               }
             } catch (error) {
               console.error('Error procesando foto:', error);
@@ -160,7 +156,6 @@ const WeightScreen: React.FC = () => {
           }
         }
 
-        // Calcular fotos a eliminar
         if (editingLog && editingLog.photos) {
           for (const oldPhoto of editingLog.photos) {
             if (!data.photos.includes(oldPhoto)) {
@@ -171,9 +166,11 @@ const WeightScreen: React.FC = () => {
 
         if (files.length > 0) {
           newLog.photos = files as any;
+          console.log('📸 Nuevas fotos (base64):', files.length);
         }
         if (photosToDelete.length > 0) {
           newLog.photosToDelete = photosToDelete;
+          console.log('🗑️ Fotos a eliminar:', photosToDelete.length);
         }
       }
 
