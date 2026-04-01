@@ -18,6 +18,7 @@ import { UploadService } from './services/upload.service';
 import { DailyLogController } from './controllers/dailylog.controller';
 import { WeightLogController } from './controllers/weightlog.controller';
 import { SettingsController } from './controllers/settings.controller';
+import { CloudinaryService } from './services/cloudinary.service';
 
 @Module({
   imports: [
@@ -51,6 +52,6 @@ import { SettingsController } from './controllers/settings.controller';
     }),
   ],
   controllers: [DailyLogController, WeightLogController, SettingsController],
-  providers: [DailyLogService, WeightLogService, SettingsService, UploadService],
+  providers: [DailyLogService, WeightLogService, SettingsService, UploadService, CloudinaryService],
 })
 export class AppModule { }
