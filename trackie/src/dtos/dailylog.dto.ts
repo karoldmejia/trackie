@@ -1,4 +1,4 @@
-import { IsInt, Min, IsEnum, IsOptional, IsDateString } from 'class-validator';
+import { IsInt, Min, IsEnum, IsOptional, IsDateString, IsNumber } from 'class-validator';
 import { WorkoutType } from '../enums/workouttype.enum';
 
 export class CreateDailyLogDto {
@@ -17,12 +17,12 @@ export class CreateDailyLogDto {
     @IsOptional()
     workout?: WorkoutType;
 
-    @IsInt()
+    @IsNumber()
     @Min(0)
     @IsOptional()
     energyDrinks?: number;
 
-    @IsInt()
+    @IsNumber()
     @Min(0)
     @IsOptional()
     waterLiters?: number;
@@ -48,12 +48,12 @@ export class UpdateDailyLogDto {
     @IsOptional()
     workout?: WorkoutType;
 
-    @IsInt()
+    @IsNumber()
     @Min(0)
     @IsOptional()
     energyDrinks?: number;
 
-    @IsInt()
+    @IsNumber()
     @Min(0)
     @IsOptional()
     waterLiters?: number;

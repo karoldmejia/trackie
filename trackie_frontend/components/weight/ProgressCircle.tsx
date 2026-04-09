@@ -16,11 +16,11 @@ export const ProgressCircle: React.FC<ProgressCircleProps> = ({
     progress,
     unit = 'kilogramos',
 }) => {
-    const size = 140;
+    const size = 150;
     const outerStrokeWidth = 8;
     const innerCircleRadius = 45;
     const outerRadius = (size - outerStrokeWidth) / 2;
-
+const viewBoxPadding = 10;
     const arcPercentage = 0.7;
     const arcDegrees = 360 * arcPercentage;
     const progressAngle = (progress / 100) * arcDegrees;
@@ -57,7 +57,7 @@ export const ProgressCircle: React.FC<ProgressCircleProps> = ({
 
     return (
         <View style={styles.container}>
-            <Svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ overflow: 'visible' }}>
+            <Svg width={size} height={size} viewBox={`-${viewBoxPadding} -${viewBoxPadding} ${size + viewBoxPadding * 2} ${size + viewBoxPadding * 2}`} style={{ overflow: 'visible' }}>
                 {/* Círculo exterior de fondo */}
                 <Circle
                     cx={size / 2}
@@ -99,8 +99,8 @@ export const ProgressCircle: React.FC<ProgressCircleProps> = ({
                     <Circle
                         cx={12}
                         cy={12}
-                        r={12}
-                        fill={theme.colors.text}
+                        r={10}
+                        fill={theme.colors.white}
                     />
                 </G>
 
@@ -108,10 +108,10 @@ export const ProgressCircle: React.FC<ProgressCircleProps> = ({
 
             {/* Texto dentro del círculo interior */}
             <View style={styles.centerText}>
-                <ThemedText variant="bold" size={28} color={theme.colors.text} style={styles.weightText}>
+                <ThemedText variant="bold" size={20} color={theme.colors.text} style={styles.weightText}>
                     {currentWeight}
                 </ThemedText>
-                <ThemedText variant="medium" size={14} color={theme.colors.textLight}>
+                <ThemedText variant="medium" size={12} color={theme.colors.textLight}>
                     {unit}
                 </ThemedText>
             </View>
@@ -122,11 +122,11 @@ export const ProgressCircle: React.FC<ProgressCircleProps> = ({
 const styles = StyleSheet.create({
     container: {
         position: 'relative',
-        width: 140,
+        width: 150,
         height: 140,
         alignItems: 'center',
         justifyContent: 'center',
-        overflow: 'visible'
+        overflow: 'visible',
     },
     weightText: {
         marginBottom: -15,

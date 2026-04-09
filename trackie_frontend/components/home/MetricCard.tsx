@@ -26,7 +26,7 @@ export const MetricCard: React.FC<MetricCardProps> = ({
             </ThemedText>
             <ThemedText
                 variant="bold"
-                size={18}
+                size={15}
                 color={theme.colors.text}
                 style={styles.value}
             >
@@ -41,11 +41,11 @@ const styles = StyleSheet.create({
         width: '20%',
         backgroundColor: 'transparent',
         borderRadius: 16,
-        paddingVertical: 16,
+        paddingTop: 12,
         paddingHorizontal: 8,
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 6,
+        gap: 4,
         elevation: 2,
         shadowColor: 'transparent'
     },

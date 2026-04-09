@@ -78,65 +78,49 @@ const WeightScreen: React.FC = () => {
     return weekEnd;
   };
 
-  const calculateWeeksFromLogs = (logs: WeightLog[], weekStartDay: number = 1): WeightLog[] => {
+const calculateWeeksFromLogs = (logs: WeightLog[], weekStartDay: number = 1): WeightLog[] => {
     if (!logs.length) return [];
 
     const weeks: WeightLog[] = [];
     const sortedLogs = [...logs].sort((a, b) =>
-      new Date(a.date).getTime() - new Date(b.date).getTime()
+        parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
     );
 
-    let currentWeek: WeightLog[] = [];
-    let weekStartDate: Date | null = null;
+    // Agrupar logs por semana
+    const weekMap = new Map<string, WeightLog[]>();
 
     for (const log of sortedLogs) {
-      const logDate = parseLocalDate(log.date);
-      const weekStart = getWeekStartDate(logDate, weekStartDay);
-      const weekStartStr = formatLocalDate(weekStart);
-
-      if (!weekStartDate || weekStartStr !== formatLocalDate(weekStartDate)) {
-        if (currentWeek.length > 0 && weekStartDate) {
-          const avgWeight = currentWeek.reduce((sum, l) => sum + l.weight, 0) / currentWeek.length;
-          const avgWaist = currentWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / currentWeek.length;
-          const avgBodyfat = currentWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / currentWeek.length;
-          const avgMuscle = currentWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / currentWeek.length;
-
-          weeks.push({
-            id: weekStartStr,
-            date: weekStartStr,
-            weight: avgWeight,
-            waist: avgWaist || undefined,
-            bodyfat: avgBodyfat || undefined,
-            skeletalMuscle: avgMuscle || undefined,
-            photos: [],
-          });
+        const logDate = parseLocalDate(log.date);
+        const weekStart = getWeekStartDate(logDate, weekStartDay);
+        const weekKey = formatLocalDate(weekStart);
+        
+        if (!weekMap.has(weekKey)) {
+            weekMap.set(weekKey, []);
         }
-        currentWeek = [log];
-        weekStartDate = weekStart;
-      } else {
-        currentWeek.push(log);
-      }
+        weekMap.get(weekKey)!.push(log);
     }
 
-    if (currentWeek.length > 0 && weekStartDate) {
-      const avgWeight = currentWeek.reduce((sum, l) => sum + l.weight, 0) / currentWeek.length;
-      const avgWaist = currentWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / currentWeek.length;
-      const avgBodyfat = currentWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / currentWeek.length;
-      const avgMuscle = currentWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / currentWeek.length;
+    // Calcular promedios por semana
+    for (const [weekKey, logsInWeek] of weekMap) {
+        const avgWeight = logsInWeek.reduce((sum, l) => sum + l.weight, 0) / logsInWeek.length;
+        const avgWaist = logsInWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / logsInWeek.length;
+        const avgBodyfat = logsInWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / logsInWeek.length;
+        const avgMuscle = logsInWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / logsInWeek.length;
 
-      weeks.push({
-        id: formatLocalDate(weekStartDate),
-        date: formatLocalDate(weekStartDate),
-        weight: avgWeight,
-        waist: avgWaist || undefined,
-        bodyfat: avgBodyfat || undefined,
-        skeletalMuscle: avgMuscle || undefined,
-        photos: [],
-      });
+        weeks.push({
+            id: weekKey,
+            date: weekKey,
+            weight: Math.round(avgWeight * 100) / 100,
+            waist: avgWaist > 0 ? Math.round(avgWaist * 100) / 100 : undefined,
+            bodyfat: avgBodyfat > 0 ? Math.round(avgBodyfat * 100) / 100 : undefined,
+            skeletalMuscle: avgMuscle > 0 ? Math.round(avgMuscle * 100) / 100 : undefined,
+            photos: [],
+        });
     }
 
-    return weeks.reverse();
-  };
+    // Ordenar de más reciente a más antiguo
+    return weeks.sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
+};
 
   const handleSearchPress = () => {
     setSearchModalVisible(true);
@@ -184,16 +168,16 @@ const WeightScreen: React.FC = () => {
   const handleMetricPress = (metric: string) => {
     switch (metric) {
       case 'weight':
-        router.push('/WeightOverviewScreen');
+        router.replace('/WeightOverviewScreen');
         break;
       case 'waist':
-        router.push('/WaistOverviewScreen');
+        router.replace('/WaistOverviewScreen');
         break;
       case 'bodyfat':
-        router.push('/BodyfatOverviewScreen');
+        router.replace('/BodyfatOverviewScreen');
         break;
       case 'skeletalMuscle':
-        router.push('/SkeletalMuscleOverviewScreen');
+        router.replace('/SkeletalMuscleOverviewScreen');
         break;
     }
   };
@@ -337,72 +321,62 @@ const WeightScreen: React.FC = () => {
     setRefreshing(false);
   };
 
-  const weeklyAveragesAsLogs = useMemo(() => {
+const weeklyAveragesAsLogs = useMemo(() => {
     if (!allLogs.length || !settings) return [];
 
-    const weekStartDay = settings?.weekStartDay ?? 1; // Por defecto lunes (1)
+    const weekStartDay = settings?.weekStartDay ?? 1;
     const weeks: WeightLog[] = [];
-    const sortedLogs = [...allLogs].sort((a, b) =>
-      new Date(a.date).getTime() - new Date(b.date).getTime()
+    const sortedLogs = [...allLogs].sort((a, b) => 
+        parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
     );
 
-    let currentWeek: WeightLog[] = [];
-    let weekStartDate: Date | null = null;
+    // Agrupar logs por semana
+    const weekMap = new Map<string, WeightLog[]>();
 
     for (const log of sortedLogs) {
-      const logDate = parseLocalDate(log.date);
-      const weekStart = getWeekStartDate(logDate, weekStartDay);
-      const weekStartStr = formatLocalDate(weekStart);
-
-      if (!weekStartDate || weekStartStr !== formatLocalDate(weekStartDate)) {
-        if (currentWeek.length > 0 && weekStartDate) {
-          const avgWeight = currentWeek.reduce((sum, l) => sum + l.weight, 0) / currentWeek.length;
-          const avgWaist = currentWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / currentWeek.length;
-          const avgBodyfat = currentWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / currentWeek.length;
-          const avgMuscle = currentWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / currentWeek.length;
-
-          weeks.push({
-            id: weekStartStr,
-            date: weekStartStr,
-            weight: avgWeight,
-            waist: avgWaist || undefined,
-            bodyfat: avgBodyfat || undefined,
-            skeletalMuscle: avgMuscle || undefined,
-            photos: [],
-          });
+        const logDate = parseLocalDate(log.date);
+        const weekStart = getWeekStartDate(logDate, weekStartDay);
+        const weekKey = formatLocalDate(weekStart);
+        
+        if (!weekMap.has(weekKey)) {
+            weekMap.set(weekKey, []);
         }
-        currentWeek = [log];
-        weekStartDate = weekStart;
-      } else {
-        currentWeek.push(log);
-      }
+        weekMap.get(weekKey)!.push(log);
     }
 
-    if (currentWeek.length > 0 && weekStartDate) {
-      const avgWeight = currentWeek.reduce((sum, l) => sum + l.weight, 0) / currentWeek.length;
-      const avgWaist = currentWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / currentWeek.length;
-      const avgBodyfat = currentWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / currentWeek.length;
-      const avgMuscle = currentWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / currentWeek.length;
+    // Calcular promedios por semana
+    for (const [weekKey, logsInWeek] of weekMap) {
+        const avgWeight = logsInWeek.reduce((sum, l) => sum + l.weight, 0) / logsInWeek.length;
+        const avgWaist = logsInWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / logsInWeek.length;
+        const avgBodyfat = logsInWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / logsInWeek.length;
+        const avgMuscle = logsInWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / logsInWeek.length;
 
-      weeks.push({
-        id: formatLocalDate(weekStartDate),
-        date: formatLocalDate(weekStartDate),
-        weight: avgWeight,
-        waist: avgWaist || undefined,
-        bodyfat: avgBodyfat || undefined,
-        skeletalMuscle: avgMuscle || undefined,
-        photos: [],
-      });
+        weeks.push({
+            id: weekKey,
+            date: weekKey,
+            weight: Math.round(avgWeight * 100) / 100,
+            waist: avgWaist > 0 ? Math.round(avgWaist * 100) / 100 : undefined,
+            bodyfat: avgBodyfat > 0 ? Math.round(avgBodyfat * 100) / 100 : undefined,
+            skeletalMuscle: avgMuscle > 0 ? Math.round(avgMuscle * 100) / 100 : undefined,
+            photos: [],
+        });
     }
 
-    return weeks.reverse();
-  }, [allLogs, settings]);
+    // Ordenar de más reciente a más antiguo
+    return weeks.sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
+}, [allLogs, settings]);
 
   useEffect(() => {
     fetchData();
   }, []);
 
+  const getCurrentWeekAverage = (weeklyAverages: WeightLog[]): number => {
+    if (weeklyAverages.length === 0) return 0;
+    return weeklyAverages[0].weight;
+};
+
   const progress = Math.min(Math.max(((initialWeight - currentWeight) / (initialWeight - targetWeight)) * 100, 0), 100);
+const currentWeekAverage = getCurrentWeekAverage(weeklyAveragesAsLogs);
 
   const formatDisplayDate = (dateString: string) => {
     const [year, month, day] = dateString.split('-').map(Number);
@@ -417,7 +391,9 @@ const WeightScreen: React.FC = () => {
     return formatter.format(localDate);
   };
 
+  
   return (
+    
     <View style={styles.container}>
       <NavBar
         logo={logo}
@@ -444,7 +420,7 @@ const WeightScreen: React.FC = () => {
       >
         <WeightProgressCard
           progress={progress}
-          currentWeight={currentWeight}
+          currentWeight={currentWeekAverage}
           targetWeight={targetWeight}
           onAddPress={handleAddPress}
         />

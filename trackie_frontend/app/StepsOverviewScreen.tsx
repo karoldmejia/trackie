@@ -5,6 +5,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { DailyLog, dailyLogService, FullStatsResult } from '@/services/dailyLogService';
 import { Settings, settingsService } from '@/services/settingsService';
 import { theme } from '@/theme';
+import { getMonthEndDate, getMonthStartDate, getWeekEndDate, getWeekStartDate, getYearEndDate, getYearStartDate } from '@/utils/dateHelpers';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -82,22 +83,19 @@ const StepsOverviewScreen: React.FC = () => {
     };
 
     const getDateRange = (range: TimeRange, offset: number) => {
-        const now = getCurrentLocalDate();
+        const now = new Date();
         let start: Date;
         let end: Date;
         let periodText = '';
+        const weekStartDay = settings?.weekStartDay ?? 1; // Usar el valor de settings
 
         if (range === 'week') {
-            const dayOfWeek = now.getDay();
-            const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-            start = new Date(now);
-            start.setDate(now.getDate() - daysToMonday + (offset * 7));
-            start.setHours(0, 0, 0, 0);
-
-            end = new Date(start);
-            end.setDate(start.getDate() + 6);
-            end.setHours(23, 59, 59, 999);
+            // Usar la fecha base con offset
+            const baseDate = new Date(now);
+            baseDate.setDate(now.getDate() + (offset * 7));
+            
+            start = getWeekStartDate(baseDate, weekStartDay);
+            end = getWeekEndDate(start);
 
             const formatDate = (date: Date) => {
                 const day = String(date.getDate()).padStart(2, '0');
@@ -106,32 +104,22 @@ const StepsOverviewScreen: React.FC = () => {
             };
             periodText = `${formatDate(start)} - ${formatDate(end)}`;
         } else if (range === 'month') {
-            const targetMonth = now.getMonth() + offset;
-            const targetYear = now.getFullYear();
-
-            start = new Date(targetYear, targetMonth, 1);
-            start.setHours(0, 0, 0, 0);
-
-            end = new Date(targetYear, targetMonth + 1, 0);
-            end.setHours(23, 59, 59, 999);
-
+            const targetDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+            start = getMonthStartDate(targetDate);
+            end = getMonthEndDate(targetDate);
+            
             const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-            periodText = `${monthNames[targetMonth]} ${targetYear}`;
+            periodText = `${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
         } else {
             const targetYear = now.getFullYear() + offset;
-
-            start = new Date(targetYear, 0, 1);
-            start.setHours(0, 0, 0, 0);
-
-            end = new Date(targetYear, 11, 31);
-            end.setHours(23, 59, 59, 999);
-
+            start = getYearStartDate(new Date(targetYear, 0, 1));
+            end = getYearEndDate(new Date(targetYear, 0, 1));
             periodText = targetYear.toString();
         }
 
         return { start, end, periodText };
     };
-
+    
     const processChartData = (logs: DailyLog[], range: TimeRange, offset: number) => {
         const { start, end, periodText } = getDateRange(range, offset);
         setCurrentPeriodText(periodText);

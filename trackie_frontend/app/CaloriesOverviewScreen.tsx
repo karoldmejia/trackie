@@ -5,9 +5,10 @@ import { ThemedText } from '@/components/ThemedText';
 import { DailyLog, dailyLogService, FullStatsResult } from '@/services/dailyLogService';
 import { Settings, settingsService } from '@/services/settingsService';
 import { theme } from '@/theme';
+import { formatLocalDate, getMonthEndDate, getMonthStartDate, getWeekEndDate, getWeekStartDate, getYearEndDate, getYearStartDate, parseLocalDate } from '@/utils/dateHelpers';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native'; // ← Agregar ScrollView
+import { ActivityIndicator, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 const CaloriesOverviewScreen: React.FC = () => {
     const router = useRouter();
@@ -24,23 +25,6 @@ const CaloriesOverviewScreen: React.FC = () => {
 
     const handleGoBack = () => {
         router.back();
-    };
-
-    const getCurrentLocalDate = (): Date => {
-        const now = new Date();
-        return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    };
-
-    const parseLocalDate = (dateString: string): Date => {
-        const [year, month, day] = dateString.split('-').map(Number);
-        return new Date(year, month - 1, day);
-    };
-
-    const formatLocalDate = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
     };
 
     const fetchData = async () => {
@@ -77,26 +61,24 @@ const CaloriesOverviewScreen: React.FC = () => {
             });
             setStats(statsData);
         } catch (error) {
+            console.error('Error fetching stats:', error);
         }
     };
 
     const getDateRange = (range: TimeRange, offset: number) => {
-        const now = getCurrentLocalDate();
+        const now = new Date();
         let start: Date;
         let end: Date;
         let periodText = '';
+        const weekStartDay = settings?.weekStartDay ?? 1; // Usar el valor de settings
 
         if (range === 'week') {
-            const dayOfWeek = now.getDay();
-            const daysToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-
-            start = new Date(now);
-            start.setDate(now.getDate() - daysToMonday + (offset * 7));
-            start.setHours(0, 0, 0, 0);
-
-            end = new Date(start);
-            end.setDate(start.getDate() + 6);
-            end.setHours(23, 59, 59, 999);
+            // Usar la fecha base con offset
+            const baseDate = new Date(now);
+            baseDate.setDate(now.getDate() + (offset * 7));
+            
+            start = getWeekStartDate(baseDate, weekStartDay);
+            end = getWeekEndDate(start);
 
             const formatDate = (date: Date) => {
                 const day = String(date.getDate()).padStart(2, '0');
@@ -105,26 +87,16 @@ const CaloriesOverviewScreen: React.FC = () => {
             };
             periodText = `${formatDate(start)} - ${formatDate(end)}`;
         } else if (range === 'month') {
-            const targetMonth = now.getMonth() + offset;
-            const targetYear = now.getFullYear();
-
-            start = new Date(targetYear, targetMonth, 1);
-            start.setHours(0, 0, 0, 0);
-
-            end = new Date(targetYear, targetMonth + 1, 0);
-            end.setHours(23, 59, 59, 999);
-
+            const targetDate = new Date(now.getFullYear(), now.getMonth() + offset, 1);
+            start = getMonthStartDate(targetDate);
+            end = getMonthEndDate(targetDate);
+            
             const monthNames = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'];
-            periodText = `${monthNames[targetMonth]} ${targetYear}`;
+            periodText = `${monthNames[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
         } else {
             const targetYear = now.getFullYear() + offset;
-
-            start = new Date(targetYear, 0, 1);
-            start.setHours(0, 0, 0, 0);
-
-            end = new Date(targetYear, 11, 31);
-            end.setHours(23, 59, 59, 999);
-
+            start = getYearStartDate(new Date(targetYear, 0, 1));
+            end = getYearEndDate(new Date(targetYear, 0, 1));
             periodText = targetYear.toString();
         }
 
@@ -135,11 +107,11 @@ const CaloriesOverviewScreen: React.FC = () => {
         const { start, end, periodText } = getDateRange(range, offset);
         setCurrentPeriodText(periodText);
 
-        const now = getCurrentLocalDate();
+        const now = new Date();
 
         if (range === 'week') {
-            const nextWeekStart = new Date(start);
-            nextWeekStart.setDate(start.getDate() + 7);
+            const nextWeekStart = getWeekStartDate(new Date(start), settings?.weekStartDay ?? 1);
+            nextWeekStart.setDate(nextWeekStart.getDate() + 7);
             setCanGoNext(nextWeekStart <= now);
         } else if (range === 'month') {
             const nextMonthStart = new Date(start);
@@ -224,7 +196,6 @@ const CaloriesOverviewScreen: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            {/* Navbar fijo superior */}
             <View style={styles.navbar}>
                 <TouchableOpacity onPress={handleGoBack} style={styles.backButton}>
                     <Icon name="ArrowLeft" size={18} color={theme.colors.text} />
@@ -241,7 +212,6 @@ const CaloriesOverviewScreen: React.FC = () => {
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Gráfico */}
                 <View style={styles.chartWrapper}>
                     <LineChartComponent
                         data={chartData}
@@ -257,7 +227,6 @@ const CaloriesOverviewScreen: React.FC = () => {
                 </View>
 
                 <View style={styles.stackedContainer}>
-                    {/* Promedio semanal */}
                     <View style={styles.cardWrapper}>
                         <AnalysisCard
                             icon="Flame"
@@ -267,7 +236,6 @@ const CaloriesOverviewScreen: React.FC = () => {
                             backgroundColor={theme.colors.white}
                         />
                     </View>
-                    {/* Buenos días */}
                     <View style={styles.cardWrapper}>
                         <AnalysisCard
                             icon="Smile"
@@ -276,8 +244,6 @@ const CaloriesOverviewScreen: React.FC = () => {
                             backgroundColor={theme.colors.white}
                         />
                     </View>
-
-                    {/* Malos días */}
                     <View style={styles.cardWrapper}>
                         <AnalysisCard
                             icon="Frown"

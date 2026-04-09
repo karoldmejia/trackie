@@ -89,6 +89,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         transform: [{ translateY: 15 }],
+        overflow: 'visible',
     },
     headerLeft: {
         flexDirection: 'row',

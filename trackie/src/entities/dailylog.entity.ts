@@ -19,10 +19,10 @@ export class DailyLog {
     @Column({type: 'enum', enum: WorkoutType, default: WorkoutType.NONE})
     workout: WorkoutType;
 
-    @Column({ type: 'int', default: 0 })
+    @Column({ type: 'float', default: 0 })
     energyDrinks: number;
 
-    @Column({ type: 'int', default: 0 })
+    @Column({ type: 'float', default: 0 })
     waterLiters: number;
 
     @CreateDateColumn()

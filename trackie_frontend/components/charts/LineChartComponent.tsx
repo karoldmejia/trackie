@@ -1,4 +1,3 @@
-// components/charts/LineChartComponent.tsx
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/theme';
@@ -62,27 +61,22 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
         onNavigate?.(direction);
     };
 
-    // Preparar datos para el gráfico
-    const chartData = data.map((point) => ({
-        value: point.value,
+    const validData = data.filter(point => 
+        point.value !== null && 
+        point.value !== undefined && 
+        !isNaN(point.value)
+    );
+
+    // Preparar datos para el gráfico - evitar valores cero problemáticos
+    const chartData = validData.map((point) => ({
+        value: point.value === 0 ? 0.001 : point.value,
         label: point.label,
     }));
 
-    // Función para redondear hacia arriba (ceiling)
-    const roundUpToNiceNumber = (num: number): number => {
-        if (num === 0) return 100;
-
-        const magnitude = Math.pow(10, Math.floor(Math.log10(num)));
-        const normalized = num / magnitude;
-
-        let rounded;
-        if (normalized <= 1) rounded = 1;
-        else if (normalized <= 2) rounded = 2;
-        else if (normalized <= 5) rounded = 5;
-        else rounded = 10;
-
-        return rounded * magnitude;
-    };
+const roundUpToNiceNumber = (num: number): number => {
+    if (num === 0) return 50;
+    return Math.ceil(num / 50) * 50;
+};
 
     const actualMax = data.length > 0 ? Math.max(...data.map(d => d.value), 0) : 0;
     const maxValue = actualMax > 0 ? roundUpToNiceNumber(actualMax) : 100;
@@ -106,7 +100,6 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
         if (y < 50) {
             textOffsetY = -30; // Mostrar abajo
         }
-        // Si el punto está cerca del borde inferior (más de 300px), mostrar arriba con mayor desplazamiento
         else if (y > 300) {
             textOffsetY = 20; // Mayor desplazamiento hacia arriba
         }
@@ -121,13 +114,30 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
         };
     });
 
-    const formatYAxisLabel = (label: string): string => {
-        const value = parseFloat(label);
-        if (isNaN(value)) return '0';
-        if (value === 0) return '0';
-        if (value >= 1000) return `${Math.round(value / 1000)}k`;
-        return Math.round(value).toString();
-    };
+const formatYAxisLabel = (label: string): string => {
+    const value = parseFloat(label);
+    if (isNaN(value)) return '0';
+    if (value === 0) return '0';
+    
+    let formattedValue: string;
+    
+    if (value >= 1000) {
+        const thousands = value / 1000;
+        const rounded = Math.round(thousands * 10) / 10;
+        if (rounded === Math.floor(rounded)) {
+            formattedValue = `${Math.floor(rounded)}k`;
+        } else {
+            formattedValue = `${rounded}k`;
+        }
+    } else {
+        formattedValue = Math.round(value).toString();
+    }
+    
+    if (unit) {
+        return `${formattedValue}${unit}`;
+    }
+    return formattedValue;
+};
 
     const chartWidth = screenWidth - 32;
     const spacing = Math.min(50, Math.max(30, chartWidth / (chartData.length || 1)));
@@ -223,7 +233,6 @@ export const LineChartComponent: React.FC<LineChartComponentProps> = ({
                             yAxisColor="rgba(0,0,0,0.1)"
                             xAxisLabelTextStyle={styles.axisLabel}
                             yAxisTextStyle={styles.axisLabel}
-                            yAxisLabelPrefix={unit ? `${unit} ` : ''}
                             maxValue={maxValue}
                             stepValue={step}
                             rulesColor="rgba(0,0,0,0.05)"
