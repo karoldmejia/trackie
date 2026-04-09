@@ -2,6 +2,7 @@ import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useKeyboard } from '@react-native-community/hooks';
 import React, { useEffect, useRef, useState } from 'react';
 import {
     Animated,
@@ -16,6 +17,7 @@ import {
 } from 'react-native';
 import { FormInput } from '../FormInput';
 import { WeightImagePicker } from './WeightImagePicker';
+
 
 interface WeightLogFormProps {
     visible: boolean;
@@ -63,6 +65,7 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const screenHeight = Dimensions.get('window').height;
+    const { keyboardHeight, keyboardShown } = useKeyboard();
 
     useEffect(() => {
         if (initialData) {
@@ -159,11 +162,17 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
             <Animated.View
                 style={[
                     styles.container,
-                    { transform: [{ translateY }], height: screenHeight * 0.6 }
+                    {
+                        transform: [{ translateY }],
+                        height: keyboardShown
+                            ? screenHeight * 0.8 - keyboardHeight
+                            : screenHeight * 0.8
+                    }
                 ]}
             >
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
                     style={styles.keyboardView}
                 >
                     <View style={styles.handle} />

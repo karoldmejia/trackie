@@ -1,6 +1,7 @@
 import { Icon } from '@/components/icon';
 import { theme } from '@/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
+import { useKeyboard } from '@react-native-community/hooks';
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, KeyboardAvoidingView, Modal, Platform, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { FormInput } from '../FormInput';
@@ -51,7 +52,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
     onClose,
     onSubmit,
     initialData,
-    title = 'Registro Diario',
+    title = 'Registro ciario',
     hideDatePicker = false,
 }) => {
     const getCurrentLocalDate = () => {
@@ -72,6 +73,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const screenHeight = Dimensions.get('window').height;
+    const { keyboardHeight, keyboardShown } = useKeyboard();
 
     useEffect(() => {
         if (initialData) {
@@ -168,11 +170,17 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
             <Animated.View
                 style={[
                     styles.container,
-                    { transform: [{ translateY }], height: screenHeight * 0.6 }
+                    {
+                        transform: [{ translateY }],
+                        height: keyboardShown
+                            ? screenHeight * 0.6 - keyboardHeight
+                            : screenHeight * 0.6
+                    }
                 ]}
             >
                 <KeyboardAvoidingView
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
                     style={styles.keyboardView}
                 >
                     <View style={styles.handle} />
