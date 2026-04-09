@@ -173,7 +173,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
                     {
                         transform: [{ translateY }],
                         height: keyboardShown
-                            ? screenHeight * 0.6 - keyboardHeight
+                            ? screenHeight * 0.6 + keyboardHeight
                             : screenHeight * 0.6
                     }
                 ]}

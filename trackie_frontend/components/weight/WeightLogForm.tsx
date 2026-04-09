@@ -165,8 +165,8 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
                     {
                         transform: [{ translateY }],
                         height: keyboardShown
-                            ? screenHeight * 0.8 - keyboardHeight
-                            : screenHeight * 0.8
+                            ? screenHeight * 0.7 + keyboardHeight
+                            : screenHeight * 0.7
                     }
                 ]}
             >

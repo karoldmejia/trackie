@@ -14,7 +14,7 @@ interface Option {
 }
 
 interface FormSelectProps {
-    icon: LucideIconName;  // Ahora TypeScript reconoce el tipo
+    icon: LucideIconName;
     placeholder: string;
     value: string;
     options: Option[];
@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         padding: 20,
-        maxHeight: '70%',
+        maxHeight: '85%',
     },
     modalHeader: {
         paddingBottom: 15,
