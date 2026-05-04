@@ -1,4 +1,4 @@
-const API_URL = 'https://trackie-production.up.railway.app';
+const API_URL = 'https://trackie-296r.onrender.com';
 
 console.log('API URL:', API_URL);
 

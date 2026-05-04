@@ -108,7 +108,7 @@ const AllWeightLogs: React.FC = () => {
                 const existingPhotos = editingLog?.photos || [];
 
                 for (const uri of data.photos) {
-                    if (uri.includes('/uploads/') || uri.includes('railway.app')) {
+                    if (uri.includes('/uploads/') || uri.includes('onrender.com')) {
                     }
                     // Nueva foto local
                     else if (uri.startsWith('file://')) {
