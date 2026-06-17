@@ -37,7 +37,7 @@ async upsertByDate(
         date: body.date,
         weight: parseFloat(body.weight),
         bodyfat: body.bodyfat ? parseFloat(body.bodyfat) : undefined,
-        skeletalMuscle: body.skeletalMuscle ? parseFloat(body.skeletalMuscle) : undefined,
+        hips: body.hips ? parseFloat(body.hips) : undefined,
         waist: body.waist ? parseFloat(body.waist) : undefined,
     };
 

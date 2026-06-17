@@ -123,7 +123,7 @@ const HomeScreen: React.FC = () => {
         date?: string;
         calories: string;
         steps: string;
-        energyDrinks: string;
+        proteinGrams: string;
         waterLiters: string;
         workout: WorkoutType;
     }) => {
@@ -132,7 +132,7 @@ const HomeScreen: React.FC = () => {
                 date: data.date || today,
                 calories: parseInt(data.calories) || 0,
                 steps: parseInt(data.steps) || 0,
-                energyDrinks: parseInt(data.energyDrinks) || 0,
+                proteinGrams: parseInt(data.proteinGrams) || 0,
                 waterLiters: parseFloat(data.waterLiters) || 0,
                 workout: data.workout,
             };
@@ -154,7 +154,7 @@ const HomeScreen: React.FC = () => {
         date: string;
         calories: string;
         steps: string;
-        energyDrinks: string;
+        proteinGrams: string;
         waterLiters: string;
         workout: WorkoutType;
     }) => {
@@ -163,7 +163,7 @@ const HomeScreen: React.FC = () => {
                 date: data.date,
                 calories: parseInt(data.calories) || 0,
                 steps: parseInt(data.steps) || 0,
-                energyDrinks: parseInt(data.energyDrinks) || 0,
+                proteinGrams: parseInt(data.proteinGrams) || 0,
                 waterLiters: parseFloat(data.waterLiters) || 0,
                 workout: data.workout,
             };
@@ -301,7 +301,7 @@ const HomeScreen: React.FC = () => {
                     date: editingLog.date,
                     calories: editingLog.calories,
                     steps: editingLog.steps,
-                    energyDrinks: editingLog.energyDrinks,
+                    proteinGrams: editingLog.proteinGrams,
                     waterLiters: editingLog.waterLiters,
                     workout: editingLog.workout,
                 } : undefined}

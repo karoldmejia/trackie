@@ -9,7 +9,7 @@ interface WeeklyDailyAverage {
     weekRange: string;
     avgCalories: number;
     avgSteps: number;
-    avgenergyDrinks: number;
+    avgproteinGrams: number;
     avgWaterLiters: number;
 }
 
@@ -53,7 +53,7 @@ export const WeeklyDailyCard: React.FC<WeeklyDailyCardProps> = ({
                     </View>
                     <View style={styles.historyStat}>
                         <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                            {weekData.avgenergyDrinks}
+                            {weekData.avgproteinGrams}
                         </ThemedText>
                         <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
                             energ.

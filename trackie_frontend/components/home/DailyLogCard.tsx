@@ -10,7 +10,7 @@ interface DailyLogCardProps {
         date: string;
         calories: number;
         steps: number;
-        energyDrinks: number;
+        proteinGrams: number;
         waterLiters: number;
         workout: string;
     };
@@ -94,7 +94,7 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({ log, onPress }) => {
                             color={theme.colors.textLight}
                             style={styles.statText}
                         >
-                            {log.energyDrinks} energizantes, {log.waterLiters} litros de agua
+                            {log.proteinGrams} energizantes, {log.waterLiters} litros de agua
                         </ThemedText>
                     </View>
                 </View>

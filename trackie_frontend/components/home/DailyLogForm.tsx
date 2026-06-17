@@ -31,7 +31,7 @@ interface DailyLogFormProps {
         date: string;
         calories: string;
         steps: string;
-        energyDrinks: string;
+        proteinGrams: string;
         waterLiters: string;
         workout: WorkoutType;
     }) => void;
@@ -39,7 +39,7 @@ interface DailyLogFormProps {
         date?: string;
         calories?: number;
         steps?: number;
-        energyDrinks?: number;
+        proteinGrams?: number;
         waterLiters?: number;
         workout?: string;
     };
@@ -67,7 +67,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [calories, setCalories] = useState('');
     const [steps, setSteps] = useState('');
-    const [energyDrinks, setenergyDrinks] = useState('');
+    const [proteinGrams, setproteinGrams] = useState('');
     const [waterLiters, setWaterLiters] = useState('');
     const [workout, setWorkout] = useState<WorkoutType>(WorkoutType.NONE);
 
@@ -86,7 +86,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
             }
             if (initialData.calories) setCalories(initialData.calories.toString());
             if (initialData.steps) setSteps(initialData.steps.toString());
-            if (initialData.energyDrinks) setenergyDrinks(initialData.energyDrinks.toString());
+            if (initialData.proteinGrams) setproteinGrams(initialData.proteinGrams.toString());
             if (initialData.waterLiters) setWaterLiters(initialData.waterLiters.toString());
             if (initialData.workout) setWorkout(initialData.workout as WorkoutType);
         }
@@ -137,7 +137,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
             date: formatDate(date),
             calories,
             steps,
-            energyDrinks,
+            proteinGrams,
             waterLiters,
             workout,
         });
@@ -148,7 +148,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
         setDate(getCurrentLocalDate());
         setCalories('');
         setSteps('');
-        setenergyDrinks('');
+        setproteinGrams('');
         setWaterLiters('');
         setWorkout(WorkoutType.NONE);
         onClose();
@@ -274,8 +274,8 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
                                 <FormInput
                                     icon="Coffee"
                                     placeholder="Energizantes"
-                                    value={energyDrinks}
-                                    onChangeText={setenergyDrinks}
+                                    value={proteinGrams}
+                                    onChangeText={setproteinGrams}
                                     keyboardType="numeric"
                                     rounded={false}
                                     containerStyle={styles.topLeftInput}

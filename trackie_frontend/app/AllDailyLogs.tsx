@@ -70,21 +70,21 @@ const AllDailyLogs: React.FC = () => {
         date: string;
         calories: string;
         steps: string;
-        energyDrinks: string;
+        proteinGrams: string;
         waterLiters: string;
         workout: WorkoutType;
     }) => {
         try {
             const caloriesValue = parseInt(data.calories);
             const stepsValue = parseInt(data.steps);
-            const energyDrinksValue = parseInt(data.energyDrinks);
+            const proteinGramsValue = parseInt(data.proteinGrams);
             const waterLitersValue = parseFloat(data.waterLiters);
 
             const updatedLog: CreateDailyLogDto = {
                 date: data.date,
                 calories: isNaN(caloriesValue) ? 0 : caloriesValue,
                 steps: isNaN(stepsValue) ? 0 : stepsValue,
-                energyDrinks: isNaN(energyDrinksValue) ? 0 : energyDrinksValue,
+                proteinGrams: isNaN(proteinGramsValue) ? 0 : proteinGramsValue,
                 waterLiters: isNaN(waterLitersValue) ? 0 : waterLitersValue,
                 workout: data.workout,
             };
@@ -252,7 +252,7 @@ const AllDailyLogs: React.FC = () => {
                     date: editingLog.date,
                     calories: editingLog.calories,
                     steps: editingLog.steps,
-                    energyDrinks: editingLog.energyDrinks,
+                    proteinGrams: editingLog.proteinGrams,
                     waterLiters: editingLog.waterLiters,
                     workout: editingLog.workout,
                 } : undefined}

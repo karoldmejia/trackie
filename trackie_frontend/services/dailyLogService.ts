@@ -6,7 +6,7 @@ export interface DailyLog {
     calories: number;
     steps: number;
     workout: string;
-    energyDrinks: number;
+    proteinGrams: number;
     waterLiters: number;
 }
 
@@ -15,7 +15,7 @@ export interface CreateDailyLogDto {
     calories?: number;
     steps?: number;
     workout?: string;
-    energyDrinks?: number;
+    proteinGrams?: number;
     waterLiters?: number;
 }
 

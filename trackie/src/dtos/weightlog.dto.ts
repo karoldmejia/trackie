@@ -17,7 +17,7 @@ export class CreateWeightLogDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  skeletalMuscle?: number;
+  hips?: number;
 
   @IsOptional()
   @IsNumber()
@@ -45,7 +45,7 @@ export class UpdateWeightLogDto {
   @IsOptional()
   @IsNumber()
   @Min(0)
-  skeletalMuscle?: number;
+  hips?: number;
 
   @IsOptional()
   @IsNumber()
