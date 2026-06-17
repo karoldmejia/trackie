@@ -273,7 +273,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
                             <View style={styles.halfColumn}>
                                 <FormInput
                                     icon="Coffee"
-                                    placeholder="Energizantes"
+                                    placeholder="Proteína"
                                     value={proteinGrams}
                                     onChangeText={setproteinGrams}
                                     keyboardType="numeric"

@@ -94,7 +94,7 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({ log, onPress }) => {
                             color={theme.colors.textLight}
                             style={styles.statText}
                         >
-                            {log.proteinGrams} energizantes, {log.waterLiters} litros de agua
+                            {log.proteinGrams}g de proteína, {log.waterLiters} litros de agua
                         </ThemedText>
                     </View>
                 </View>

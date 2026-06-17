@@ -59,7 +59,7 @@ export const WeightMetricsGrid: React.FC<WeightMetricsGridProps> = ({
             key: 'hips',
             title: 'Cadera',
             value: latestLog?.hips || 0,
-            unit: '%',
+            unit: 'cm',
             iconName: 'BicepsFlexed' as const,
         },
     ];

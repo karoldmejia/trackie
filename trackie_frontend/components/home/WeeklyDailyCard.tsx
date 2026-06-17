@@ -56,7 +56,7 @@ export const WeeklyDailyCard: React.FC<WeeklyDailyCardProps> = ({
                             {weekData.avgproteinGrams}
                         </ThemedText>
                         <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
-                            energ.
+                            g
                         </ThemedText>
                     </View>
                     <View style={styles.historyStat}>

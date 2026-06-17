@@ -5,7 +5,7 @@ export default function hipsOverviewScreen() {
         <MetricOverviewScreen
             metricKey="hips"
             title="Cadera"
-            unit="%"
+            unit="cm"
             iconColor="#7B68EE"
             iconName="BicepsFlexed"
         />

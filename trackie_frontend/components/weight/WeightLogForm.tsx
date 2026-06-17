@@ -277,7 +277,7 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
                             <View style={styles.halfColumn}>
                                 <FormInput
                                     icon="BicepsFlexed"
-                                    placeholder="Cadera (%)"
+                                    placeholder="Cadera (cm)"
                                     value={hips}
                                     onChangeText={setHips}
                                     keyboardType="numeric"
