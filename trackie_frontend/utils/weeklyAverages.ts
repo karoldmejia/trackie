@@ -6,7 +6,7 @@ export interface WeeklyDailyAverage {
     weekRange: string;
     avgCalories: number;
     avgSteps: number;
-    avgEnergyDrinks: number;
+    avgenergyDrinks: number;
     avgWaterLiters: number;
 }
 
@@ -75,7 +75,7 @@ export const calculateWeeklyAveragesFromDailyLogs = (
     for (const [weekKey, logsInWeek] of weekMap) {
         const avgCalories = logsInWeek.reduce((sum, l) => sum + l.calories, 0) / logsInWeek.length;
         const avgSteps = logsInWeek.reduce((sum, l) => sum + l.steps, 0) / logsInWeek.length;
-        const avgEnergyDrinks = logsInWeek.reduce((sum, l) => sum + l.energyDrinks, 0) / logsInWeek.length;
+        const avgenergyDrinks = logsInWeek.reduce((sum, l) => sum + l.energyDrinks, 0) / logsInWeek.length;
         const avgWaterLiters = logsInWeek.reduce((sum, l) => sum + l.waterLiters, 0) / logsInWeek.length;
 
         const weekStart = parseLocalDate(weekKey);
@@ -88,7 +88,7 @@ export const calculateWeeklyAveragesFromDailyLogs = (
             weekRange,
             avgCalories: Math.round(avgCalories),
             avgSteps: Math.round(avgSteps),
-            avgEnergyDrinks: Math.round(avgEnergyDrinks),
+            avgenergyDrinks: Math.round(avgenergyDrinks),
             avgWaterLiters: Math.round(avgWaterLiters * 10) / 10,
         });
     }

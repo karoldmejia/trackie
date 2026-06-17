@@ -1,0 +1,12 @@
+[project]
+id = "xaxpthdigifmsubydwbr"
+
+[api]
+enabled = true
+schemas = ["public", "auth", "storage"]
+
+[db]
+port = 54322
+
+[studio]
+port = 54323

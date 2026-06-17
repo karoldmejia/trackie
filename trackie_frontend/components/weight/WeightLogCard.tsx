@@ -67,10 +67,10 @@ export const WeightLogCard: React.FC<WeightLogCardProps> = ({
                             </ThemedText>
                         </View>
                     )}
-                    {log.skeletalMuscle !== undefined && log.skeletalMuscle > 0 && (
+                    {log.hips !== undefined && log.hips > 0 && (
                         <View style={styles.historyStat}>
                             <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                                {log.skeletalMuscle}
+                                {log.hips}
                             </ThemedText>
                             <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
                                 %

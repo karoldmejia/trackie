@@ -68,7 +68,7 @@ export default function RootLayout() {
             options={{ headerShown: false }}
           />
           <Stack.Screen
-            name="SkeletalMuscleOverviewScreen"
+            name="HipsOverviewScreen"
             options={{ headerShown: false }}
           />
           <Stack.Screen

@@ -26,8 +26,8 @@ export const WeightMetricsGrid: React.FC<WeightMetricsGridProps> = ({
             case 'bodyfat':
                 router.push('/BodyfatOverviewScreen');
                 break;
-            case 'skeletalMuscle':
-                router.push('/SkeletalMuscleOverviewScreen');
+            case 'hips':
+                router.push('/HipsOverviewScreen');
                 break;
         }
         onMetricPress?.(metric);
@@ -56,9 +56,9 @@ export const WeightMetricsGrid: React.FC<WeightMetricsGridProps> = ({
             iconName: 'Activity' as const,
         },
         {
-            key: 'skeletalMuscle',
-            title: 'Músculo',
-            value: latestLog?.skeletalMuscle || 0,
+            key: 'hips',
+            title: 'Cadera',
+            value: latestLog?.hips || 0,
             unit: '%',
             iconName: 'BicepsFlexed' as const,
         },

@@ -75,7 +75,7 @@ const AllWeightLogs: React.FC = () => {
         weight: string;
         waist: string;
         bodyfat: string;
-        skeletalMuscle: string;
+        hips: string;
         photos: string[];
     }) => {
         try {
@@ -98,8 +98,8 @@ const AllWeightLogs: React.FC = () => {
                 newLog.bodyfat = parseFloat(data.bodyfat);
             }
 
-            if (data.skeletalMuscle && !isNaN(parseFloat(data.skeletalMuscle)) && parseFloat(data.skeletalMuscle) > 0) {
-                newLog.skeletalMuscle = parseFloat(data.skeletalMuscle);
+            if (data.hips && !isNaN(parseFloat(data.hips)) && parseFloat(data.hips) > 0) {
+                newLog.hips = parseFloat(data.hips);
             }
 
             if (data.photos && data.photos.length > 0) {
@@ -322,7 +322,7 @@ const AllWeightLogs: React.FC = () => {
                     weight: editingLog.weight,
                     waist: editingLog.waist,
                     bodyfat: editingLog.bodyfat,
-                    skeletalMuscle: editingLog.skeletalMuscle,
+                    hips: editingLog.hips,
                     photos: editingLog.photos,
                 } : undefined}
                 title="Editar Registro de Peso"

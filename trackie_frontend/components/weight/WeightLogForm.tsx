@@ -27,7 +27,7 @@ interface WeightLogFormProps {
         weight: string;
         waist: string;
         bodyfat: string;
-        skeletalMuscle: string;
+        hips: string;
         photos: string[];
     }) => void;
     initialData?: {
@@ -35,7 +35,7 @@ interface WeightLogFormProps {
         weight?: number;
         waist?: number;
         bodyfat?: number;
-        skeletalMuscle?: number;
+        hips?: number;
         photos?: string[];
     };
     title?: string;
@@ -60,7 +60,7 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
     const [weight, setWeight] = useState('');
     const [waist, setWaist] = useState('');
     const [bodyfat, setBodyfat] = useState('');
-    const [skeletalMuscle, setSkeletalMuscle] = useState('');
+    const [hips, setHips] = useState('');
     const [photos, setPhotos] = useState<string[]>([]);
 
     const slideAnim = useRef(new Animated.Value(0)).current;
@@ -79,7 +79,7 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
             if (initialData.weight) setWeight(initialData.weight.toString());
             if (initialData.waist) setWaist(initialData.waist.toString());
             if (initialData.bodyfat) setBodyfat(initialData.bodyfat.toString());
-            if (initialData.skeletalMuscle) setSkeletalMuscle(initialData.skeletalMuscle.toString());
+            if (initialData.hips) setHips(initialData.hips.toString());
             if (initialData.photos) setPhotos(initialData.photos);
         }
     }, [initialData]);
@@ -130,7 +130,7 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
             weight,
             waist,
             bodyfat,
-            skeletalMuscle,
+            hips,
             photos,
         });
         handleClose();
@@ -141,7 +141,7 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
         setWeight('');
         setWaist('');
         setBodyfat('');
-        setSkeletalMuscle('');
+        setHips('');
         setPhotos([]);
         onClose();
     };
@@ -277,9 +277,9 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
                             <View style={styles.halfColumn}>
                                 <FormInput
                                     icon="BicepsFlexed"
-                                    placeholder="Músculo (%)"
-                                    value={skeletalMuscle}
-                                    onChangeText={setSkeletalMuscle}
+                                    placeholder="Cadera (%)"
+                                    value={hips}
+                                    onChangeText={setHips}
                                     keyboardType="numeric"
                                     rounded={false}
                                     containerStyle={styles.middleRightInput}

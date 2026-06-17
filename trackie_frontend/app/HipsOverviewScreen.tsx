@@ -1,10 +1,10 @@
 import { MetricOverviewScreen } from './MetricOverviewScreen';
 
-export default function SkeletalMuscleOverviewScreen() {
+export default function hipsOverviewScreen() {
     return (
         <MetricOverviewScreen
-            metricKey="skeletalMuscle"
-            title="Músculo"
+            metricKey="hips"
+            title="Cadera"
             unit="%"
             iconColor="#7B68EE"
             iconName="BicepsFlexed"

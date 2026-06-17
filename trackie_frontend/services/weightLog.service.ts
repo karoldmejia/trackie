@@ -5,7 +5,7 @@ export interface WeightLog {
     date: string;
     weight: number;
     bodyfat?: number;
-    skeletalMuscle?: number;
+    hips?: number;
     waist?: number;
     photos?: string[];
 }
@@ -14,7 +14,7 @@ export interface CreateWeightLogDto {
     date: string;
     weight: number;
     bodyfat?: number;
-    skeletalMuscle?: number;
+    hips?: number;
     waist?: number;
     photos?: File[];
     photosToDelete?: string[];
@@ -24,7 +24,7 @@ export interface CreateWeightLogDto {
 export interface UpdateWeightLogDto {
     weight?: number;
     bodyfat?: number;
-    skeletalMuscle?: number;
+    hips?: number;
     waist?: number;
     photos?: File[];
     photosToDelete?: string[];
@@ -35,27 +35,27 @@ export interface WeightStats {
     max: {
         weight: number;
         bodyfat: number;
-        skeletalMuscle: number;
+        hips: number;
         waist: number;
         date: string;
     };
     min: {
         weight: number;
         bodyfat: number;
-        skeletalMuscle: number;
+        hips: number;
         waist: number;
         date: string;
     };
     average: {
         weight: number;
         bodyfat: number;
-        skeletalMuscle: number;
+        hips: number;
         waist: number;
     };
     total: {
         weight: number;
         bodyfat: number;
-        skeletalMuscle: number;
+        hips: number;
         waist: number;
     };
     count: number;
@@ -109,8 +109,8 @@ export const weightLogService = {
             formData.append('bodyfat', data.bodyfat.toString());
         }
 
-        if (data.skeletalMuscle !== undefined && data.skeletalMuscle !== null && !isNaN(data.skeletalMuscle) && data.skeletalMuscle > 0) {
-            formData.append('skeletalMuscle', data.skeletalMuscle.toString());
+        if (data.hips !== undefined && data.hips !== null && !isNaN(data.hips) && data.hips > 0) {
+            formData.append('hips', data.hips.toString());
         }
 
         if (data.waist !== undefined && data.waist !== null && !isNaN(data.waist) && data.waist > 0) {
@@ -146,8 +146,8 @@ export const weightLogService = {
             formData.append('bodyfat', data.bodyfat.toString());
         }
 
-        if (data.skeletalMuscle !== undefined) {
-            formData.append('skeletalMuscle', data.skeletalMuscle.toString());
+        if (data.hips !== undefined) {
+            formData.append('hips', data.hips.toString());
         }
 
         if (data.waist !== undefined) {  // 🆕
@@ -181,8 +181,8 @@ export const weightLogService = {
             formData.append('bodyfat', data.bodyfat.toString());
         }
 
-        if (data.skeletalMuscle !== undefined) {
-            formData.append('skeletalMuscle', data.skeletalMuscle.toString());
+        if (data.hips !== undefined) {
+            formData.append('hips', data.hips.toString());
         }
 
         if (data.waist !== undefined) {  // 🆕

@@ -67,7 +67,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
     const [showDatePicker, setShowDatePicker] = useState(false);
     const [calories, setCalories] = useState('');
     const [steps, setSteps] = useState('');
-    const [energyDrinks, setEnergyDrinks] = useState('');
+    const [energyDrinks, setenergyDrinks] = useState('');
     const [waterLiters, setWaterLiters] = useState('');
     const [workout, setWorkout] = useState<WorkoutType>(WorkoutType.NONE);
 
@@ -86,7 +86,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
             }
             if (initialData.calories) setCalories(initialData.calories.toString());
             if (initialData.steps) setSteps(initialData.steps.toString());
-            if (initialData.energyDrinks) setEnergyDrinks(initialData.energyDrinks.toString());
+            if (initialData.energyDrinks) setenergyDrinks(initialData.energyDrinks.toString());
             if (initialData.waterLiters) setWaterLiters(initialData.waterLiters.toString());
             if (initialData.workout) setWorkout(initialData.workout as WorkoutType);
         }
@@ -148,7 +148,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
         setDate(getCurrentLocalDate());
         setCalories('');
         setSteps('');
-        setEnergyDrinks('');
+        setenergyDrinks('');
         setWaterLiters('');
         setWorkout(WorkoutType.NONE);
         onClose();
@@ -275,7 +275,7 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
                                     icon="Coffee"
                                     placeholder="Energizantes"
                                     value={energyDrinks}
-                                    onChangeText={setEnergyDrinks}
+                                    onChangeText={setenergyDrinks}
                                     keyboardType="numeric"
                                     rounded={false}
                                     containerStyle={styles.topLeftInput}

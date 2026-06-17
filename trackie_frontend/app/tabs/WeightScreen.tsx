@@ -105,7 +105,7 @@ const calculateWeeksFromLogs = (logs: WeightLog[], weekStartDay: number = 1): We
         const avgWeight = logsInWeek.reduce((sum, l) => sum + l.weight, 0) / logsInWeek.length;
         const avgWaist = logsInWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / logsInWeek.length;
         const avgBodyfat = logsInWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / logsInWeek.length;
-        const avgMuscle = logsInWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / logsInWeek.length;
+        const avgMuscle = logsInWeek.reduce((sum, l) => sum + (l.hips || 0), 0) / logsInWeek.length;
 
         weeks.push({
             id: weekKey,
@@ -113,7 +113,7 @@ const calculateWeeksFromLogs = (logs: WeightLog[], weekStartDay: number = 1): We
             weight: Math.round(avgWeight * 100) / 100,
             waist: avgWaist > 0 ? Math.round(avgWaist * 100) / 100 : undefined,
             bodyfat: avgBodyfat > 0 ? Math.round(avgBodyfat * 100) / 100 : undefined,
-            skeletalMuscle: avgMuscle > 0 ? Math.round(avgMuscle * 100) / 100 : undefined,
+            hips: avgMuscle > 0 ? Math.round(avgMuscle * 100) / 100 : undefined,
             photos: [],
         });
     }
@@ -176,8 +176,8 @@ const calculateWeeksFromLogs = (logs: WeightLog[], weekStartDay: number = 1): We
       case 'bodyfat':
         router.replace('/BodyfatOverviewScreen');
         break;
-      case 'skeletalMuscle':
-        router.replace('/SkeletalMuscleOverviewScreen');
+      case 'hips':
+        router.replace('/HipsOverviewScreen');
         break;
     }
   };
@@ -194,7 +194,7 @@ const calculateWeeksFromLogs = (logs: WeightLog[], weekStartDay: number = 1): We
     weight: string;
     waist: string;
     bodyfat: string;
-    skeletalMuscle: string;
+    hips: string;
     photos: string[];
   }) => {
     try {
@@ -217,8 +217,8 @@ const calculateWeeksFromLogs = (logs: WeightLog[], weekStartDay: number = 1): We
         newLog.bodyfat = parseFloat(data.bodyfat);
       }
 
-      if (data.skeletalMuscle && !isNaN(parseFloat(data.skeletalMuscle)) && parseFloat(data.skeletalMuscle) > 0) {
-        newLog.skeletalMuscle = parseFloat(data.skeletalMuscle);
+      if (data.hips && !isNaN(parseFloat(data.hips)) && parseFloat(data.hips) > 0) {
+        newLog.hips = parseFloat(data.hips);
       }
 
       if (data.photos && data.photos.length > 0) {
@@ -349,7 +349,7 @@ const weeklyAveragesAsLogs = useMemo(() => {
         const avgWeight = logsInWeek.reduce((sum, l) => sum + l.weight, 0) / logsInWeek.length;
         const avgWaist = logsInWeek.reduce((sum, l) => sum + (l.waist || 0), 0) / logsInWeek.length;
         const avgBodyfat = logsInWeek.reduce((sum, l) => sum + (l.bodyfat || 0), 0) / logsInWeek.length;
-        const avgMuscle = logsInWeek.reduce((sum, l) => sum + (l.skeletalMuscle || 0), 0) / logsInWeek.length;
+        const avgMuscle = logsInWeek.reduce((sum, l) => sum + (l.hips || 0), 0) / logsInWeek.length;
 
         weeks.push({
             id: weekKey,
@@ -357,7 +357,7 @@ const weeklyAveragesAsLogs = useMemo(() => {
             weight: Math.round(avgWeight * 100) / 100,
             waist: avgWaist > 0 ? Math.round(avgWaist * 100) / 100 : undefined,
             bodyfat: avgBodyfat > 0 ? Math.round(avgBodyfat * 100) / 100 : undefined,
-            skeletalMuscle: avgMuscle > 0 ? Math.round(avgMuscle * 100) / 100 : undefined,
+            hips: avgMuscle > 0 ? Math.round(avgMuscle * 100) / 100 : undefined,
             photos: [],
         });
     }
@@ -489,7 +489,7 @@ const currentWeekAverage = getCurrentWeekAverage(weeklyAveragesAsLogs);
           weight: editingLog.weight,
           waist: editingLog.waist,
           bodyfat: editingLog.bodyfat,
-          skeletalMuscle: editingLog.skeletalMuscle,
+          hips: editingLog.hips,
           photos: editingLog.photos,
         } : undefined}
         title="Editar Registro de Peso"

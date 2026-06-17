@@ -16,10 +16,10 @@ import { calculateWeeklyAveragesFromDailyLogs, WeeklyDailyAverage } from '@/util
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  View
+    RefreshControl,
+    ScrollView,
+    StyleSheet,
+    View
 } from 'react-native';
 
 const logo = require('@/assets/home_logo.png');

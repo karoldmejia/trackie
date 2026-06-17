@@ -11,7 +11,7 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 interface MetricOverviewScreenProps {
-    metricKey: 'weight' | 'waist' | 'bodyfat' | 'skeletalMuscle';
+    metricKey: 'weight' | 'waist' | 'bodyfat' | 'hips';
     title: string;
     unit: string;
     iconColor: string;
@@ -166,7 +166,7 @@ export const MetricOverviewScreen: React.FC<MetricOverviewScreenProps> = ({
                 case 'weight': value = log.weight; break;
                 case 'waist': value = log.waist || 0; break;
                 case 'bodyfat': value = log.bodyfat || 0; break;
-                case 'skeletalMuscle': value = log.skeletalMuscle || 0; break;
+                case 'hips': value = log.hips || 0; break;
             }
             return {
                 value: value,
@@ -202,7 +202,7 @@ export const MetricOverviewScreen: React.FC<MetricOverviewScreenProps> = ({
             case 'weight': return stats.average.weight;
             case 'waist': return stats.average.waist;
             case 'bodyfat': return stats.average.bodyfat;
-            case 'skeletalMuscle': return stats.average.skeletalMuscle;
+            case 'hips': return stats.average.hips;
             default: return 0;
         }
     };
