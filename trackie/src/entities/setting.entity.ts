@@ -16,4 +16,7 @@ export class Settings {
 
     @Column({ type: 'float', default: 60 })
     targetWeight: number;
+
+    @Column({ type: 'float', default: 70 })
+    startWeight: number;
 }

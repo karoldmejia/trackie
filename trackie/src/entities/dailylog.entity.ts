@@ -20,7 +20,7 @@ export class DailyLog {
     workout: WorkoutType;
 
     @Column({ type: 'float', default: 0 })
-    energyDrinks: number;
+    proteinGrams: number;
 
     @Column({ type: 'float', default: 0 })
     waterLiters: number;

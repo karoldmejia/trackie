@@ -9,27 +9,27 @@ export interface WeightStats {
     max: {
         weight: number;
         bodyfat: number;
-        skeletalMuscle: number;
+        skeletalHips: number;
         waist: number;
         date: string;
     };
     min: {
         weight: number;
         bodyfat: number;
-        skeletalMuscle: number;
+        skeletalHips: number;
         waist: number;
         date: string;
     };
     average: {
         weight: number;
         bodyfat: number;
-        skeletalMuscle: number;
+        skeletalHips: number;
         waist: number;
     };
     total: {
         weight: number;
         bodyfat: number;
-        skeletalMuscle: number;
+        skeletalHips: number;
         waist: number;
     };
     count: number;
@@ -52,7 +52,7 @@ export interface WeightTrend {
         percentage: number;
         direction: 'up' | 'down' | 'stable';
     };
-    skeletalMuscle: {
+    skeletalHips: {
         start: number;
         end: number;
         change: number;
@@ -241,27 +241,27 @@ export class WeightLogService {
                 max: {
                     weight: 0,
                     bodyfat: 0,
-                    skeletalMuscle: 0,
+                    skeletalHips: 0,
                     waist: 0,
                     date: '',
                 },
                 min: {
                     weight: 0,
                     bodyfat: 0,
-                    skeletalMuscle: 0,
+                    skeletalHips: 0,
                     waist: 0,
                     date: '',
                 },
                 average: {
                     weight: 0,
                     bodyfat: 0,
-                    skeletalMuscle: 0,
+                    skeletalHips: 0,
                     waist: 0,
                 },
                 total: {
                     weight: 0,
                     bodyfat: 0,
-                    skeletalMuscle: 0,
+                    skeletalHips: 0,
                     waist: 0,
                 },
                 count: 0,
@@ -275,18 +275,18 @@ export class WeightLogService {
         let minWeight = { value: Infinity, date: '' };
         let maxBodyfat = { value: -Infinity, date: '' };
         let minBodyfat = { value: Infinity, date: '' };
-        let maxMuscle = { value: -Infinity, date: '' };
-        let minMuscle = { value: Infinity, date: '' };
+        let maxHips = { value: -Infinity, date: '' };
+        let minHips = { value: Infinity, date: '' };
         let maxWaist = { value: -Infinity, date: '' };
         let minWaist = { value: Infinity, date: '' };
 
         let totalWeight = 0;
         let totalBodyfat = 0;
-        let totalMuscle = 0;
+        let totalHips = 0;
         let totalWaist = 0;
         let weightCount = 0;
         let bodyfatCount = 0;
-        let muscleCount = 0;
+        let hipsCount = 0;
         let waistCount = 0;
 
         for (const log of logs) {
@@ -317,15 +317,15 @@ export class WeightLogService {
             }
 
             // Músculo esquelético
-            if (log.skeletalMuscle !== undefined && log.skeletalMuscle !== null) {
-                totalMuscle += log.skeletalMuscle;
-                muscleCount++;
+            if (log.hips !== undefined && log.hips !== null) {
+                totalHips += log.hips;
+                hipsCount++;
 
-                if (log.skeletalMuscle > maxMuscle.value) {
-                    maxMuscle = { value: log.skeletalMuscle, date: log.date };
+                if (log.hips > maxHips.value) {
+                    maxHips = { value: log.hips, date: log.date };
                 }
-                if (log.skeletalMuscle < minMuscle.value) {
-                    minMuscle = { value: log.skeletalMuscle, date: log.date };
+                if (log.hips < minHips.value) {
+                    minHips = { value: log.hips, date: log.date };
                 }
             }
 
@@ -347,27 +347,27 @@ export class WeightLogService {
             max: {
                 weight: maxWeight.value === -Infinity ? 0 : maxWeight.value,
                 bodyfat: maxBodyfat.value === -Infinity ? 0 : maxBodyfat.value,
-                skeletalMuscle: maxMuscle.value === -Infinity ? 0 : maxMuscle.value,
+                skeletalHips: maxHips.value === -Infinity ? 0 : maxHips.value,
                 waist: maxWaist.value === -Infinity ? 0 : maxWaist.value,
-                date: maxWeight.date || maxBodyfat.date || maxMuscle.date || maxWaist.date || '',
+                date: maxWeight.date || maxBodyfat.date || maxHips.date || maxWaist.date || '',
             },
             min: {
                 weight: minWeight.value === Infinity ? 0 : minWeight.value,
                 bodyfat: minBodyfat.value === Infinity ? 0 : minBodyfat.value,
-                skeletalMuscle: minMuscle.value === Infinity ? 0 : minMuscle.value,
+                skeletalHips: minHips.value === Infinity ? 0 : minHips.value,
                 waist: minWaist.value === Infinity ? 0 : minWaist.value,
-                date: minWeight.date || minBodyfat.date || minMuscle.date || minWaist.date || '',
+                date: minWeight.date || minBodyfat.date || minHips.date || minWaist.date || '',
             },
             average: {
                 weight: weightCount > 0 ? Number((totalWeight / weightCount).toFixed(2)) : 0,
                 bodyfat: bodyfatCount > 0 ? Number((totalBodyfat / bodyfatCount).toFixed(2)) : 0,
-                skeletalMuscle: muscleCount > 0 ? Number((totalMuscle / muscleCount).toFixed(2)) : 0,
+                skeletalHips: hipsCount > 0 ? Number((totalHips / hipsCount).toFixed(2)) : 0,
                 waist: waistCount > 0 ? Number((totalWaist / waistCount).toFixed(2)) : 0,
             },
             total: {
                 weight: Number(totalWeight.toFixed(2)),
                 bodyfat: Number(totalBodyfat.toFixed(2)),
-                skeletalMuscle: Number(totalMuscle.toFixed(2)),
+                skeletalHips: Number(totalHips.toFixed(2)),
                 waist: Number(totalWaist.toFixed(2)),
             },
             count: logs.length,

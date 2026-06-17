@@ -15,7 +15,7 @@ export class WeightLog {
     bodyfat: number; // porcentaje de grasa corporal
 
     @Column({ type: 'float', nullable: true })
-    skeletalMuscle: number; // masa muscular esquelética en porcentaje
+    hips: number; 
 
     @Column({ type: 'float', nullable: true })
     waist: number; // en cm

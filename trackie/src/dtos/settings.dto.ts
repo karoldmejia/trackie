@@ -20,4 +20,9 @@ export class UpdateSettingsDto {
   @Min(0)
   @IsOptional()
   targetWeight?: number;
+
+  @IsNumber()
+  @Min(0)
+  @IsOptional()
+  startWeight?: number;
 }

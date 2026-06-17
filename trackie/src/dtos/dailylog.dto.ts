@@ -20,7 +20,7 @@ export class CreateDailyLogDto {
     @IsNumber()
     @Min(0)
     @IsOptional()
-    energyDrinks?: number;
+    proteinGrams?: number;
 
     @IsNumber()
     @Min(0)
@@ -51,7 +51,7 @@ export class UpdateDailyLogDto {
     @IsNumber()
     @Min(0)
     @IsOptional()
-    energyDrinks?: number;
+    proteinGrams?: number;
 
     @IsNumber()
     @Min(0)
