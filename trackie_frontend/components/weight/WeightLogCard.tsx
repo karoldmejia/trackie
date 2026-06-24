@@ -73,7 +73,7 @@ export const WeightLogCard: React.FC<WeightLogCardProps> = ({
                                 {log.hips}
                             </ThemedText>
                             <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
-                                %
+                                cm
                             </ThemedText>
                         </View>
                     )}
@@ -128,7 +128,7 @@ const styles = StyleSheet.create({
     },
     historyStats: {
         flexDirection: 'row',
-        gap: 16,
+        gap: 10,
     },
     historyStat: {
         flexDirection: 'row',

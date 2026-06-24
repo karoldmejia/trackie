@@ -266,12 +266,18 @@ const HomeScreen: React.FC = () => {
                         searchDate={currentSearchDate}
                     />
                 ) : (
-                    <WeeklyDailyList
-                        weeks={weeklyAverages}
-                        onWeekPress={(week) => {
-                            console.log('Semana seleccionada:', week);
-                        }}
-                    />
+                <WeeklyDailyList
+                    weeks={weeklyAverages}
+                    onWeekPress={(week) => {
+                        router.push({
+                            pathname: '/WeekDetailScreen',
+                            params: {
+                                weekStart: week.weekStart,
+                                weekEnd: week.weekEnd,
+                            }
+                        });
+                    }}
+                />
                 )}
             </ScrollView>
 

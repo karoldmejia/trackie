@@ -26,7 +26,7 @@ export const WeightLogList: React.FC<WeightLogListProps> = ({
         <View style={styles.historySection}>
             <View style={styles.historyHeader}>
                 <ThemedText variant="medium" size={12} color={theme.colors.textLight} style={styles.historyTitle}>
-                    PROMEDIO POR SEMANA
+                    PROMEDIO MENSUAL
                 </ThemedText>
             </View>
 

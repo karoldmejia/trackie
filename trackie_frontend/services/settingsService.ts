@@ -6,6 +6,7 @@ export interface Settings {
     calorieLimit: number;
     stepsLimit: number;
     targetWeight?: number;
+    startWeight?: number;
 }
 
 export interface UpdateSettingsDto {
@@ -13,6 +14,7 @@ export interface UpdateSettingsDto {
     calorieLimit?: number;
     stepsLimit?: number;
     targetWeight?: number;
+    startWeight?: number;
 }
 
 export const settingsService = {

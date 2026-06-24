@@ -82,7 +82,7 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({ log, onPress }) => {
                 <View style={styles.secondaryStats}>
                     <View style={styles.statRow}>
                         <Icon 
-                            name="Droplets" 
+                            name="Beef" 
                             size={14} 
                             color={theme.colors.textLight}
                             backgroundColor="transparent"
