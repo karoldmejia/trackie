@@ -69,7 +69,14 @@ export class MealPlannerService {
 
     async findAllDayPlans(): Promise<DayPlan[]> {
         return this.dayPlanRepository.find({
-            order: { date: 'DESC' }
+            relations: {
+                plannedMeals: {
+                    dishes: true
+                }
+            },
+            order: {
+                date: 'DESC'
+            }
         });
     }
 

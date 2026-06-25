@@ -1,4 +1,5 @@
 import { Icon } from '@/components/icon';
+import { AddPlannedMealForm } from '@/components/meal-planner/AddPlannedMealForm';
 import { PlannedMealCard } from '@/components/meal-planner/PlannedMealCard';
 import { NavBar } from '@/components/navbar';
 import { DayPlan, mealPlannerService, PlannedMeal } from '@/services/mealPlannerService';
@@ -14,6 +15,10 @@ const MealPlannerScreen: React.FC = () => {
     const [dayPlans, setDayPlans] = useState<DayPlan[]>([]);
     const [loading, setLoading] = useState(true);
     const router = useRouter();
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [dayPlanId, setDayPlanId] = useState<string | undefined>();
+    const [editingMeal, setEditingMeal] = useState<PlannedMeal | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
 
     // Función para obtener la fecha actual en formato YYYY-MM-DD
     const getTodayDate = (): string => {
@@ -66,13 +71,87 @@ const MealPlannerScreen: React.FC = () => {
     const plannedMeals = getTodaysPlannedMeals();
 
     const handleMealPress = (meal: PlannedMeal) => {
-        // Aquí irá la lógica para ver/editar la comida
-        console.log('Meal pressed:', meal);
+        // Abrir el formulario en modo edición
+        setEditingMeal(meal);
+        setIsEditing(true);
+        setShowAddForm(true);
     };
 
-    const handleAddPress = () => {
-        // Aquí irá la lógica para agregar una nueva comida
-        console.log('Add pressed');
+    const handleAddPress = async () => {
+        const today = getTodayDate();
+        try {
+            let existingPlan = await mealPlannerService.getDayPlanByDate(today);
+            
+            if (!existingPlan) {
+                existingPlan = await mealPlannerService.createDayPlan({ date: today });
+            }
+            
+            setDayPlanId(existingPlan.id);
+            setEditingMeal(null);
+            setIsEditing(false);
+            setShowAddForm(true);
+        } catch (error) {
+            console.error('Error preparing add form:', error);
+        }
+    };
+
+    const handleAddPlannedMeal = async (data: {
+        date: string;
+        time: string;
+        mealType: string;
+        dishIds: string[];
+    }) => {
+        try {
+            if (isEditing && editingMeal) {
+                // Actualizar PlannedMeal existente
+                await mealPlannerService.updatePlannedMeal(editingMeal.id, {
+                    mealType: data.mealType as any,
+                    time: data.time,
+                });
+
+                // Actualizar dishes (agregar nuevos)
+                const currentDishIds = editingMeal.dishes.map(d => d.id);
+                const newDishIds = data.dishIds.filter(id => !currentDishIds.includes(id));
+                
+                if (newDishIds.length > 0) {
+                    await mealPlannerService.addDishesToPlannedMeal(
+                        editingMeal.id,
+                        newDishIds
+                    );
+                }
+            } else if (dayPlanId) {
+                // Crear nuevo PlannedMeal
+                await mealPlannerService.addPlannedMeal(dayPlanId, {
+                    mealType: data.mealType as any,
+                    time: data.time,
+                    dishIds: data.dishIds,
+                });
+            }
+            
+            await fetchData();
+            setShowAddForm(false);
+            setEditingMeal(null);
+            setIsEditing(false);
+        } catch (error) {
+            console.error('Error saving planned meal:', error);
+        }
+    };
+
+    const handleRemoveDishFromMeal = async (plannedMealId: string, dishId: string) => {
+        try {
+            await mealPlannerService.removeDishFromPlannedMeal(plannedMealId, dishId);
+            // Actualizar el editingMeal local
+            if (editingMeal) {
+                const updatedDishes = editingMeal.dishes.filter(d => d.id !== dishId);
+                setEditingMeal({
+                    ...editingMeal,
+                    dishes: updatedDishes,
+                });
+            }
+            await fetchData();
+        } catch (error) {
+            console.error('Error removing dish:', error);
+        }
     };
 
     const handleCartPress = () => {
@@ -159,6 +238,19 @@ const MealPlannerScreen: React.FC = () => {
                     </View>
                 )}
             </ScrollView>
+            <AddPlannedMealForm
+                visible={showAddForm}
+                onClose={() => {
+                    setShowAddForm(false);
+                    setEditingMeal(null);
+                    setIsEditing(false);
+                }}
+                onSubmit={handleAddPlannedMeal}
+                dayPlanId={dayPlanId}
+                editingMeal={editingMeal}
+                isEditing={isEditing}
+                onRemoveDish={handleRemoveDishFromMeal}
+            />
         </View>
     );
 };
@@ -179,11 +271,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 8,
     },
     headerTitle: {
         fontSize: 20,
-        fontWeight: '700',
+        fontWeight: '800',
         color: theme.colors.text || '#000000',
     },
     headerActions: {
@@ -198,9 +289,9 @@ const styles = StyleSheet.create({
     },
     dateLabel: {
         fontSize: 14,
-        color: theme.colors.secondary || '#888888',
+        color: '#888888',
         marginBottom: 16,
-        fontWeight: '400',
+        fontWeight: '700',
     },
     mealsList: {
         flex: 1,
@@ -216,12 +307,11 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontWeight: '600',
         color: theme.colors.text || '#000000',
-        marginBottom: 8,
         textAlign: 'center',
     },
     emptySubtitle: {
         fontSize: 14,
-        color: theme.colors.secondary || '#888888',
+        color: '#888888',
         textAlign: 'center',
     },
     emptyText: {

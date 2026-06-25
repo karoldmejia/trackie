@@ -1,3 +1,4 @@
+// PlannedMealCard.tsx - Versión corregida
 import { PlannedMeal } from '@/services/mealPlannerService';
 import { theme } from '@/theme';
 import React from 'react';
@@ -28,15 +29,12 @@ export const PlannedMealCard: React.FC<PlannedMealCardProps> = ({
 }) => {
     const { mealType, time, dishes } = plannedMeal;
     
-    // Obtener la imagen según el tipo de comida
     const imageSource = mealTypeImages[mealType] || mealTypeImages.snack;
     
-    // Obtener el nombre del dish (usar el primero si hay varios)
     const dishName = dishes && dishes.length > 0 
         ? dishes.map(d => d.name).join(', ')
         : 'Sin plato asignado';
 
-    // Formatear la hora (asegurar que sea HH:mm)
     const formattedTime = time.substring(0, 5);
 
     return (
@@ -45,7 +43,7 @@ export const PlannedMealCard: React.FC<PlannedMealCardProps> = ({
             onPress={onPress}
             activeOpacity={0.7}
         >
-            {/* Imagen del tipo de comida - ocupa todo el alto */}
+            {/* Imagen del tipo de comida */}
             <View style={styles.imageContainer}>
                 <Image 
                     source={imageSource} 
@@ -79,17 +77,12 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         padding: 12,
         marginBottom: 12,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
+        shadowColor: 'transparent',
         elevation: 2,
-        minHeight: 80,
     },
     imageContainer: {
         width: 60,
-        height: '100%',
-        minHeight: 56,
+        height: 60,
         borderRadius: 8,
         overflow: 'hidden',
         marginRight: 12,
@@ -101,13 +94,16 @@ const styles = StyleSheet.create({
     contentContainer: {
         flex: 1,
         justifyContent: 'center',
-        paddingVertical: 4,
+        paddingVertical: 2,
+        
     },
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 4,
+        marginBottom: 2, // Reducido
+        marginRight: 12,
+
     },
     mealTypeLabel: {
         fontSize: 11,
