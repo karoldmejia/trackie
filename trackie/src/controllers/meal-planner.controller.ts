@@ -11,7 +11,6 @@ import { MealPlannerService } from '../services/meal-planner.service';
 export class MealPlannerController {
     constructor(private readonly mealPlannerService: MealPlannerService) {}
 
-    // ==================== DayPlan Endpoints ====================
 
     @Post('day-plan')
     async createDayPlan(@Body() createDayPlanDto: CreateDayPlanDto): Promise<DayPlan> {

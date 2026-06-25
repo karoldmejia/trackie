@@ -1,11 +1,11 @@
 import { theme } from '@/theme';
 import { Tabs } from 'expo-router';
-import { Dumbbell, Settings, UserRound } from 'lucide-react-native';
+import { Dumbbell, Sandwich, Settings, UserRound } from 'lucide-react-native';
 import React from 'react';
 import { Dimensions, StyleSheet, View } from 'react-native';
 
 const { width: screenWidth } = Dimensions.get('window');
-const tabBarWidth = screenWidth * 0.50;
+const tabBarWidth = screenWidth * 0.6;
 const marginHorizontal = (screenWidth - tabBarWidth) / 2;
 
 export default function TabsLayout() {
@@ -68,7 +68,26 @@ export default function TabsLayout() {
           ),
         }}
       />
-      
+
+      <Tabs.Screen
+        name="MealPlannerScreen"
+        options={{
+          title: 'meal planner',
+          tabBarIcon: ({ focused, color }) => (
+            <View style={[
+              styles.iconBackground,
+              focused && styles.iconBackgroundActive
+            ]}>
+              <Sandwich
+                size={focused ? 28 : 26} 
+                color={color} 
+                strokeWidth={focused ? 3 : 2.5}
+              />
+            </View>
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="SettingsScreen"
         options={{

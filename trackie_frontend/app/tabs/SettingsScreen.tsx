@@ -122,7 +122,7 @@ const SettingsScreen: React.FC = () => {
     <View style={styles.container}>
       <NavBar
         logo={logo}
-        title="¡Hola Karold!"
+        title="Configuración"
         showLogoAndTitle={true}
         height={70}
         rightComponent={
