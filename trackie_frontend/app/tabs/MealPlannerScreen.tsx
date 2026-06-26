@@ -1,6 +1,8 @@
+// app/tabs/MealPlannerScreen.tsx
 import { Icon } from '@/components/icon';
 import { AddPlannedMealForm } from '@/components/meal-planner/AddPlannedMealForm';
 import { PlannedMealCard } from '@/components/meal-planner/PlannedMealCard';
+import { WeeklyPlannerContainer } from '@/components/meal-planner/WeeklyPlannerContainer';
 import { NavBar } from '@/components/navbar';
 import { DayPlan, mealPlannerService, PlannedMeal } from '@/services/mealPlannerService';
 import { theme } from '@/theme';
@@ -19,14 +21,21 @@ const MealPlannerScreen: React.FC = () => {
     const [dayPlanId, setDayPlanId] = useState<string | undefined>();
     const [editingMeal, setEditingMeal] = useState<PlannedMeal | null>(null);
     const [isEditing, setIsEditing] = useState(false);
+    const [editingDate, setEditingDate] = useState<string>('');
+    const [selectedWeekDate, setSelectedWeekDate] = useState<string>('');
 
-    // Función para obtener la fecha actual en formato YYYY-MM-DD
     const getTodayDate = (): string => {
         const today = new Date();
         const year = today.getFullYear();
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const day = String(today.getDate()).padStart(2, '0');
         return `${year}-${month}-${day}`;
+    };
+    const handleDayPlanPress = (dayPlan: DayPlan) => {
+        router.push({
+            pathname: '/DayPlanDetailScreen',
+            params: { dayPlanId: dayPlan.id }
+        });
     };
 
     const fetchData = async () => {
@@ -51,18 +60,14 @@ const MealPlannerScreen: React.FC = () => {
         fetchData();
     }, []);
 
-    // Obtener solo las comidas del día actual
     const getTodaysPlannedMeals = (): PlannedMeal[] => {
         const today = getTodayDate();
-        
-        // Buscar el DayPlan de hoy
         const todayPlan = dayPlans.find(plan => plan.date === today);
-        
+
         if (!todayPlan || !todayPlan.plannedMeals || todayPlan.plannedMeals.length === 0) {
             return [];
         }
 
-        // Ordenar por hora
         return [...todayPlan.plannedMeals].sort((a, b) => {
             return a.time.localeCompare(b.time);
         });
@@ -71,8 +76,9 @@ const MealPlannerScreen: React.FC = () => {
     const plannedMeals = getTodaysPlannedMeals();
 
     const handleMealPress = (meal: PlannedMeal) => {
-        // Abrir el formulario en modo edición
+        const today = getTodayDate();
         setEditingMeal(meal);
+        setEditingDate(today);
         setIsEditing(true);
         setShowAddForm(true);
     };
@@ -81,11 +87,11 @@ const MealPlannerScreen: React.FC = () => {
         const today = getTodayDate();
         try {
             let existingPlan = await mealPlannerService.getDayPlanByDate(today);
-            
+
             if (!existingPlan) {
                 existingPlan = await mealPlannerService.createDayPlan({ date: today });
             }
-            
+
             setDayPlanId(existingPlan.id);
             setEditingMeal(null);
             setIsEditing(false);
@@ -95,52 +101,81 @@ const MealPlannerScreen: React.FC = () => {
         }
     };
 
-    const handleAddPlannedMeal = async (data: {
-        date: string;
-        time: string;
-        mealType: string;
-        dishIds: string[];
-    }) => {
-        try {
-            if (isEditing && editingMeal) {
-                // Actualizar PlannedMeal existente
-                await mealPlannerService.updatePlannedMeal(editingMeal.id, {
-                    mealType: data.mealType as any,
-                    time: data.time,
-                });
+const handleAddPlannedMeal = async (data: {
+    date: string;
+    time: string;
+    mealType: string;
+    dishIds: string[];
+}) => {
+    try {
+        let targetDayPlanId = dayPlanId;
 
-                // Actualizar dishes (agregar nuevos)
-                const currentDishIds = editingMeal.dishes.map(d => d.id);
-                const newDishIds = data.dishIds.filter(id => !currentDishIds.includes(id));
-                
-                if (newDishIds.length > 0) {
-                    await mealPlannerService.addDishesToPlannedMeal(
-                        editingMeal.id,
-                        newDishIds
-                    );
-                }
-            } else if (dayPlanId) {
-                // Crear nuevo PlannedMeal
-                await mealPlannerService.addPlannedMeal(dayPlanId, {
-                    mealType: data.mealType as any,
-                    time: data.time,
-                    dishIds: data.dishIds,
-                });
+        if (isEditing && editingMeal) {
+            // Editar: usar el dayPlanId existente
+            await mealPlannerService.updatePlannedMeal(editingMeal.id, {
+                mealType: data.mealType as any,
+                time: data.time,
+            });
+
+            const currentDishIds = editingMeal.dishes.map(d => d.id);
+            const newDishIds = data.dishIds.filter(id => !currentDishIds.includes(id));
+
+            if (newDishIds.length > 0) {
+                await mealPlannerService.addDishesToPlannedMeal(
+                    editingMeal.id,
+                    newDishIds
+                );
             }
-            
-            await fetchData();
-            setShowAddForm(false);
-            setEditingMeal(null);
-            setIsEditing(false);
-        } catch (error) {
-            console.error('Error saving planned meal:', error);
+        } else {
+            // Crear nuevo: verificar si existe DayPlan para la fecha
+            if (!targetDayPlanId) {
+                // Buscar si ya existe un DayPlan para esta fecha
+                let existingPlan = dayPlans.find(plan => plan.date === data.date);
+                
+                if (!existingPlan) {
+                    // Si no existe, crearlo
+                    existingPlan = await mealPlannerService.createDayPlan({ date: data.date });
+                    // Actualizar el estado local (filtrando undefined)
+                    setDayPlans(prev => {
+                        // Asegurarnos de que el plan existe antes de agregarlo
+                        if (existingPlan) {
+                            return [...prev, existingPlan];
+                        }
+                        return prev;
+                    });
+                }
+                
+                // Si existingPlan existe, usarlo
+                if (existingPlan) {
+                    targetDayPlanId = existingPlan.id;
+                } else {
+                    throw new Error('No se pudo crear o encontrar el DayPlan');
+                }
+            }
+
+            // Crear el PlannedMeal en el DayPlan correcto
+            await mealPlannerService.addPlannedMeal(targetDayPlanId, {
+                mealType: data.mealType as any,
+                time: data.time,
+                dishIds: data.dishIds,
+            });
         }
-    };
+
+        await fetchData();
+        setShowAddForm(false);
+        setEditingMeal(null);
+        setIsEditing(false);
+        if (targetDayPlanId) {
+            setDayPlanId(targetDayPlanId);
+        }
+    } catch (error) {
+        console.error('Error saving planned meal:', error);
+    }
+};
 
     const handleRemoveDishFromMeal = async (plannedMealId: string, dishId: string) => {
         try {
             await mealPlannerService.removeDishFromPlannedMeal(plannedMealId, dishId);
-            // Actualizar el editingMeal local
             if (editingMeal) {
                 const updatedDishes = editingMeal.dishes.filter(d => d.id !== dishId);
                 setEditingMeal({
@@ -155,8 +190,12 @@ const MealPlannerScreen: React.FC = () => {
     };
 
     const handleCartPress = () => {
-        // Aquí irá la lógica para ver la lista de compras
         console.log('Cart pressed');
+    };
+
+    const handleWeekDaySelect = (date: string) => {
+        setSelectedWeekDate(date);
+        console.log('Selected date:', date);
     };
 
     return (
@@ -172,7 +211,7 @@ const MealPlannerScreen: React.FC = () => {
                             name="Search"
                             color={theme.colors.text}
                             backgroundColor={theme.colors.white}
-                            onPress={() => {}}
+                            onPress={() => { }}
                         />
                     </View>
                 }
@@ -186,7 +225,14 @@ const MealPlannerScreen: React.FC = () => {
             >
                 {/* Header con título y acciones */}
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>Comidas del día</Text>
+                    <Text style={styles.headerTitle}>
+                        {new Date().toLocaleDateString('es-CO', {
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                        })}
+                    </Text>
                     <View style={styles.headerActions}>
                         <Icon
                             name="ShoppingCart"
@@ -203,16 +249,6 @@ const MealPlannerScreen: React.FC = () => {
                         />
                     </View>
                 </View>
-
-                {/* Mostrar la fecha actual */}
-                <Text style={styles.dateLabel}>
-                    {new Date().toLocaleDateString('es-CO', {
-                        weekday: 'long',
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric'
-                    })}
-                </Text>
 
                 {/* Lista de comidas planificadas */}
                 {loading ? (
@@ -237,7 +273,16 @@ const MealPlannerScreen: React.FC = () => {
                         </Text>
                     </View>
                 )}
+
+                {/* Componente de semana - sin espacios adicionales */}
+                <WeeklyPlannerContainer
+                    dayPlans={dayPlans}
+                    onDaySelect={handleWeekDaySelect}
+                    onDayPlanPress={handleDayPlanPress}
+                    selectedDate={selectedWeekDate}
+                />
             </ScrollView>
+
             <AddPlannedMealForm
                 visible={showAddForm}
                 onClose={() => {
@@ -250,6 +295,7 @@ const MealPlannerScreen: React.FC = () => {
                 editingMeal={editingMeal}
                 isEditing={isEditing}
                 onRemoveDish={handleRemoveDishFromMeal}
+                editingDate={editingDate}
             />
         </View>
     );
@@ -263,7 +309,6 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.background,
     },
     scrollContent: {
-        flexGrow: 1,
         paddingHorizontal: 20,
         paddingBottom: 100,
     },
@@ -271,10 +316,11 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
+        marginBottom: 10,
     },
     headerTitle: {
-        fontSize: 20,
-        fontWeight: '800',
+        fontSize: 15,
+        fontWeight: '700',
         color: theme.colors.text || '#000000',
     },
     headerActions: {
@@ -287,20 +333,13 @@ const styles = StyleSheet.create({
         borderRadius: 20,
         padding: 4,
     },
-    dateLabel: {
-        fontSize: 14,
-        color: '#888888',
-        marginBottom: 16,
-        fontWeight: '700',
-    },
     mealsList: {
-        flex: 1,
+        // Eliminamos flex: 1
     },
     emptyContainer: {
-        flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingVertical: 60,
+        paddingVertical: 30,
         paddingHorizontal: 20,
     },
     emptyTitle: {

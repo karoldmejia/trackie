@@ -1,4 +1,3 @@
-// PlannedMealCard.tsx - Versión corregida
 import { PlannedMeal } from '@/services/mealPlannerService';
 import { theme } from '@/theme';
 import React from 'react';
@@ -62,7 +61,7 @@ export const PlannedMealCard: React.FC<PlannedMealCardProps> = ({
                         {formattedTime}
                     </Text>
                 </View>
-                <Text style={styles.dishName} numberOfLines={2}>
+                <Text style={styles.dishName} numberOfLines={3}>
                     {dishName}
                 </Text>
             </View>
@@ -101,12 +100,12 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 2, // Reducido
+        marginBottom: 5,
         marginRight: 12,
 
     },
     mealTypeLabel: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: '600',
         color: theme.colors.secondary || '#888888',
         letterSpacing: 0.5,
@@ -118,7 +117,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     dishName: {
-        fontSize: 16,
+        fontSize: 15,
         fontWeight: '500',
         color: theme.colors.text || '#000000',
     },

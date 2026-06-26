@@ -1,4 +1,3 @@
-// components/meal-planner/AddPlannedMealForm.tsx
 import { FormSelect } from '@/components/FormSelect';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
@@ -44,6 +43,7 @@ interface AddPlannedMealFormProps {
     editingMeal?: PlannedMeal | null; // Para edición
     isEditing?: boolean;
     onRemoveDish?: (plannedMealId: string, dishId: string) => Promise<void>;
+    editingDate?: string;
 }
 
 export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
@@ -54,6 +54,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
     editingMeal = null,
     isEditing = false,
     onRemoveDish,
+    editingDate,
 }) => {
     const [date, setDate] = useState(new Date());
     const [showDatePicker, setShowDatePicker] = useState(false);
@@ -77,8 +78,12 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
     useEffect(() => {
         if (visible && editingMeal) {
             // Parsear fecha
-            const [year, month, day] = editingMeal.dayPlan.date.split('-').map(Number);
-            setDate(new Date(year, month - 1, day));
+            const dateString = editingDate || editingMeal.dayPlan?.date;
+            
+            if (dateString) {
+                const [year, month, day] = dateString.split('-').map(Number);
+                setDate(new Date(year, month - 1, day));
+            }
 
             // Parsear hora
             const [hours, minutes] = editingMeal.time.split(':').map(Number);
@@ -98,7 +103,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
             setMealType('');
             setSelectedDishIds([]);
         }
-    }, [visible, editingMeal]);
+    }, [visible, editingMeal, editingDate]);
 
     useEffect(() => {
         if (visible) {
@@ -151,19 +156,24 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
         if (selectedTime) setTime(selectedTime);
     };
 
-    const handleSubmit = () => {
-        if (!mealType || selectedDishIds.length === 0) {
-            return;
-        }
+const handleSubmit = () => {
+    if (!mealType || selectedDishIds.length === 0) {
+        return;
+    }
 
-        onSubmit({
-            date: formatDate(date),
-            time: formatTime(time),
-            mealType,
-            dishIds: selectedDishIds,
-        });
-        handleClose();
-    };
+    // Asegurarse de que la fecha esté en el formato correcto
+    const formattedDate = formatDate(date);
+    
+    // Primero, asegurar que exista un DayPlan para esta fecha
+    // Esto se maneja en el componente padre (MealPlannerScreen)
+    onSubmit({
+        date: formattedDate,
+        time: formatTime(time),
+        mealType,
+        dishIds: selectedDishIds,
+    });
+    handleClose();
+};
 
     const handleClose = () => {
         setDate(new Date());
@@ -412,7 +422,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                     {/* Header con búsqueda y botón add */}
                     <View style={styles.searchHeader}>
                         <View style={styles.searchContainer}>
-                            <Icon name="Search" size={18} color={theme.colors.placeholder} />
+                            <Icon name="Search" size={18} color={theme.colors.placeholder}  backgroundColor='transparent' padding={0}/>
                             <TextInput
                                 style={styles.searchInput}
                                 placeholder="Buscar comidas..."
@@ -425,7 +435,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                             style={styles.addDishButton}
                             onPress={() => setShowNewDishInput(!showNewDishInput)}
                         >
-                            <Icon name="Plus" size={20} color={theme.colors.white} />
+                            <Icon name="Plus" size={20} backgroundColor={theme.colors.primary}/>
                         </TouchableOpacity>
                     </View>
 
@@ -448,7 +458,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                                 onPress={handleCreateDish}
                                 disabled={isCreatingDish || !newDishName.trim()}
                             >
-                                <Icon name="Check" size={20} color={theme.colors.white} />
+                                <Icon name="Check" size={20} color={theme.colors.white} backgroundColor={theme.colors.text}/>
                             </TouchableOpacity>
                         </View>
                     )}
@@ -472,7 +482,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                                         <Icon
                                             name={getRandomIcon(index) as any}
                                             size={20}
-                                            color={isSelected ? theme.colors.primary : theme.colors.text}
+                                            color={isSelected ? theme.colors.white : theme.colors.text}
                                             backgroundColor={isSelected ? theme.colors.primary : theme.colors.background}
                                         />
                                     </View>
@@ -609,8 +619,8 @@ const styles = StyleSheet.create({
         borderColor: theme.colors.primary,
         borderStyle: 'dashed',
         borderRadius: 20,
-        paddingVertical: 14,
-        gap: 8,
+        paddingVertical: 8,
+        gap: 5,
         marginBottom: 16,
     },
     submitButton: {
@@ -648,7 +658,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.background,
         borderRadius: 20,
         paddingHorizontal: 12,
-        paddingVertical: 8,
+        paddingVertical: 0,
     },
     searchInput: {
         flex: 1,
@@ -658,9 +668,6 @@ const styles = StyleSheet.create({
         color: theme.colors.text,
     },
     addDishButton: {
-        backgroundColor: theme.colors.primary,
-        borderRadius: 20,
-        padding: 10,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -679,11 +686,9 @@ const styles = StyleSheet.create({
         fontSize: 14,
         fontFamily: theme.typography.fonts.regular,
         color: theme.colors.text,
+        paddingLeft: 40
     },
     checkButton: {
-        backgroundColor: '#A8E6CF',
-        borderRadius: 20,
-        padding: 10,
         alignItems: 'center',
         justifyContent: 'center',
     },

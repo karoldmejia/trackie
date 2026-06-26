@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException, NotFoundException} from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DayPlan } from '../entities/day-plan.entity';
 import { In, Repository } from 'typeorm';
@@ -13,13 +13,13 @@ export class MealPlannerService {
     constructor(
         @InjectRepository(DayPlan)
         private readonly dayPlanRepository: Repository<DayPlan>,
-        
+
         @InjectRepository(PlannedMeal)
         private readonly plannedMealRepository: Repository<PlannedMeal>,
-        
+
         @InjectRepository(Dish)
         private readonly dishRepository: Repository<Dish>,
-    ) {}
+    ) { }
 
     async createDayPlan(createDayPlanDto: CreateDayPlanDto): Promise<DayPlan> {
         // Validar que no exista un DayPlan para esa fecha
@@ -255,7 +255,7 @@ export class MealPlannerService {
     async addDishesToPlannedMeal(plannedMealId: string, dishIds: string[]): Promise<PlannedMeal> {
         const plannedMeal = await this.plannedMealRepository.findOne({
             where: { id: plannedMealId },
-            relations: { dishes: true } 
+            relations: { dishes: true }
         });
 
         if (!plannedMeal) {
@@ -264,7 +264,7 @@ export class MealPlannerService {
 
         // Obtener los dishes
         const dishes = await this.dishRepository.find({ where: { id: In(dishIds) } });
-        
+
         if (dishes.length !== dishIds.length) {
             const foundIds = dishes.map(d => d.id);
             const missingIds = dishIds.filter(id => !foundIds.includes(id));
@@ -276,9 +276,9 @@ export class MealPlannerService {
         // Agregar los nuevos dishes sin duplicar
         const existingDishIds = new Set(plannedMeal.dishes.map(d => d.id));
         const newDishes = dishes.filter(d => !existingDishIds.has(d.id));
-        
+
         plannedMeal.dishes.push(...newDishes);
-        
+
         return this.plannedMealRepository.save(plannedMeal);
     }
 
@@ -288,7 +288,7 @@ export class MealPlannerService {
     ): Promise<void> {
         const plannedMeal = await this.plannedMealRepository.findOne({
             where: { id: plannedMealId },
-            relations: { dishes: true } 
+            relations: { dishes: true }
         });
 
         if (!plannedMeal) {
@@ -313,4 +313,38 @@ export class MealPlannerService {
             await this.plannedMealRepository.save(plannedMeal);
         }
     }
+
+    async addPlannedMealByDate(
+        date: string,
+        createPlannedMealDto: CreatePlannedMealDto
+    ): Promise<PlannedMeal> {
+        // Buscar DayPlan por fecha
+        let dayPlan = await this.dayPlanRepository.findOne({
+            where: { date }
+        });
+
+        // Si no existe, crearlo
+        if (!dayPlan) {
+            dayPlan = this.dayPlanRepository.create({ date });
+            dayPlan = await this.dayPlanRepository.save(dayPlan);
+        }
+
+        const plannedMeal = this.plannedMealRepository.create({
+            mealType: createPlannedMealDto.mealType,
+            time: createPlannedMealDto.time,
+            dayPlan: dayPlan
+        });
+
+        // Si se proporcionan dishIds, agregar los dishes
+        if (createPlannedMealDto.dishIds && createPlannedMealDto.dishIds.length > 0) {
+            const dishes = await this.dishRepository.find({ where: { id: In(createPlannedMealDto.dishIds) } });
+            if (dishes.length !== createPlannedMealDto.dishIds.length) {
+                throw new BadRequestException('Algunos dishes no existen');
+            }
+            plannedMeal.dishes = dishes;
+        }
+
+        return this.plannedMealRepository.save(plannedMeal);
+    }
+
 }

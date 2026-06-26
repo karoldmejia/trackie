@@ -30,53 +30,60 @@ export default function RootLayout() {
 
   return (
     <View style={styles.container}>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: {
-              paddingTop: 44,
-              paddingBottom: 44,
-            },
+      <Stack
+        screenOptions={{
+          headerShown: false,
+          contentStyle: {
+            paddingTop: 44,
+            paddingBottom: 44,
+          },
+        }}
+      >
+        <Stack.Screen name="tabs" />
+        <Stack.Screen
+          name="modal"
+          options={{
+            presentation: 'modal',
+            title: 'Agregar / Editar Registro',
           }}
-        >
-          <Stack.Screen name="tabs" />
-          <Stack.Screen
-            name="modal"
-            options={{
-              presentation: 'modal',
-              title: 'Agregar / Editar Registro',
-            }}
-          />
-          <Stack.Screen
-            name="CaloriesOverviewScreen"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="StepsOverviewScreen"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="WeightOverviewScreen"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="WaistOverviewScreen"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="BodyfatOverviewScreen"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="HipsOverviewScreen"
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="PhotoGallery"
-            options={{ headerShown: false }}
-          />
-        </Stack>
-        <StatusBar style="dark" />
+        />
+        <Stack.Screen
+          name="CaloriesOverviewScreen"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="StepsOverviewScreen"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="WeightOverviewScreen"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="WaistOverviewScreen"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="BodyfatOverviewScreen"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="HipsOverviewScreen"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="PhotoGallery"
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="DayPlanDetailScreen"
+          options={{
+            headerShown: false,
+            presentation: 'modal',
+          }}
+        />
+      </Stack>
+      <StatusBar style="dark" />
     </View>
   );
 }

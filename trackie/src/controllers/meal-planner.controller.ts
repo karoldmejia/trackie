@@ -38,6 +38,14 @@ export class MealPlannerController {
         await this.mealPlannerService.removeDayPlan(id);
     }
 
+    @Post('date/:date/planned-meal')
+async addPlannedMealByDate(
+    @Param('date') date: string,
+    @Body() createPlannedMealDto: CreatePlannedMealDto
+): Promise<PlannedMeal> {
+    return this.mealPlannerService.addPlannedMealByDate(date, createPlannedMealDto);
+}
+
     // planned meal endpoints
 
     @Post('day-plan/:dayPlanId/planned-meal')
