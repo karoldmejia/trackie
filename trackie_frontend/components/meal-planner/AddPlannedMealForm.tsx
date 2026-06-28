@@ -407,123 +407,132 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                                     outputRange: [screenHeight, 0],
                                 })
                             }],
+                            height: keyboardShown
+                                ? screenHeight * 0.85
+                                : screenHeight * 0.8,
                         }
                     ]}
                 >
-                    <View style={styles.handle} />
-
-                    <ThemedText
-                        variant="medium"
-                        size={12}
-                        color={theme.colors.textLight}
-                        style={styles.title}
+                    <KeyboardAvoidingView
+                        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
+                        style={styles.keyboardView}
                     >
-                        SELECCIONAR COMIDAS
-                    </ThemedText>
+                        <View style={styles.handle} />
 
-                    {/* Header con búsqueda y botón add */}
-                    <View style={styles.searchHeader}>
-                        <View style={styles.searchContainer}>
-                            <Icon name="Search" size={18} color={theme.colors.placeholder} backgroundColor='transparent' padding={0} />
-                            <TextInput
-                                style={styles.searchInput}
-                                placeholder="Buscar comidas..."
-                                placeholderTextColor={theme.colors.placeholder}
-                                value={searchQuery}
-                                onChangeText={setSearchQuery}
-                            />
-                        </View>
-                        <TouchableOpacity
-                            style={styles.addDishButton}
-                            onPress={() => setShowNewDishInput(!showNewDishInput)}
+                        <ThemedText
+                            variant="medium"
+                            size={12}
+                            color={theme.colors.textLight}
+                            style={styles.title}
                         >
-                            <Icon name="Plus" size={20} backgroundColor={theme.colors.primary} />
-                        </TouchableOpacity>
-                    </View>
+                            SELECCIONAR COMIDAS
+                        </ThemedText>
 
-                    {/* Input para nuevo dish */}
-                    {showNewDishInput && (
-                        <View style={styles.newDishContainer}>
-                            <TextInput
-                                style={styles.newDishInput}
-                                placeholder="Nombre del nuevo plato..."
-                                placeholderTextColor={theme.colors.placeholder}
-                                value={newDishName}
-                                onChangeText={setNewDishName}
-                                autoFocus
-                            />
+                        {/* Header con búsqueda y botón add */}
+                        <View style={styles.searchHeader}>
+                            <View style={styles.searchContainer}>
+                                <Icon name="Search" size={18} color={theme.colors.placeholder} backgroundColor='transparent' padding={0} />
+                                <TextInput
+                                    style={styles.searchInput}
+                                    placeholder="Buscar comidas..."
+                                    placeholderTextColor={theme.colors.placeholder}
+                                    value={searchQuery}
+                                    onChangeText={setSearchQuery}
+                                />
+                            </View>
                             <TouchableOpacity
-                                style={[
-                                    styles.checkButton,
-                                    isCreatingDish && styles.checkButtonDisabled
-                                ]}
-                                onPress={handleCreateDish}
-                                disabled={isCreatingDish || !newDishName.trim()}
+                                style={styles.addDishButton}
+                                onPress={() => setShowNewDishInput(!showNewDishInput)}
                             >
-                                <Icon name="Check" size={20} color={theme.colors.white} backgroundColor={theme.colors.text} />
+                                <Icon name="Plus" size={20} backgroundColor={theme.colors.primary} />
                             </TouchableOpacity>
                         </View>
-                    )}
 
-                    {/* Lista de dishes */}
-                    <FlatList
-                        data={filteredDishes}
-                        keyExtractor={(item) => item.id}
-                        style={styles.dishList}
-                        renderItem={({ item, index }) => {
-                            const isSelected = selectedDishIds.includes(item.id);
-                            return (
+                        {/* Input para nuevo dish */}
+                        {showNewDishInput && (
+                            <View style={styles.newDishContainer}>
+                                <TextInput
+                                    style={styles.newDishInput}
+                                    placeholder="Nombre del nuevo plato..."
+                                    placeholderTextColor={theme.colors.placeholder}
+                                    value={newDishName}
+                                    onChangeText={setNewDishName}
+                                    autoFocus
+                                />
                                 <TouchableOpacity
                                     style={[
-                                        styles.dishItem,
-                                        isSelected && styles.dishItemSelected
+                                        styles.checkButton,
+                                        isCreatingDish && styles.checkButtonDisabled
                                     ]}
-                                    onPress={() => toggleDishSelection(item.id)}
+                                    onPress={handleCreateDish}
+                                    disabled={isCreatingDish || !newDishName.trim()}
                                 >
-                                    <View style={styles.dishIconContainer}>
-                                        <Icon
-                                            name={getRandomIcon(index) as any}
-                                            size={20}
-                                            color={isSelected ? theme.colors.white : theme.colors.text}
-                                            backgroundColor={isSelected ? theme.colors.primary : theme.colors.background}
-                                        />
-                                    </View>
-                                    <ThemedText
-                                        variant="regular"
-                                        size={14}
-                                        color={isSelected ? theme.colors.primary : theme.colors.text}
-                                        style={styles.dishName}
-                                    >
-                                        {item.name}
-                                    </ThemedText>
-                                    {isSelected && (
-                                        <Icon name="Check" size={18} color={theme.colors.primary} />
-                                    )}
+                                    <Icon name="Check" size={20} color={theme.colors.white} backgroundColor={theme.colors.text} />
                                 </TouchableOpacity>
-                            );
-                        }}
-                        ListEmptyComponent={
-                            <View style={styles.emptyDishes}>
-                                <ThemedText variant="regular" size={14} color={theme.colors.placeholder}>
-                                    No hay platos disponibles
-                                </ThemedText>
                             </View>
-                        }
-                    />
+                        )}
 
-                    {/* Botón confirmar selección */}
-                    <TouchableOpacity
-                        style={[
-                            styles.confirmButton,
-                            selectedDishIds.length === 0 && styles.confirmButtonDisabled
-                        ]}
-                        onPress={() => setShowDishSelector(false)}
-                        disabled={selectedDishIds.length === 0}
-                    >
-                        <ThemedText variant="semiBold" size={14} color={theme.colors.white}>
-                            Confirmar ({selectedDishIds.length})
-                        </ThemedText>
-                    </TouchableOpacity>
+                        {/* Lista de dishes */}
+                        <FlatList
+                            data={filteredDishes}
+                            keyExtractor={(item) => item.id}
+                            style={styles.dishList}
+                            renderItem={({ item, index }) => {
+                                const isSelected = selectedDishIds.includes(item.id);
+                                return (
+                                    <TouchableOpacity
+                                        style={[
+                                            styles.dishItem,
+                                            isSelected && styles.dishItemSelected
+                                        ]}
+                                        onPress={() => toggleDishSelection(item.id)}
+                                    >
+                                        <View style={styles.dishIconContainer}>
+                                            <Icon
+                                                name={getRandomIcon(index) as any}
+                                                size={20}
+                                                color={isSelected ? theme.colors.white : theme.colors.text}
+                                                backgroundColor={isSelected ? theme.colors.primary : theme.colors.background}
+                                            />
+                                        </View>
+                                        <ThemedText
+                                            variant="regular"
+                                            size={14}
+                                            color={isSelected ? theme.colors.primary : theme.colors.text}
+                                            style={styles.dishName}
+                                        >
+                                            {item.name}
+                                        </ThemedText>
+                                        {isSelected && (
+                                            <Icon name="Check" size={18} color={theme.colors.primary} />
+                                        )}
+                                    </TouchableOpacity>
+                                );
+                            }}
+                            ListEmptyComponent={
+                                <View style={styles.emptyDishes}>
+                                    <ThemedText variant="regular" size={14} color={theme.colors.placeholder}>
+                                        No hay platos disponibles
+                                    </ThemedText>
+                                </View>
+                            }
+                        />
+
+                        {/* Botón confirmar selección */}
+                        <TouchableOpacity
+                            style={[
+                                styles.confirmButton,
+                                selectedDishIds.length === 0 && styles.confirmButtonDisabled
+                            ]}
+                            onPress={() => setShowDishSelector(false)}
+                            disabled={selectedDishIds.length === 0}
+                        >
+                            <ThemedText variant="semiBold" size={14} color={theme.colors.white}>
+                                Confirmar ({selectedDishIds.length})
+                            </ThemedText>
+                        </TouchableOpacity>
+                    </KeyboardAvoidingView>
                 </Animated.View>
             </Modal>
 

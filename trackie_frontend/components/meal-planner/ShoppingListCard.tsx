@@ -1,4 +1,3 @@
-// components/meal-planner/ShoppingListCard.tsx
 import { FormSelect } from '@/components/FormSelect';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
@@ -10,8 +9,10 @@ import { Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-n
 import { ConfirmModal } from './ConfirmModal';
 
 const UNIT_OPTIONS = [
-    { label: 'Kg', value: UnitOfMeasure.KILOGRAM },
+    { label: 'kg', value: UnitOfMeasure.KILOGRAM },
     { label: 'g', value: UnitOfMeasure.GRAM },
+    { label: 'mg', value: UnitOfMeasure.MILLIGRAM },
+    { label: 'lb', value: UnitOfMeasure.POUND },
     { label: 'L', value: UnitOfMeasure.LITER },
     { label: 'mL', value: UnitOfMeasure.MILLILITER },
     { label: 'Unidad', value: UnitOfMeasure.UNIT },
