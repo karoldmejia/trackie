@@ -76,38 +76,42 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
 
     // Cargar datos de edición cuando se abre el modal
     useEffect(() => {
-        if (visible && editingMeal) {
-            // Parsear fecha
-            const dateString = editingDate || editingMeal.dayPlan?.date;
-            
-            if (dateString) {
-                const [year, month, day] = dateString.split('-').map(Number);
+        if (visible) {
+            // Cargar dishes
+            loadDishes();
+
+            // Configurar fecha y hora
+            if (editingMeal) {
+                // Edición
+                const dateString = editingDate || editingMeal.dayPlan?.date;
+                if (dateString) {
+                    const [year, month, day] = dateString.split('-').map(Number);
+                    setDate(new Date(year, month - 1, day));
+                }
+
+                const [hours, minutes] = editingMeal.time.split(':').map(Number);
+                const timeDate = new Date();
+                timeDate.setHours(hours, minutes);
+                setTime(timeDate);
+
+                setMealType(editingMeal.mealType);
+                setSelectedDishIds(editingMeal.dishes.map(d => d.id));
+            } else if (editingDate) {
+                // Nueva comida con fecha específica
+                const [year, month, day] = editingDate.split('-').map(Number);
                 setDate(new Date(year, month - 1, day));
+                setTime(new Date());
+                setMealType('');
+                setSelectedDishIds([]);
+            } else {
+                // Nueva comida con fecha actual
+                setDate(new Date());
+                setTime(new Date());
+                setMealType('');
+                setSelectedDishIds([]);
             }
 
-            // Parsear hora
-            const [hours, minutes] = editingMeal.time.split(':').map(Number);
-            const timeDate = new Date();
-            timeDate.setHours(hours, minutes);
-            setTime(timeDate);
-
-            // Setear tipo de comida
-            setMealType(editingMeal.mealType);
-
-            // Setear dishes seleccionados
-            setSelectedDishIds(editingMeal.dishes.map(d => d.id));
-        } else if (visible && !editingMeal) {
-            // Resetear para nuevo
-            setDate(new Date());
-            setTime(new Date());
-            setMealType('');
-            setSelectedDishIds([]);
-        }
-    }, [visible, editingMeal, editingDate]);
-
-    useEffect(() => {
-        if (visible) {
-            loadDishes();
+            // Animación
             Animated.spring(slideAnim, {
                 toValue: 1,
                 useNativeDriver: true,
@@ -122,7 +126,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                 stiffness: 300,
             }).start();
         }
-    }, [visible]);
+    }, [visible, editingMeal, editingDate]);
 
     const loadDishes = async () => {
         try {
@@ -156,25 +160,19 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
         if (selectedTime) setTime(selectedTime);
     };
 
-const handleSubmit = () => {
-    if (!mealType || selectedDishIds.length === 0) {
-        return;
-    }
+    const handleSubmit = () => {
+        if (!mealType || selectedDishIds.length === 0) {
+            return;
+        }
 
-    // Asegurarse de que la fecha esté en el formato correcto
-    const formattedDate = formatDate(date);
-    
-    // Primero, asegurar que exista un DayPlan para esta fecha
-    // Esto se maneja en el componente padre (MealPlannerScreen)
-    onSubmit({
-        date: formattedDate,
-        time: formatTime(time),
-        mealType,
-        dishIds: selectedDishIds,
-    });
-    handleClose();
-};
-
+        onSubmit({
+            date: formatDate(date),
+            time: formatTime(time),
+            mealType,
+            dishIds: selectedDishIds,
+        });
+        handleClose();
+    };
     const handleClose = () => {
         setDate(new Date());
         setTime(new Date());
@@ -254,10 +252,12 @@ const handleSubmit = () => {
                 style={[
                     styles.container,
                     {
-                        transform: [{ translateY: slideAnim.interpolate({
-                            inputRange: [0, 1],
-                            outputRange: [screenHeight, 0],
-                        }) }],
+                        transform: [{
+                            translateY: slideAnim.interpolate({
+                                inputRange: [0, 1],
+                                outputRange: [screenHeight, 0],
+                            })
+                        }],
                         height: keyboardShown
                             ? screenHeight * 0.7 + keyboardHeight
                             : screenHeight * 0.7
@@ -401,10 +401,12 @@ const handleSubmit = () => {
                     style={[
                         styles.dishSelectorContainer,
                         {
-                            transform: [{ translateY: slideAnim.interpolate({
-                                inputRange: [0, 1],
-                                outputRange: [screenHeight, 0],
-                            }) }],
+                            transform: [{
+                                translateY: slideAnim.interpolate({
+                                    inputRange: [0, 1],
+                                    outputRange: [screenHeight, 0],
+                                })
+                            }],
                         }
                     ]}
                 >
@@ -422,7 +424,7 @@ const handleSubmit = () => {
                     {/* Header con búsqueda y botón add */}
                     <View style={styles.searchHeader}>
                         <View style={styles.searchContainer}>
-                            <Icon name="Search" size={18} color={theme.colors.placeholder}  backgroundColor='transparent' padding={0}/>
+                            <Icon name="Search" size={18} color={theme.colors.placeholder} backgroundColor='transparent' padding={0} />
                             <TextInput
                                 style={styles.searchInput}
                                 placeholder="Buscar comidas..."
@@ -435,7 +437,7 @@ const handleSubmit = () => {
                             style={styles.addDishButton}
                             onPress={() => setShowNewDishInput(!showNewDishInput)}
                         >
-                            <Icon name="Plus" size={20} backgroundColor={theme.colors.primary}/>
+                            <Icon name="Plus" size={20} backgroundColor={theme.colors.primary} />
                         </TouchableOpacity>
                     </View>
 
@@ -458,7 +460,7 @@ const handleSubmit = () => {
                                 onPress={handleCreateDish}
                                 disabled={isCreatingDish || !newDishName.trim()}
                             >
-                                <Icon name="Check" size={20} color={theme.colors.white} backgroundColor={theme.colors.text}/>
+                                <Icon name="Check" size={20} color={theme.colors.white} backgroundColor={theme.colors.text} />
                             </TouchableOpacity>
                         </View>
                     )}

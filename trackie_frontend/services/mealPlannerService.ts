@@ -172,8 +172,16 @@ export const mealPlannerService = {
         );
         return response.data;
     },
-    
+
     removeDishFromPlannedMeal: async (plannedMealId: string, dishId: string): Promise<void> => {
         await api.delete(`/meal-planner/planned-meal/${plannedMealId}/dish/${dishId}`);
+    },
+
+    addPlannedMealByDate: async (date: string, data: CreatePlannedMealDto): Promise<PlannedMeal> => {
+        const response = await api.post<PlannedMeal>(
+            `/meal-planner/date/${date}/planned-meal`,
+            data
+        );
+        return response.data;
     },
 };

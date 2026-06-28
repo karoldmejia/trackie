@@ -1,5 +1,7 @@
 import { Icon } from '@/components/icon';
 import { AddPlannedMealForm } from '@/components/meal-planner/AddPlannedMealForm';
+import { ConfirmModal } from '@/components/meal-planner/ConfirmModal';
+import { DateBadge } from '@/components/meal-planner/DateBagde';
 import { PlannedMealCard } from '@/components/meal-planner/PlannedMealCard';
 import { DayPlan, mealPlannerService, PlannedMeal } from '@/services/mealPlannerService';
 import { theme } from '@/theme';
@@ -22,7 +24,7 @@ const dayPlanImages = [
 const DayPlanDetailScreen: React.FC = () => {
     const router = useRouter();
     const { dayPlanId } = useLocalSearchParams<{ dayPlanId: string }>();
-    
+
     const [dayPlan, setDayPlan] = useState<DayPlan | null>(null);
     const [loading, setLoading] = useState(true);
     const [showAddForm, setShowAddForm] = useState(false);
@@ -31,6 +33,7 @@ const DayPlanDetailScreen: React.FC = () => {
     const [editingDate, setEditingDate] = useState<string>('');
     const [dayPlanImage, setDayPlanImage] = useState<any>(null);
     const [addFormDate, setAddFormDate] = useState<string>('');
+    const [showDeleteModal, setShowDeleteModal] = useState(false);
 
     const fetchDayPlan = async () => {
         try {
@@ -39,7 +42,6 @@ const DayPlanDetailScreen: React.FC = () => {
                 const plan = await mealPlannerService.getDayPlanById(dayPlanId);
                 if (plan) {
                     setDayPlan(plan);
-                    // Obtener imagen aleatoria para el day plan
                     const randomIndex = new Date(plan.date).getDate() % dayPlanImages.length;
                     setDayPlanImage(dayPlanImages[randomIndex]);
                 }
@@ -66,7 +68,7 @@ const DayPlanDetailScreen: React.FC = () => {
         setEditingMeal(null);
         setIsEditing(false);
         setShowAddForm(true);
-        setAddFormDate(dayPlan?.date || ''); 
+        setAddFormDate(dayPlan?.date || '');
     };
 
     const handleAddPlannedMeal = async (data: {
@@ -77,7 +79,6 @@ const DayPlanDetailScreen: React.FC = () => {
     }) => {
         try {
             if (isEditing && editingMeal && dayPlan) {
-                // Actualizar PlannedMeal existente
                 await mealPlannerService.updatePlannedMeal(editingMeal.id, {
                     mealType: data.mealType as any,
                     time: data.time,
@@ -85,7 +86,7 @@ const DayPlanDetailScreen: React.FC = () => {
 
                 const currentDishIds = editingMeal.dishes.map(d => d.id);
                 const newDishIds = data.dishIds.filter(id => !currentDishIds.includes(id));
-                
+
                 if (newDishIds.length > 0 && dayPlan) {
                     await mealPlannerService.addDishesToPlannedMeal(
                         editingMeal.id,
@@ -93,14 +94,13 @@ const DayPlanDetailScreen: React.FC = () => {
                     );
                 }
             } else if (dayPlan) {
-                // Crear nuevo PlannedMeal
                 await mealPlannerService.addPlannedMeal(dayPlan.id, {
                     mealType: data.mealType as any,
                     time: data.time,
                     dishIds: data.dishIds,
                 });
             }
-            
+
             await fetchDayPlan();
             setShowAddForm(false);
             setEditingMeal(null);
@@ -128,7 +128,6 @@ const DayPlanDetailScreen: React.FC = () => {
 
     const handleDeleteDayPlan = async () => {
         if (!dayPlan) return;
-        
         try {
             await mealPlannerService.deleteDayPlan(dayPlan.id);
             router.back();
@@ -176,110 +175,126 @@ const DayPlanDetailScreen: React.FC = () => {
         return a.time.localeCompare(b.time);
     });
 
+    const handleDeletePress = () => {
+        setShowDeleteModal(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (!dayPlan) return;
+        try {
+            await mealPlannerService.deleteDayPlan(dayPlan.id);
+            setShowDeleteModal(false);
+            router.back();
+        } catch (error) {
+            console.error('Error deleting day plan:', error);
+            setShowDeleteModal(false);
+        }
+    };
+
     return (
         <View style={styles.container}>
-            {/* Fondo negro con botones */}
+            {/* Header con imagen y botones */}
             <View style={styles.headerContainer}>
-                <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-                    <Icon
-                        name="ChevronLeft"
-                        size={28}
-                        color={theme.colors.white}
-                        backgroundColor="transparent"
-                    />
-                </TouchableOpacity>
+                <View style={styles.headerLeft}>
+                    <TouchableOpacity onPress={handleBack} style={styles.backButton}>
+                        <Icon
+                            name="ChevronLeft"
+                            size={28}
+                            color={theme.colors.text}
+                            backgroundColor="transparent"
+                        />
+                    </TouchableOpacity>
+                    {dayPlanImage && (
+                        <View style={styles.headerImageContainer}>
+                            <Image
+                                source={dayPlanImage}
+                                style={styles.headerImage}
+                                resizeMode="cover"
+                            />
+                        </View>
+                    )}
+                </View>
                 <View style={styles.headerActions}>
+                    <DateBadge date={dayPlan.date} />
+
                     <TouchableOpacity onPress={handleAddPress} style={styles.actionButton}>
                         <Icon
                             name="Plus"
                             size={24}
-                            color={theme.colors.white}
-                            backgroundColor="transparent"
+                            color={theme.colors.text}
+                            backgroundColor={theme.colors.white}
                         />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={handleDeleteDayPlan} style={styles.actionButton}>
+                    <TouchableOpacity onPress={handleDeletePress} style={styles.actionButton}>
                         <Icon
                             name="Trash2"
                             size={24}
-                            color={theme.colors.white}
-                            backgroundColor="transparent"
+                            color={theme.colors.text}
+                            backgroundColor={theme.colors.white}
                         />
                     </TouchableOpacity>
                 </View>
             </View>
 
-            <ScrollView 
+
+            <ScrollView
                 style={styles.scrollView}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Rectángulo blanco con esquinas superiores redondeadas */}
-                <View style={styles.whiteCard}>
-                    {/* Imagen - mitad fuera, mitad dentro */}
-                    <View style={styles.imageWrapper}>
-                        <View style={styles.imageContainer}>
-                            {dayPlanImage && (
-                                <Image
-                                    source={dayPlanImage}
-                                    style={styles.image}
-                                    resizeMode="cover"
-                                />
-                            )}
-                        </View>
-                    </View>
-
-                    {/* Fecha y cantidad de comidas */}
-                    <View style={styles.infoContainer}>
-                        <Text style={styles.dateText}>{formatDate(dayPlan.date)}</Text>
-                        <Text style={styles.mealCountText}>
-                            {getMealCount()} {getMealCount() === 1 ? 'comida' : 'comidas'} planificadas
-                        </Text>
-                    </View>
-
-                    {/* Lista de PlannedMeals */}
-                    <View style={styles.mealsContainer}>
-                        {sortedMeals.length > 0 ? (
-                            sortedMeals.map((meal) => (
-                                <PlannedMealCard
-                                    key={meal.id}
-                                    plannedMeal={meal}
-                                    onPress={() => handleMealPress(meal)}
-                                />
-                            ))
-                        ) : (
-                            <View style={styles.emptyMealsContainer}>
-                                <Text style={styles.emptyMealsText}>
-                                    No hay comidas planificadas para este día
+                {/* Lista de PlannedMeals */}
+                <View style={styles.mealsContainer}>
+                    {sortedMeals.length > 0 ? (
+                        sortedMeals.map((meal) => (
+                            <PlannedMealCard
+                                key={meal.id}
+                                plannedMeal={meal}
+                                onPress={() => handleMealPress(meal)}
+                            />
+                        ))
+                    ) : (
+                        <View style={styles.emptyMealsContainer}>
+                            <Text style={styles.emptyMealsText}>
+                                No hay comidas planificadas para este día
+                            </Text>
+                            <TouchableOpacity
+                                style={styles.addMealButton}
+                                onPress={handleAddPress}
+                            >
+                                <Text style={styles.addMealButtonText}>
+                                    Agregar comida
                                 </Text>
-                                <TouchableOpacity 
-                                    style={styles.addMealButton}
-                                    onPress={handleAddPress}
-                                >
-                                    <Text style={styles.addMealButtonText}>
-                                        Agregar comida
-                                    </Text>
-                                </TouchableOpacity>
-                            </View>
-                        )}
-                    </View>
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
             </ScrollView>
 
-        <AddPlannedMealForm
-            visible={showAddForm}
-            onClose={() => {
-                setShowAddForm(false);
-                setEditingMeal(null);
-                setIsEditing(false);
-                setAddFormDate('');
-            }}
-            onSubmit={handleAddPlannedMeal}
-            dayPlanId={dayPlan.id}
-            editingMeal={editingMeal}
-            isEditing={isEditing}
-            onRemoveDish={handleRemoveDishFromMeal}
-            editingDate={isEditing ? editingDate : addFormDate}
-        />
+            <ConfirmModal
+                visible={showDeleteModal}
+                onClose={() => setShowDeleteModal(false)}
+                onConfirm={handleConfirmDelete}
+                title="¿Eliminar plan?"
+                message={`¿Estás seguro de que quieres eliminar el plan del día ${formatDate(dayPlan.date)}?`}
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+            />
+
+            <AddPlannedMealForm
+                visible={showAddForm}
+                onClose={() => {
+                    setShowAddForm(false);
+                    setEditingMeal(null);
+                    setIsEditing(false);
+                    setAddFormDate('');
+                }}
+                onSubmit={handleAddPlannedMeal}
+                dayPlanId={dayPlan.id}
+                editingMeal={editingMeal}
+                isEditing={isEditing}
+                onRemoveDish={handleRemoveDishFromMeal}
+                editingDate={isEditing ? editingDate : addFormDate}
+            />
         </View>
     );
 };
@@ -287,70 +302,49 @@ const DayPlanDetailScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#000000',
+        backgroundColor: theme.colors.background,
     },
     headerContainer: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingHorizontal: 16,
-        paddingTop: 50,
+        paddingTop: 20,
         paddingBottom: 16,
-        backgroundColor: '#000000',
-        zIndex: 10,
+        backgroundColor: theme.colors.background,
+    },
+    headerLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
     backButton: {
-        padding: 8,
+        padding: 4,
+    },
+    headerImageContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        overflow: 'hidden',
+        borderWidth: 0,
+    },
+    headerImage: {
+        width: '100%',
+        height: '100%',
     },
     headerActions: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 12,
+        gap: 10,
     },
     actionButton: {
-        padding: 8,
-    },
-    scrollView: {
-        flex: 1,
-    },
-    scrollContent: {
-        flexGrow: 1,
-        paddingBottom: 40,
-    },
-    whiteCard: {
-        flex: 1,
-        backgroundColor: theme.colors.white,
-        borderTopLeftRadius: 30,
-        borderTopRightRadius: 30,
-        paddingHorizontal: 20,
-        paddingBottom: 30,
-        minHeight: 400,
-    },
-    imageWrapper: {
-        alignItems: 'center',
-        marginTop: -40,
-        marginBottom: 16,
-    },
-    imageContainer: {
-        width: 120,
-        height: 120,
-        borderRadius: 60,
-        overflow: 'hidden',
-        borderWidth: 4,
-        borderColor: theme.colors.white,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 8,
-        elevation: 4,
-    },
-    image: {
-        width: '100%',
-        height: '100%',
+        padding: 0,
     },
     infoContainer: {
         alignItems: 'center',
-        marginBottom: 20,
+        paddingHorizontal: 20,
+        paddingBottom: 16,
+        backgroundColor: theme.colors.background,
     },
     dateText: {
         fontSize: 20,
@@ -363,6 +357,14 @@ const styles = StyleSheet.create({
         fontSize: 14,
         color: theme.colors.secondary || '#888888',
         textAlign: 'center',
+    },
+    scrollView: {
+        flex: 1,
+        backgroundColor: theme.colors.background,
+    },
+    scrollContent: {
+        paddingHorizontal: 20,
+        paddingBottom: 100,
     },
     mealsContainer: {
         flex: 1,
@@ -380,8 +382,6 @@ const styles = StyleSheet.create({
     },
     addMealButton: {
         backgroundColor: theme.colors.primary,
-        paddingHorizontal: 24,
-        paddingVertical: 12,
         borderRadius: 12,
     },
     addMealButtonText: {
@@ -393,11 +393,11 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: '#000000',
+        backgroundColor: theme.colors.background,
     },
     loadingText: {
         fontSize: 16,
-        color: theme.colors.white,
+        color: theme.colors.text,
     },
 });
 

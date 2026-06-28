@@ -2,7 +2,8 @@ import { Icon } from '@/components/icon';
 import { DayPlan } from '@/services/mealPlannerService';
 import { theme } from '@/theme';
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
+import { ThemedText } from '../ThemedText';
 import { DayPlanCard } from './DayPlanCard';
 import { WeekView } from './WeekView';
 
@@ -99,9 +100,9 @@ export const WeeklyPlannerContainer: React.FC<WeeklyPlannerContainerProps> = ({
                             color={'#888888'}
                             backgroundColor={theme.colors.background || '#f5f5f5'}
                         />
-                        <Text style={styles.emptyText}>
+                        <ThemedText style={styles.emptyText}>
                             No hay planes para esta semana
-                        </Text>
+                        </ThemedText>
                     </View>
                 )}
             </View>
@@ -126,6 +127,6 @@ const styles = StyleSheet.create({
     emptyText: {
         fontSize: 16,
         color: '#888888',
-        fontWeight: 500
+        fontWeight: 600
     },
 });

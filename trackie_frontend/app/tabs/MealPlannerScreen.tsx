@@ -1,14 +1,14 @@
-// app/tabs/MealPlannerScreen.tsx
 import { Icon } from '@/components/icon';
 import { AddPlannedMealForm } from '@/components/meal-planner/AddPlannedMealForm';
 import { PlannedMealCard } from '@/components/meal-planner/PlannedMealCard';
 import { WeeklyPlannerContainer } from '@/components/meal-planner/WeeklyPlannerContainer';
 import { NavBar } from '@/components/navbar';
+import { ThemedText } from '@/components/ThemedText';
 import { DayPlan, mealPlannerService, PlannedMeal } from '@/services/mealPlannerService';
 import { theme } from '@/theme';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 
 const logo = require('@/assets/home_logo.png');
 
@@ -83,96 +83,55 @@ const MealPlannerScreen: React.FC = () => {
         setShowAddForm(true);
     };
 
-    const handleAddPress = async () => {
-        const today = getTodayDate();
+    const handleAddPlannedMeal = async (data: {
+        date: string;
+        time: string;
+        mealType: string;
+        dishIds: string[];
+    }) => {
         try {
-            let existingPlan = await mealPlannerService.getDayPlanByDate(today);
+            if (isEditing && editingMeal) {
+                // Editar: usar el método existente
+                await mealPlannerService.updatePlannedMeal(editingMeal.id, {
+                    mealType: data.mealType as any,
+                    time: data.time,
+                });
 
-            if (!existingPlan) {
-                existingPlan = await mealPlannerService.createDayPlan({ date: today });
+                const currentDishIds = editingMeal.dishes.map(d => d.id);
+                const newDishIds = data.dishIds.filter(id => !currentDishIds.includes(id));
+
+                if (newDishIds.length > 0) {
+                    await mealPlannerService.addDishesToPlannedMeal(
+                        editingMeal.id,
+                        newDishIds
+                    );
+                }
+            } else {
+                // Crear nuevo: usar el nuevo método que crea el DayPlan automáticamente
+                await mealPlannerService.addPlannedMealByDate(data.date, {
+                    mealType: data.mealType as any,
+                    time: data.time,
+                    dishIds: data.dishIds,
+                });
             }
 
-            setDayPlanId(existingPlan.id);
+            await fetchData();
+            setShowAddForm(false);
             setEditingMeal(null);
             setIsEditing(false);
-            setShowAddForm(true);
         } catch (error) {
-            console.error('Error preparing add form:', error);
+            console.error('Error saving planned meal:', error);
         }
     };
 
-const handleAddPlannedMeal = async (data: {
-    date: string;
-    time: string;
-    mealType: string;
-    dishIds: string[];
-}) => {
-    try {
-        let targetDayPlanId = dayPlanId;
-
-        if (isEditing && editingMeal) {
-            // Editar: usar el dayPlanId existente
-            await mealPlannerService.updatePlannedMeal(editingMeal.id, {
-                mealType: data.mealType as any,
-                time: data.time,
-            });
-
-            const currentDishIds = editingMeal.dishes.map(d => d.id);
-            const newDishIds = data.dishIds.filter(id => !currentDishIds.includes(id));
-
-            if (newDishIds.length > 0) {
-                await mealPlannerService.addDishesToPlannedMeal(
-                    editingMeal.id,
-                    newDishIds
-                );
-            }
-        } else {
-            // Crear nuevo: verificar si existe DayPlan para la fecha
-            if (!targetDayPlanId) {
-                // Buscar si ya existe un DayPlan para esta fecha
-                let existingPlan = dayPlans.find(plan => plan.date === data.date);
-                
-                if (!existingPlan) {
-                    // Si no existe, crearlo
-                    existingPlan = await mealPlannerService.createDayPlan({ date: data.date });
-                    // Actualizar el estado local (filtrando undefined)
-                    setDayPlans(prev => {
-                        // Asegurarnos de que el plan existe antes de agregarlo
-                        if (existingPlan) {
-                            return [...prev, existingPlan];
-                        }
-                        return prev;
-                    });
-                }
-                
-                // Si existingPlan existe, usarlo
-                if (existingPlan) {
-                    targetDayPlanId = existingPlan.id;
-                } else {
-                    throw new Error('No se pudo crear o encontrar el DayPlan');
-                }
-            }
-
-            // Crear el PlannedMeal en el DayPlan correcto
-            await mealPlannerService.addPlannedMeal(targetDayPlanId, {
-                mealType: data.mealType as any,
-                time: data.time,
-                dishIds: data.dishIds,
-            });
-        }
-
-        await fetchData();
-        setShowAddForm(false);
+    const handleAddPress = async () => {
+        const today = getTodayDate();
+        // No necesitamos crear el DayPlan aquí, el backend lo hará automáticamente
         setEditingMeal(null);
         setIsEditing(false);
-        if (targetDayPlanId) {
-            setDayPlanId(targetDayPlanId);
-        }
-    } catch (error) {
-        console.error('Error saving planned meal:', error);
-    }
-};
-
+        setEditingDate(today);
+        setShowAddForm(true);
+    };
     const handleRemoveDishFromMeal = async (plannedMealId: string, dishId: string) => {
         try {
             await mealPlannerService.removeDishFromPlannedMeal(plannedMealId, dishId);
@@ -190,7 +149,7 @@ const handleAddPlannedMeal = async (data: {
     };
 
     const handleCartPress = () => {
-        console.log('Cart pressed');
+        router.push('/ShoppingListScreen');
     };
 
     const handleWeekDaySelect = (date: string) => {
@@ -225,14 +184,14 @@ const handleAddPlannedMeal = async (data: {
             >
                 {/* Header con título y acciones */}
                 <View style={styles.header}>
-                    <Text style={styles.headerTitle}>
+                    <ThemedText style={styles.headerTitle}>
                         {new Date().toLocaleDateString('es-CO', {
                             weekday: 'long',
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric'
                         })}
-                    </Text>
+                    </ThemedText>
                     <View style={styles.headerActions}>
                         <Icon
                             name="ShoppingCart"
@@ -253,7 +212,7 @@ const handleAddPlannedMeal = async (data: {
                 {/* Lista de comidas planificadas */}
                 {loading ? (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyText}>Cargando...</Text>
+                        <ThemedText style={styles.emptyText}>Cargando...</ThemedText>
                     </View>
                 ) : plannedMeals.length > 0 ? (
                     <View style={styles.mealsList}>
@@ -267,10 +226,10 @@ const handleAddPlannedMeal = async (data: {
                     </View>
                 ) : (
                     <View style={styles.emptyContainer}>
-                        <Text style={styles.emptyTitle}>Sin comidas planificadas</Text>
-                        <Text style={styles.emptySubtitle}>
+                        <ThemedText style={styles.emptyTitle}>Sin comidas planificadas</ThemedText>
+                        <ThemedText style={styles.emptySubtitle}>
                             Agrega tus primeras comidas para hoy
-                        </Text>
+                        </ThemedText>
                     </View>
                 )}
 
@@ -344,7 +303,7 @@ const styles = StyleSheet.create({
     },
     emptyTitle: {
         fontSize: 18,
-        fontWeight: '600',
+        fontWeight: '800',
         color: theme.colors.text || '#000000',
         textAlign: 'center',
     },

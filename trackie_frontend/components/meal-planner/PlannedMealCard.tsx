@@ -1,7 +1,8 @@
 import { PlannedMeal } from '@/services/mealPlannerService';
 import { theme } from '@/theme';
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { ThemedText } from '../ThemedText';
 
 interface PlannedMealCardProps {
     plannedMeal: PlannedMeal;
@@ -54,16 +55,16 @@ export const PlannedMealCard: React.FC<PlannedMealCardProps> = ({
             {/* Contenido principal */}
             <View style={styles.contentContainer}>
                 <View style={styles.headerRow}>
-                    <Text style={styles.mealTypeLabel}>
+                    <ThemedText variant="semiBold" style={styles.mealTypeLabel}>
                         {mealTypeLabels[mealType]}
-                    </Text>
-                    <Text style={styles.timeLabel}>
+                    </ThemedText>
+                    <ThemedText variant="semiBold" style={styles.timeLabel}>
                         {formattedTime}
-                    </Text>
+                    </ThemedText>
                 </View>
-                <Text style={styles.dishName} numberOfLines={3}>
+                <ThemedText variant="medium" style={styles.dishName} numberOfLines={3}>
                     {dishName}
-                </Text>
+                </ThemedText>
             </View>
         </TouchableOpacity>
     );
@@ -80,8 +81,8 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     imageContainer: {
-        width: 60,
-        height: 60,
+        width: 50,
+        height: 50,
         borderRadius: 8,
         overflow: 'hidden',
         marginRight: 12,
@@ -100,25 +101,21 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 5,
         marginRight: 12,
 
     },
     mealTypeLabel: {
         fontSize: 10,
-        fontWeight: '600',
-        color: theme.colors.secondary || '#888888',
+        color: theme.colors.textLight || '#888888',
         letterSpacing: 0.5,
     },
     timeLabel: {
         fontSize: 11,
-        fontWeight: '600',
         color: theme.colors.text || '#555555',
         letterSpacing: 0.5,
     },
     dishName: {
-        fontSize: 15,
-        fontWeight: '500',
+        fontSize: 14,
         color: theme.colors.text || '#000000',
     },
 });
