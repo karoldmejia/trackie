@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, ParseUUIDPipe,HttpCode,HttpStatus, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, ParseUUIDPipe, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
 import { CreateDayPlanDto } from '../dtos/day-plan.dto';
 import { CreateDishDto, UpdateDishDto } from '../dtos/dish.dto';
 import { AddDishesToPlannedMealDto, CreatePlannedMealDto, UpdatePlannedMealDto } from '../dtos/planned-meal.dto';
@@ -9,7 +9,7 @@ import { MealPlannerService } from '../services/meal-planner.service';
 
 @Controller('meal-planner')
 export class MealPlannerController {
-    constructor(private readonly mealPlannerService: MealPlannerService) {}
+    constructor(private readonly mealPlannerService: MealPlannerService) { }
 
 
     @Post('day-plan')
@@ -39,12 +39,12 @@ export class MealPlannerController {
     }
 
     @Post('date/:date/planned-meal')
-async addPlannedMealByDate(
-    @Param('date') date: string,
-    @Body() createPlannedMealDto: CreatePlannedMealDto
-): Promise<PlannedMeal> {
-    return this.mealPlannerService.addPlannedMealByDate(date, createPlannedMealDto);
-}
+    async addPlannedMealByDate(
+        @Param('date') date: string,
+        @Body() createPlannedMealDto: CreatePlannedMealDto
+    ): Promise<PlannedMeal> {
+        return this.mealPlannerService.addPlannedMealByDate(date, createPlannedMealDto);
+    }
 
     // planned meal endpoints
 
@@ -101,7 +101,7 @@ async addPlannedMealByDate(
     // dish to planned meal endpoints
 
     @Post('planned-meal/:plannedMealId/dishes')
-    async addDishesToPlannedMeal(@Param('plannedMealId', ParseUUIDPipe) plannedMealId: string, @Body() addDishesDto: AddDishesToPlannedMealDto ): Promise<PlannedMeal> {
+    async addDishesToPlannedMeal(@Param('plannedMealId', ParseUUIDPipe) plannedMealId: string, @Body() addDishesDto: AddDishesToPlannedMealDto): Promise<PlannedMeal> {
         return this.mealPlannerService.addDishesToPlannedMeal(plannedMealId, addDishesDto.dishIds);
     }
 
