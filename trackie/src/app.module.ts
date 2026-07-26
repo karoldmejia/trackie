@@ -51,7 +51,7 @@ import { CutPhaseService } from './services/cutphase.service';
         : false,
     }),
 
-    TypeOrmModule.forFeature([DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList]),
+    TypeOrmModule.forFeature([DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay]),
 
     MulterModule.register({
       limits: {
