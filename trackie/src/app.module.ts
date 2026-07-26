@@ -25,6 +25,10 @@ import { ShoppingItem } from './entities/shopping-item.entity';
 import { ShoppingList } from './entities/shopping-list.entity';
 import { ShoppingListController } from './controllers/shopping-list.controller';
 import { ShoppingListService } from './services/shopping-list.service';
+import { CutPhase } from './entities/cutphase.entity';
+import { CutPhaseDay } from './entities/cutphaseday.entity';
+import { CutPhaseController } from './controllers/cutphase.controller';
+import { CutPhaseService } from './services/cutphase.service';
 
 @Module({
   imports: [
@@ -40,7 +44,7 @@ import { ShoppingListService } from './services/shopping-list.service';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      entities: [DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList ],
+      entities: [DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay],
       synchronize: true,
       ssl: process.env.DATABASE_URL
         ? { rejectUnauthorized: false }
@@ -60,7 +64,8 @@ import { ShoppingListService } from './services/shopping-list.service';
     WeightLogController,
     SettingsController,
     MealPlannerController,
-    ShoppingListController
+    ShoppingListController,
+    CutPhaseController
   ],
   providers: [
     DailyLogService,
@@ -69,7 +74,8 @@ import { ShoppingListService } from './services/shopping-list.service';
     UploadService,
     CloudinaryService,
     MealPlannerService,
-    ShoppingListService
+    ShoppingListService,
+    CutPhaseService
   ],
 })
 export class AppModule {}

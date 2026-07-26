@@ -200,6 +200,11 @@ const HomeScreen: React.FC = () => {
         router.push('/AllDailyLogs');
     };
 
+    const handleCutPhasesPress = () => {
+        router.push('/CutPhasesLogs');
+    };
+
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -249,7 +254,6 @@ const HomeScreen: React.FC = () => {
                         />
                     }
                 />
-
                 <View style={styles.gallerySection}>
                     <LongButton
                         onPress={handleAllLogsPress}
@@ -257,7 +261,13 @@ const HomeScreen: React.FC = () => {
                         iconLeft="Package2"
                     />
                 </View>
-
+                <View style={styles.gallerySection}>
+                    <LongButton
+                        onPress={handleCutPhasesPress}
+                        text="Etapas de déficit"
+                        iconLeft="TrendingDown"
+                    />
+                </View>
                 {isSearching ? (
                     <SearchResults
                         results={searchResults}
