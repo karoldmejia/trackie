@@ -31,6 +31,7 @@ export interface CutPhase {
 export interface CreateCutPhaseDto {
     startDate: string;
     endDate: string;
+    totalWeeks?: number;
     targetCalories: number;
     targetProtein: number;
     targetSteps: number;

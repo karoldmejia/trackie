@@ -1,7 +1,9 @@
+// app/cut-phases-logs.tsx
 import CutPhaseCard from '@/components/cutphase/CutPhaseCard';
+import CutPhaseForm from '@/components/cutphase/CutPhaseForm';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
-import { CutPhase, cutPhaseService } from '@/services/cutPhaseService';
+import { CreateCutPhaseDto, CutPhase, cutPhaseService } from '@/services/cutPhaseService';
 import { theme } from '@/theme';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -26,6 +28,8 @@ const CutPhasesLogs: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [phases, setPhases] = useState<PhaseWithData[]>([]);
     const [refreshing, setRefreshing] = useState(false);
+    const [formVisible, setFormVisible] = useState(false);
+    const [isCreating, setIsCreating] = useState(false);
 
     const handleGoBack = () => {
         router.back();
@@ -35,6 +39,19 @@ const CutPhasesLogs: React.FC = () => {
         // TODO: Navegar a la pantalla de detalle de la fase
         // router.push(`/cut-phase/${phaseId}`);
         console.log('Fase seleccionada:', phaseId);
+    };
+
+    const handleCreatePhase = async (data: CreateCutPhaseDto) => {
+        try {
+            setIsCreating(true);
+            await cutPhaseService.create(data);
+            await fetchData();
+        } catch (error) {
+            console.error('Error creating cut phase:', error);
+            throw error;
+        } finally {
+            setIsCreating(false);
+        }
     };
 
     const fetchData = async () => {
@@ -105,7 +122,7 @@ const CutPhasesLogs: React.FC = () => {
                         </ThemedText>
                     </View>
                     <TouchableOpacity
-                        onPress={() => {/* TODO: Navegar a crear fase */ }}
+                        onPress={() => setFormVisible(true)}
                         style={styles.addButton}
                     >
                         <Icon
@@ -137,7 +154,7 @@ const CutPhasesLogs: React.FC = () => {
                     </ThemedText>
                 </View>
                 <TouchableOpacity
-                    onPress={() => {/* TODO: Navegar a crear fase */ }}
+                    onPress={() => setFormVisible(true)}
                     style={styles.addButton}
                 >
                     <Icon
@@ -160,8 +177,15 @@ const CutPhasesLogs: React.FC = () => {
                 <View style={styles.phasesContainer}>
                     {phases.length === 0 ? (
                         <View style={styles.emptyContainer}>
+                            <Icon
+                                name="Package"
+                                size={48}
+                                color={theme.colors.textLight}
+                                backgroundColor="transparent"
+                                padding={0}
+                            />
                             <ThemedText variant="regular" size={14} color={theme.colors.textLight}>
-                                No hay registros aún. ¡Agrega tu primer registro!
+                                No hay etapas de déficit aún
                             </ThemedText>
                         </View>
                     ) : (
@@ -185,6 +209,15 @@ const CutPhasesLogs: React.FC = () => {
                     )}
                 </View>
             </ScrollView>
+
+            {/* Modal del formulario */}
+            <CutPhaseForm
+                visible={formVisible}
+                onClose={() => {
+                    setFormVisible(false);
+                }}
+                onSubmit={handleCreatePhase}
+            />
         </View>
     );
 };
@@ -233,10 +266,10 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     emptyContainer: {
-        marginTop: 32,
+        marginTop: 60,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingVertical: 40,
+        gap: 12,
     },
     createButton: {
         backgroundColor: theme.colors.primary,

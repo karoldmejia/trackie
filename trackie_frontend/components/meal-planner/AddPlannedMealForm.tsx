@@ -560,7 +560,6 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
 };
 
 const styles = StyleSheet.create({
-    // ... estilos existentes ...
     backdrop: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
