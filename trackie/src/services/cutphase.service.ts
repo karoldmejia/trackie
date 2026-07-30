@@ -107,6 +107,16 @@ export class CutPhaseService {
         return savedCutPhase;
     }
 
+    async getCutDays(cutPhaseId: string): Promise<CutPhaseDay[]> {
+    this.logger.log(`Getting cut days for phase ${cutPhaseId}`);
+    const days = await this.cutPhaseDayRepo.find({
+        where: { cutPhaseId },
+        order: { date: 'ASC' }
+    });
+    this.logger.log(`Found ${days.length} cut days for phase ${cutPhaseId}`);
+    return days;
+}
+
     // Generar los días del cut phase
     private async generateCutPhaseDays(cutPhase: CutPhase): Promise<void> {
         this.logger.log(`Generating days for cut phase ${cutPhase.id}`);
