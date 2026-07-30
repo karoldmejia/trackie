@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/theme';
 import React, { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Modal, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 
 interface DayData {
     date: string;
@@ -27,10 +27,10 @@ interface AdherenceCalendarProps {
 
 const getScoreColor = (score: number): string => {
     if (score === 0) return theme.colors.placeholder;
-    if (score < 50) return '#e74c3c';
-    if (score < 75) return '#f39c12';
-    if (score < 90) return '#2ecc71';
-    return '#27ae60';
+    if (score < 50) return '#FFF0F2';
+    if (score < 75) return '#FCD7DD';
+    if (score < 90) return '#FFB6C1';
+    return '#FA9DAB';
 };
 
 const getScoreLabel = (score: number): string => {
@@ -50,6 +50,7 @@ const DAYS_OF_WEEK = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, totalWeeks }) => {
     const [selectedDay, setSelectedDay] = useState<DayData | null>(null);
     const [modalVisible, setModalVisible] = useState(false);
+    const { width } = useWindowDimensions();
 
     // Organizar días por semana
     const weeks: DayData[][] = [];
@@ -57,18 +58,13 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
         const weekDays = days.filter(d => d.weekNumber === week);
         weeks.push(weekDays);
     }
-    console.log('📅 Total days received:', days.length);
-    console.log('📅 First 5 days:', days.slice(0, 5));
-        console.log('📅 Weeks organized:', weeks.map(w => w.length));
 
-    // Transponer la matriz: semanas como columnas, días como filas
-    const maxDaysInWeek = 7; // Siempre 7 días por semana
-    
+    // Transponer: semanas como columnas, días como filas
+    const maxDaysInWeek = 7;
     const transposedData: (DayData | null)[][] = [];
     for (let dayIndex = 0; dayIndex < maxDaysInWeek; dayIndex++) {
         const row: (DayData | null)[] = [];
         for (let weekIndex = 0; weekIndex < weeks.length; weekIndex++) {
-            // Buscar el día específico en esta semana
             const day = weeks[weekIndex].find(d => {
                 const date = new Date(d.date);
                 return date.getDay() === dayIndex;
@@ -77,6 +73,16 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
         }
         transposedData.push(row);
     }
+
+
+    const padding = 30; // padding horizontal del contenedor
+    const availableWidth = width - padding * 2;
+    const labelWidth = 22;
+    const gap = 4;
+    
+    const maxCellSize = Math.floor((availableWidth - labelWidth - (weeks.length - 1) * gap) / weeks.length);
+    const cellSize = Math.min(Math.max(maxCellSize, 14), 32); // entre 14px y 32px
+const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
 
     const handleDayPress = (day: DayData) => {
         setSelectedDay(day);
@@ -105,75 +111,61 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
         return translations[workout] || workout;
     };
 
+    const hasData = (day: DayData | null): boolean => {
+        return day !== null && day.dailyScore > 0;
+    };
+
+    const isFiller = (day: DayData | null, weekIndex: number): boolean => {
+        if (!day) return true;
+        return day.dailyScore === 0;
+    };
+
     return (
         <View style={styles.container}>
-            <ThemedText variant="semiBold" size={14} color={theme.colors.text} style={styles.title}>
-                Calendario de adherencia
-            </ThemedText>
+            <View style={styles.calendarWrapper}>
+                {/* Filas: días de la semana */}
+                {DAYS_OF_WEEK.map((dayLabel, dayIndex) => (
+                    <View key={dayIndex} style={[styles.row, { marginBottom: rowGap }]}>
+                        <View style={[styles.dayLabelCell, { width: labelWidth }]}>
+                            <ThemedText
+                                variant="regular"
+                                size={9}
+                                color={theme.colors.textLight}
+                                style={styles.dayLabelText}
+                            >
+                                {dayLabel}
+                            </ThemedText>
+                        </View>
 
-            {/* Scroll horizontal para las semanas */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                <View>
-                    {/* Encabezado: números de semana */}
-                    <View style={styles.weekHeader}>
-                        <View style={styles.cornerCell} />
-                        {weeks.map((_, index) => (
-                            <View key={index} style={styles.weekHeaderCell}>
-                                <ThemedText
-                                    variant="regular"
-                                    size={9}
-                                    color={theme.colors.textLight}
-                                    style={styles.weekNumberText}
-                                >
-                                    S{index + 1}
-                                </ThemedText>
-                            </View>
-                        ))}
-                    </View>
+                        {transposedData[dayIndex]?.map((day, weekIndex) => {
+                            const isEmpty = !day || day.dailyScore === 0;
+                            const bgColor = isEmpty 
+                                ? '#f0f0f0' // Gris muy claro para relleno
+                                : getScoreColor(day.dailyScore);
 
-                    {/* Filas: días de la semana */}
-                    {DAYS_OF_WEEK.map((dayLabel, dayIndex) => (
-                        <View key={dayIndex} style={styles.row}>
-                            {/* Etiqueta del día */}
-                            <View style={styles.dayLabelCell}>
-                                <ThemedText
-                                    variant="regular"
-                                    size={9}
-                                    color={theme.colors.textLight}
-                                    style={styles.dayLabelText}
-                                >
-                                    {dayLabel}
-                                </ThemedText>
-                            </View>
-
-                            {/* Celdas del día para cada semana */}
-                            {transposedData[dayIndex]?.map((day, weekIndex) => (
+                            return (
                                 <TouchableOpacity
                                     key={`${dayIndex}-${weekIndex}`}
                                     style={[
                                         styles.dayCell,
-                                        { backgroundColor: day ? getScoreColor(day.dailyScore) : theme.colors.placeholder }
+                                        {
+                                            width: cellSize,
+                                            height: cellSize,
+                                            borderRadius: Math.min(cellSize * 0.25, 6),
+                                            backgroundColor: bgColor,
+                                            marginHorizontal: gap / 2,
+                                        }
                                     ]}
-                                    onPress={() => day && handleDayPress(day)}
-                                    disabled={!day}
+                                    onPress={() => day && !isEmpty && handleDayPress(day)}
+                                    disabled={isEmpty}
                                     activeOpacity={0.7}
                                 >
-                                    {day && day.dailyScore > 0 && (
-                                        <ThemedText
-                                            variant="regular"
-                                            size={7}
-                                            color={day.dailyScore > 50 ? theme.colors.white : theme.colors.text}
-                                            style={styles.dayScore}
-                                        >
-                                            {day.dailyScore}
-                                        </ThemedText>
-                                    )}
                                 </TouchableOpacity>
-                            ))}
-                        </View>
-                    ))}
-                </View>
-            </ScrollView>
+                            );
+                        })}
+                    </View>
+                ))}
+            </View>
 
             {/* Leyenda */}
             <View style={styles.legendContainer}>
@@ -202,7 +194,7 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
                     </ThemedText>
                 </View>
                 <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: theme.colors.placeholder }]} />
+                    <View style={[styles.legendColor, { backgroundColor: '#f0f0f0' }]} />
                     <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
                         Sin datos
                     </ThemedText>
@@ -329,16 +321,23 @@ const styles = StyleSheet.create({
     title: {
         marginBottom: 12,
     },
-    weekHeader: {
+    calendarWrapper: {
+        alignItems: 'center',
+    },
+    row: {
         flexDirection: 'row',
-        marginBottom: 4,
+        alignItems: 'center',
+        justifyContent: 'flex-start',
+    },
+    headerRow: {
+        marginBottom: 6,
     },
     cornerCell: {
-        width: 24,
         height: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     weekHeaderCell: {
-        width: 28,
         height: 20,
         alignItems: 'center',
         justifyContent: 'center',
@@ -346,13 +345,7 @@ const styles = StyleSheet.create({
     weekNumberText: {
         textAlign: 'center',
     },
-    row: {
-        flexDirection: 'row',
-        marginBottom: 2,
-        alignItems: 'center',
-    },
     dayLabelCell: {
-        width: 24,
         height: 24,
         alignItems: 'center',
         justifyContent: 'center',
@@ -361,15 +354,13 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     dayCell: {
-        width: 28,
-        height: 24,
-        borderRadius: 3,
-        marginHorizontal: 1,
         alignItems: 'center',
         justifyContent: 'center',
+        borderWidth: 0,
     },
     dayScore: {
         textAlign: 'center',
+        fontWeight: '600',
     },
     legendContainer: {
         flexDirection: 'row',

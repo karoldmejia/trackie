@@ -31,11 +31,24 @@ export class DailyLogSubscriber implements EntitySubscriberInterface<DailyLog>, 
         await this.syncWithCutPhase(event.entity);
     }
 
-    async afterUpdate(event: UpdateEvent<DailyLog>) {
-        if (event.entity) {
-            await this.syncWithCutPhase(event.entity as DailyLog);
-        }
+async afterUpdate(event: UpdateEvent<DailyLog>) {
+    this.logger.log('afterUpdate triggered');
+    
+    let dailyLog: DailyLog | null = null;
+    
+    if (event.entity) {
+        dailyLog = event.entity as DailyLog;
+    } else if (event.databaseEntity) {
+        dailyLog = event.databaseEntity as DailyLog;
     }
+    
+    if (dailyLog) {
+        this.logger.log(`Syncing updated log for date: ${dailyLog.date}`);
+        await this.syncWithCutPhase(dailyLog);
+    } else {
+        this.logger.warn('No entity found in afterUpdate event');
+    }
+}
 
     private async syncWithCutPhase(dailyLog: DailyLog): Promise<void> {
         try {
