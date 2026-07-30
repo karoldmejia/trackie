@@ -49,110 +49,65 @@ export const CutPhaseCard: React.FC<CutPhaseCardProps> = ({ phase, onPress }) =>
                 {/* Header con fechas y estado */}
                 <View style={styles.header}>
                     <View style={styles.headerLeft}>
-                        <View style={styles.dateRow}>
-                            <Icon 
-                                name="Calendar" 
-                                size={14} 
-                                color={theme.colors.placeholder}
-                                backgroundColor="transparent"
-                                padding={0}
-                            />
-                            <ThemedText 
-                                variant="medium" 
-                                size={12} 
-                                color={theme.colors.placeholder}
-                                style={styles.dateText}
-                            >
-                                {formattedStartDate} - {formattedEndDate}
-                            </ThemedText>
-                        </View>
                         <ThemedText 
                             variant="regular" 
-                            size={11} 
+                            size={12} 
+                            color={theme.colors.textLight}
+                        >
+                            {formattedStartDate} - {formattedEndDate}
+                        </ThemedText>
+                    </View>
+                    <View style={styles.headerRight}>
+                        <ThemedText 
+                            variant="regular" 
+                            size={12} 
                             color={theme.colors.textLight}
                             style={styles.weeksText}
                         >
                             {phase.totalWeeks} semanas
                         </ThemedText>
-                    </View>
-                    <View style={styles.headerRight}>
-                        {/* Círculo de estado */}
-                        <View style={[
-                            styles.statusCircle,
-                            phase.isActive ? styles.activeCircle : styles.inactiveCircle
-                        ]} />
+                        <Icon 
+                            name="Asterisk" 
+                            size={16} 
+                            color={phase.isActive ? theme.colors.primary : theme.colors.placeholder}
+                            backgroundColor="transparent"
+                            style={styles.asterikIcon}
+                        />
                     </View>
                 </View>
 
-                {/* Cumplimiento - Negrita notoria */}
-                <View style={styles.complianceSection}>
-                    <ThemedText variant="bold" size={36} color={theme.colors.primary}>
-                        {compliance}%
-                    </ThemedText>
-                    <ThemedText variant="medium" size={14} color={theme.colors.textLight}>
-                        Cumplimiento
-                    </ThemedText>
-                </View>
-
-                {/* Diferencias de medidas */}
-                <View style={styles.measurementsSection}>
-                    <View style={styles.measurementsRow}>
-                        {/* Peso */}
-                        <View style={styles.measurementItem}>
-                            <Icon 
-                                name="Weight" 
-                                size={14} 
-                                color={theme.colors.textLight}
-                                backgroundColor="transparent"
-                                padding={0}
-                            />
-                            <ThemedText 
-                                variant="medium" 
-                                size={13} 
-                                color={theme.colors.textLight}
-                                style={styles.measurementText}
-                            >
-                                {getDifferenceText(phase.weightDifference)} kg
-                            </ThemedText>
-                        </View>
-
-                        {/* Cintura */}
-                        <View style={styles.measurementItem}>
-                            <Icon 
-                                name="Ruler" 
-                                size={14} 
-                                color={theme.colors.textLight}
-                                backgroundColor="transparent"
-                                padding={0}
-                            />
-                            <ThemedText 
-                                variant="medium" 
-                                size={13} 
-                                color={theme.colors.textLight}
-                                style={styles.measurementText}
-                            >
-                                {getDifferenceText(phase.waistDifference)} cm
-                            </ThemedText>
-                        </View>
-
-                        {/* Cadera */}
-                        <View style={styles.measurementItem}>
-                            <Icon 
-                                name="Ruler" 
-                                size={14} 
-                                color={theme.colors.textLight}
-                                backgroundColor="transparent"
-                                padding={0}
-                            />
-                            <ThemedText 
-                                variant="medium" 
-                                size={13} 
-                                color={theme.colors.textLight}
-                                style={styles.measurementText}
-                            >
-                                {getDifferenceText(phase.hipsDifference)} cm
-                            </ThemedText>
-                        </View>
+                <View style={styles.historyStats}>
+                    <View style={styles.historyStat}>
+                        <ThemedText variant="bold" size={16} color={theme.colors.text}>
+                            {compliance}
+                        </ThemedText>
+                        <ThemedText variant="semiBold" size={12} color={theme.colors.textLight}>
+                            %
+                        </ThemedText>
+                    </View>
+                    <View style={styles.historyStat}>
+                        <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
+                            {getDifferenceText(phase.weightDifference)}
+                        </ThemedText>
+                        <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
+                            kg
+                        </ThemedText>
+                    </View>
+                    <View style={styles.historyStat}>
+                        <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
+                            {getDifferenceText(phase.waistDifference)}
+                        </ThemedText>
+                        <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
+                            cm
+                        </ThemedText>
+                    </View>
+                    <View style={styles.historyStat}>
+                        <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
+                            {getDifferenceText(phase.hipsDifference)}
+                        </ThemedText>
+                        <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
+                            cm
+                        </ThemedText>
                     </View>
                 </View>
             </View>
@@ -163,7 +118,7 @@ export const CutPhaseCard: React.FC<CutPhaseCardProps> = ({ phase, onPress }) =>
 const styles = StyleSheet.create({
     card: {
         backgroundColor: theme.colors.white,
-        borderRadius: 20,
+        borderRadius: 16,
         padding: 16,
         marginBottom: 12,
         borderWidth: 0,
@@ -173,8 +128,8 @@ const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
-        marginBottom: 12,
+        alignItems: 'center',
+        marginBottom: 8,
     },
     headerLeft: {
         flex: 1,
@@ -183,49 +138,43 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
     },
-    dateRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: 2,
-    },
-    dateText: {
-        marginLeft: 6,
-    },
     weeksText: {
-        marginLeft: 20,
+        marginRight: 8,
     },
-    statusCircle: {
-        width: 12,
-        height: 12,
-        borderRadius: 6,
-        marginLeft: 8,
+    asterikIcon: {
+        paddingHorizontal: 0,
     },
-    activeCircle: {
-        backgroundColor: theme.colors.success,
-    },
-    inactiveCircle: {
-        backgroundColor: theme.colors.placeholder,
-    },
-    complianceSection: {
+    statsContainer: {
         alignItems: 'center',
         paddingVertical: 8,
         marginBottom: 8,
     },
-    measurementsSection: {
-        borderTopWidth: 1,
-        borderTopColor: theme.colors.secondary,
-        paddingTop: 12,
-    },
-    measurementsRow: {
+    statItem: {
         flexDirection: 'row',
-        justifyContent: 'space-around',
+        alignItems: 'baseline',
+        gap: 2,
     },
-    measurementItem: {
+    historyCard: {
+        backgroundColor: theme.colors.white,
+        borderRadius: 16,
+        padding: 12,
+        marginBottom: 8,
+        borderWidth: 0,
+        shadowColor: 'transparent',
+        elevation: 1,
+    },
+    historyStats: {
         flexDirection: 'row',
-        alignItems: 'center',
+        gap: 16,
+        alignItems: 'baseline',
     },
-    measurementText: {
-        marginLeft: 4,
+    historyStat: {
+        flexDirection: 'row',
+        alignItems: 'baseline',
+        gap: 2,
+    },
+    historyCardContent: {
+        flex: 1
     },
 });
 

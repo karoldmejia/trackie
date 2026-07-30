@@ -36,9 +36,7 @@ const CutPhasesLogs: React.FC = () => {
     };
 
     const handlePhasePress = (phaseId: string) => {
-        // TODO: Navegar a la pantalla de detalle de la fase
-        // router.push(`/cut-phase/${phaseId}`);
-        console.log('Fase seleccionada:', phaseId);
+        router.push(`/cutphase/${phaseId}`);
     };
 
     const handleCreatePhase = async (data: CreateCutPhaseDto) => {
