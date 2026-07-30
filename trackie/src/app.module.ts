@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MulterModule } from '@nestjs/platform-express';
 import { ConfigModule } from '@nestjs/config';
@@ -56,7 +56,7 @@ import { DailyLogSubscriber } from './services/daily-log.subscriber';
 
     MulterModule.register({
       limits: {
-        fileSize: 5 * 1024 * 1024, // 5 MB por archivo
+        fileSize: 5 * 1024 * 1024,
       },
     }),
   ],
@@ -78,7 +78,6 @@ import { DailyLogSubscriber } from './services/daily-log.subscriber';
     ShoppingListService,
     CutPhaseService,
     DailyLogSubscriber,
-
   ],
 })
-export class AppModule { }
+export class AppModule {}

@@ -1,12 +1,15 @@
 import { EventSubscriber, EntitySubscriberInterface, UpdateEvent, InsertEvent } from 'typeorm';
 import { DailyLog } from '../entities/dailylog.entity';
-import { Injectable } from '@nestjs/common';
+import { Injectable, forwardRef, Inject } from '@nestjs/common';
 import { CutPhaseService } from '../services/cutphase.service';
 
 @EventSubscriber()
 @Injectable()
 export class DailyLogSubscriber implements EntitySubscriberInterface<DailyLog> {
-    constructor(private readonly cutPhaseService: CutPhaseService) {}
+    constructor(
+        @Inject(forwardRef(() => CutPhaseService))
+        private readonly cutPhaseService: CutPhaseService
+    ) {}
 
     listenTo() {
         return DailyLog;

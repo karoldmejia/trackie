@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException, Logger } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { CutPhase } from '../entities/cutphase.entity';
@@ -20,8 +20,9 @@ export class CutPhaseService {
         private readonly cutPhaseRepo: Repository<CutPhase>,
         @InjectRepository(CutPhaseDay)
         private readonly cutPhaseDayRepo: Repository<CutPhaseDay>,
+        @Inject(forwardRef(() => DailyLogService))
         private readonly dailyLogService: DailyLogService,
-        private readonly weightLogService: WeightLogService,
+                private readonly weightLogService: WeightLogService,
     ) { }
 
     async create(dto: CreateCutPhaseDto): Promise<CutPhase> {
@@ -48,7 +49,7 @@ export class CutPhaseService {
         // Validar fechas
         const startDate = new Date(dto.startDate);
         const endDate = new Date(dto.endDate);
-        
+
         this.logger.log(`Parsed startDate: ${startDate.toISOString()}`);
         this.logger.log(`Parsed endDate: ${endDate.toISOString()}`);
 
@@ -82,12 +83,12 @@ export class CutPhaseService {
             totalWeeks,
             isActive: true,
         };
-        
+
         this.logger.log('Creating cut phase with data:');
         this.logger.log(JSON.stringify(cutPhaseData, null, 2));
 
         const cutPhase = this.cutPhaseRepo.create(cutPhaseData);
-        
+
         this.logger.log('Attempting to save cut phase...');
         const savedCutPhase = await this.cutPhaseRepo.save(cutPhase);
         this.logger.log(`Cut phase saved with ID: ${savedCutPhase.id}`);
@@ -143,10 +144,47 @@ export class CutPhaseService {
         this.logger.log(`Generated ${days.length} days for cut phase ${cutPhase.id}`);
     }
 
+async syncAllExistingDays(cutPhaseId: string): Promise<number> {
+    this.logger.log(`Syncing all existing days for cut phase ${cutPhaseId}`);
+
+    const cutPhase = await this.cutPhaseRepo.findOne({
+        where: { id: cutPhaseId }
+    });
+
+    if (!cutPhase) {
+        this.logger.error(`Cut phase ${cutPhaseId} not found`);
+        throw new NotFoundException('Cut phase no encontrado');
+    }
+
+    // Obtener todos los DailyLogs en el rango de fechas
+    const dailyLogs = await this.dailyLogService.findByDateRange(
+        cutPhase.startDate,
+        cutPhase.endDate
+    );
+
+    this.logger.log(`Found ${dailyLogs.length} daily logs to sync`);
+
+    let syncedCount = 0;
+    for (const log of dailyLogs) {
+        try {
+            await this.updateDayCompliance(cutPhaseId, log.date);
+            syncedCount++;
+        } catch (error) {
+            if (error instanceof Error) {
+                this.logger.error(`Error syncing day ${log.date}: ${error.message}`);
+            } else {
+                this.logger.error(`Error syncing day ${log.date}: Unknown error`);
+            }
+        }
+    }
+
+    this.logger.log(`Synced ${syncedCount} days for cut phase ${cutPhaseId}`);
+    return syncedCount;
+}
     // Calcular el cumplimiento de un día
     private calculateDayCompliance(dailyLog: DailyLog, cutPhase: CutPhase): Omit<CutPhaseDay, 'id' | 'cutPhase' | 'cutPhaseId'> {
         this.logger.log(`Calculating compliance for date ${dailyLog.date}`);
-        
+
         const caloriesMet = dailyLog.calories <= cutPhase.targetCalories;
         const proteinMet = dailyLog.proteinGrams >= cutPhase.targetProtein;
         const stepsMet = dailyLog.steps >= cutPhase.targetSteps;
@@ -200,7 +238,7 @@ export class CutPhaseService {
     // Sincronizar todos los días del cut phase
     async syncAllDays(cutPhaseId: string): Promise<void> {
         this.logger.log(`Syncing all days for cut phase ${cutPhaseId}`);
-        
+
         const cutPhase = await this.cutPhaseRepo.findOne({
             where: { id: cutPhaseId }
         });
@@ -243,7 +281,7 @@ export class CutPhaseService {
     // Actualizar un día específico
     async updateDayCompliance(cutPhaseId: string, date: string): Promise<CutPhaseDay> {
         this.logger.log(`Updating day compliance for cut phase ${cutPhaseId}, date ${date}`);
-        
+
         const cutPhase = await this.cutPhaseRepo.findOne({
             where: { id: cutPhaseId }
         });
@@ -284,7 +322,7 @@ export class CutPhaseService {
 
     async getDashboard(cutPhaseId: string): Promise<any> {
         this.logger.log(`Getting dashboard for cut phase ${cutPhaseId}`);
-        
+
         const cutPhase = await this.cutPhaseRepo.findOne({
             where: { id: cutPhaseId }
         });
@@ -556,7 +594,7 @@ export class CutPhaseService {
     async update(id: string, dto: UpdateCutPhaseDto): Promise<CutPhase> {
         this.logger.log(`Updating cut phase ${id}`);
         this.logger.log(`Update DTO: ${JSON.stringify(dto)}`);
-        
+
         const cutPhase = await this.findById(id);
 
         if (dto.startDate && dto.endDate) {
@@ -592,10 +630,10 @@ export class CutPhaseService {
     async remove(id: string): Promise<void> {
         this.logger.log(`Removing cut phase ${id}`);
         const cutPhase = await this.findById(id);
-        
+
         this.logger.log(`Deleting days for cut phase ${id}`);
         await this.cutPhaseDayRepo.delete({ cutPhaseId: id });
-        
+
         this.logger.log(`Removing cut phase ${id}`);
         await this.cutPhaseRepo.remove(cutPhase);
         this.logger.log(`Cut phase ${id} removed`);

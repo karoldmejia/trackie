@@ -90,6 +90,7 @@ export class DailyLogService {
         } else {
             Object.assign(log, dto);
         }
+        
         return this.dailyLogRepo.save(log);
     }
 
