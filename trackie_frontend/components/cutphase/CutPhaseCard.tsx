@@ -11,7 +11,7 @@ interface CutPhaseCardProps {
         endDate: string;
         totalWeeks: number;
         isActive: boolean;
-        compliancePercentage: number;
+        averageScore: number;
         weightDifference?: number | null;
         waistDifference?: number | null;
         hipsDifference?: number | null;
@@ -41,7 +41,7 @@ const getDifferenceText = (difference: number | null | undefined): string => {
 export const CutPhaseCard: React.FC<CutPhaseCardProps> = ({ phase, onPress }) => {
     const formattedStartDate = formatDisplayDate(phase.startDate);
     const formattedEndDate = formatDisplayDate(phase.endDate);
-    const compliance = Math.round(phase.compliancePercentage);
+    const compliance = Math.round(phase.averageScore);
 
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
@@ -81,8 +81,7 @@ export const CutPhaseCard: React.FC<CutPhaseCardProps> = ({ phase, onPress }) =>
                         <ThemedText variant="bold" size={16} color={theme.colors.text}>
                             {compliance}
                         </ThemedText>
-                        <ThemedText variant="semiBold" size={12} color={theme.colors.textLight}>
-                            %
+                        <ThemedText variant="semiBold" size={12} color={theme.colors.textLight}> puntos
                         </ThemedText>
                     </View>
                     <View style={styles.historyStat}>

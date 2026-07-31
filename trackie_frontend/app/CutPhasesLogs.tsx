@@ -17,7 +17,7 @@ import {
 } from 'react-native';
 
 interface PhaseWithData extends CutPhase {
-    compliancePercentage: number;
+    averageScore: number;
     weightDifference?: number | null;
     waistDifference?: number | null;
     hipsDifference?: number | null;
@@ -64,7 +64,7 @@ const CutPhasesLogs: React.FC = () => {
                         const dashboard = await cutPhaseService.getDashboard(phase.id);
                         return {
                             ...phase,
-                            compliancePercentage: dashboard.summary?.compliancePercentage || 0,
+                            averageScore: dashboard.summary?.averageScore || 0,
                             weightDifference: dashboard.measurements?.weight?.difference || null,
                             waistDifference: dashboard.measurements?.waist?.difference || null,
                             hipsDifference: dashboard.measurements?.hips?.difference || null,
@@ -73,7 +73,7 @@ const CutPhasesLogs: React.FC = () => {
                         console.error(`Error fetching dashboard for phase ${phase.id}:`, error);
                         return {
                             ...phase,
-                            compliancePercentage: 0,
+                            averageScore: 0,
                             weightDifference: null,
                             waistDifference: null,
                             hipsDifference: null,
@@ -196,7 +196,7 @@ const CutPhasesLogs: React.FC = () => {
                                     endDate: phase.endDate,
                                     totalWeeks: phase.totalWeeks,
                                     isActive: phase.isActive,
-                                    compliancePercentage: phase.compliancePercentage,
+                                    averageScore: phase.averageScore,
                                     weightDifference: phase.weightDifference,
                                     waistDifference: phase.waistDifference,
                                     hipsDifference: phase.hipsDifference,

@@ -2,6 +2,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/theme';
 import React, { useState } from 'react';
 import { Modal, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
+import { Icon } from '../icon';
 
 interface DayData {
     date: string;
@@ -42,7 +43,7 @@ const getScoreLabel = (score: number): string => {
 };
 
 const getStatusColor = (met: boolean): string => {
-    return met ? theme.colors.success : theme.colors.error;
+    return met ? '#079C3B' : '#C11027';
 };
 
 const DAYS_OF_WEEK = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
@@ -79,10 +80,10 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
     const availableWidth = width - padding * 2;
     const labelWidth = 22;
     const gap = 4;
-    
+
     const maxCellSize = Math.floor((availableWidth - labelWidth - (weeks.length - 1) * gap) / weeks.length);
     const cellSize = Math.min(Math.max(maxCellSize, 14), 32); // entre 14px y 32px
-const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
+    const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
 
     const handleDayPress = (day: DayData) => {
         setSelectedDay(day);
@@ -92,12 +93,13 @@ const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
     const formatDate = (dateString: string) => {
         const [year, month, day] = dateString.split('-').map(Number);
         const localDate = new Date(year, month - 1, day);
-        const formatter = new Intl.DateTimeFormat('es-CO', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-        return formatter.format(localDate);
+
+        const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+        const dia = String(localDate.getDate()).padStart(2, '0');
+        const mes = meses[localDate.getMonth()];
+        const año = localDate.getFullYear();
+
+        return `${dia} ${mes} ${año}`;
     };
 
     const getWorkoutLabel = (workout: string): string => {
@@ -109,15 +111,6 @@ const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
             'cardio': 'Cardio',
         };
         return translations[workout] || workout;
-    };
-
-    const hasData = (day: DayData | null): boolean => {
-        return day !== null && day.dailyScore > 0;
-    };
-
-    const isFiller = (day: DayData | null, weekIndex: number): boolean => {
-        if (!day) return true;
-        return day.dailyScore === 0;
     };
 
     return (
@@ -139,7 +132,7 @@ const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
 
                         {transposedData[dayIndex]?.map((day, weekIndex) => {
                             const isEmpty = !day || day.dailyScore === 0;
-                            const bgColor = isEmpty 
+                            const bgColor = isEmpty
                                 ? '#f0f0f0' // Gris muy claro para relleno
                                 : getScoreColor(day.dailyScore);
 
@@ -170,34 +163,22 @@ const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
             {/* Leyenda */}
             <View style={styles.legendContainer}>
                 <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: '#27ae60' }]} />
-                    <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
-                        90-100
+                    <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
+                        Mejor
                     </ThemedText>
+                    <View style={[styles.legendColor, { backgroundColor: '#FA9DAB' }]} />
                 </View>
                 <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: '#2ecc71' }]} />
-                    <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
-                        75-89
-                    </ThemedText>
+                    <View style={[styles.legendColor, { backgroundColor: '#FFB6C1' }]} />
                 </View>
                 <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: '#f39c12' }]} />
-                    <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
-                        50-74
-                    </ThemedText>
+                    <View style={[styles.legendColor, { backgroundColor: '#FCD7DD' }]} />
                 </View>
                 <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: '#e74c3c' }]} />
-                    <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
-                        0-49
-                    </ThemedText>
+                    <View style={[styles.legendColor, { backgroundColor: '#FFF0F2' }]} />
                 </View>
                 <View style={styles.legendItem}>
-                    <View style={[styles.legendColor, { backgroundColor: '#f0f0f0' }]} />
-                    <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
-                        Sin datos
-                    </ThemedText>
+                    <ThemedText variant="regular" size={10} color={theme.colors.textLight}> Peor</ThemedText>
                 </View>
             </View>
 
@@ -217,26 +198,50 @@ const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
                         {selectedDay && (
                             <>
                                 <View style={styles.modalHeader}>
-                                    <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                        {formatDate(selectedDay.date)}
-                                    </ThemedText>
-                                    <View style={[styles.modalScoreBadge, { backgroundColor: getScoreColor(selectedDay.dailyScore) }]}>
-                                        <ThemedText variant="bold" size={14} color={theme.colors.white}>
-                                            {selectedDay.dailyScore}
+                                    <View style={styles.scoreBadgeContainer}>
+
+                                        <ThemedText variant="semiBold" size={12} color={theme.colors.placeholder}>
+                                            {formatDate(selectedDay.date).toUpperCase()}
                                         </ThemedText>
-                                        <ThemedText variant="regular" size={10} color={theme.colors.white}>
-                                            {getScoreLabel(selectedDay.dailyScore)}
-                                        </ThemedText>
+                                        <View style={[styles.scoreBadge]}>
+                                            <Icon
+                                                name="Asterisk"
+                                                size={30}
+                                                color={getScoreColor(selectedDay.dailyScore)}
+                                                backgroundColor="transparent"
+                                                padding={0}
+                                                style={styles.badgeIcon}
+                                            />
+                                            <View style={styles.badgeTextContainer}>
+                                                <ThemedText variant="bold" size={16} color={theme.colors.text}>
+                                                    {selectedDay.dailyScore} ({getScoreLabel(selectedDay.dailyScore).toLowerCase()})
+                                                </ThemedText>
+                                            </View>
+                                        </View>
                                     </View>
+
+                                    <TouchableOpacity
+                                        onPress={() => setModalVisible(false)}
+                                        style={styles.closeButton}
+                                    >
+                                        <Icon
+                                            name="X"
+                                            size={20}
+                                            color={theme.colors.text}
+                                            backgroundColor="transparent"
+                                            padding={0}
+                                        />
+                                    </TouchableOpacity>
                                 </View>
 
+                                {/* Detalles del día */}
                                 <View style={styles.modalDetails}>
                                     <View style={styles.modalRow}>
                                         <ThemedText variant="regular" size={13} color={theme.colors.textLight}>
                                             Calorías
                                         </ThemedText>
                                         <View style={styles.modalStatus}>
-                                            <ThemedText variant="semiBold" size={13} color={selectedDay.caloriesMet ? theme.colors.success : theme.colors.error}>
+                                            <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
                                                 {selectedDay.calories}
                                             </ThemedText>
                                             <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.caloriesMet) }]} />
@@ -248,7 +253,7 @@ const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
                                             Proteína
                                         </ThemedText>
                                         <View style={styles.modalStatus}>
-                                            <ThemedText variant="semiBold" size={13} color={selectedDay.proteinMet ? theme.colors.success : theme.colors.error}>
+                                            <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
                                                 {selectedDay.protein}g
                                             </ThemedText>
                                             <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.proteinMet) }]} />
@@ -260,7 +265,7 @@ const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
                                             Pasos
                                         </ThemedText>
                                         <View style={styles.modalStatus}>
-                                            <ThemedText variant="semiBold" size={13} color={selectedDay.stepsMet ? theme.colors.success : theme.colors.error}>
+                                            <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
                                                 {selectedDay.steps}
                                             </ThemedText>
                                             <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.stepsMet) }]} />
@@ -272,7 +277,7 @@ const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
                                             Agua
                                         </ThemedText>
                                         <View style={styles.modalStatus}>
-                                            <ThemedText variant="semiBold" size={13} color={selectedDay.waterMet ? theme.colors.success : theme.colors.error}>
+                                            <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
                                                 {selectedDay.water}L
                                             </ThemedText>
                                             <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.waterMet) }]} />
@@ -284,22 +289,13 @@ const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
                                             Entrenamiento
                                         </ThemedText>
                                         <View style={styles.modalStatus}>
-                                            <ThemedText variant="semiBold" size={13} color={selectedDay.workoutMet ? theme.colors.success : theme.colors.error}>
+                                            <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
                                                 {getWorkoutLabel(selectedDay.workout)}
                                             </ThemedText>
                                             <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.workoutMet) }]} />
                                         </View>
                                     </View>
                                 </View>
-
-                                <TouchableOpacity
-                                    style={styles.modalCloseButton}
-                                    onPress={() => setModalVisible(false)}
-                                >
-                                    <ThemedText variant="medium" size={14} color={theme.colors.primary}>
-                                        Cerrar
-                                    </ThemedText>
-                                </TouchableOpacity>
                             </>
                         )}
                     </View>
@@ -365,19 +361,22 @@ const styles = StyleSheet.create({
     legendContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        justifyContent: 'center',
-        marginTop: 12,
-        gap: 6,
+        justifyContent: 'flex-end',
+        alignItems: 'center',
+        marginTop: 5,
+        gap: 2,
     },
     legendItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 3,
+        gap: 5,
+        height: 16,
+        justifyContent: 'center',
     },
     legendColor: {
         width: 10,
         height: 10,
-        borderRadius: 2,
+        borderRadius: 3,
     },
     modalOverlay: {
         flex: 1,
@@ -395,26 +394,36 @@ const styles = StyleSheet.create({
     modalHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 16,
+        alignItems: 'flex-start',
     },
-    modalScoreBadge: {
+    closeButton: {
+        padding: 4,
+    },
+    scoreBadgeContainer: {
+        alignItems: 'flex-start',
+        marginBottom: 10,
+    },
+    scoreBadge: {
+        flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 8,
+        paddingVertical: 2,
+        borderRadius: 12,
+        justifyContent: 'center',
+    },
+    badgeIcon: {
+        marginRight: 2,
+    },
+    badgeTextContainer: {
+        alignItems: 'flex-start',
     },
     modalDetails: {
-        gap: 10,
-        marginBottom: 16,
+        gap: 0,
     },
     modalRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
         paddingVertical: 4,
-        borderBottomWidth: 1,
-        borderBottomColor: theme.colors.secondary,
     },
     modalStatus: {
         flexDirection: 'row',
@@ -425,10 +434,6 @@ const styles = StyleSheet.create({
         width: 10,
         height: 10,
         borderRadius: 5,
-    },
-    modalCloseButton: {
-        alignItems: 'center',
-        paddingVertical: 10,
     },
 });
 

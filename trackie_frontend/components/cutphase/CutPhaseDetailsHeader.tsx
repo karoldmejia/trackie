@@ -8,7 +8,7 @@ interface CutPhaseDetailsHeaderProps {
     endDate: string;
     totalWeeks: number;
     currentWeek: number;
-    compliancePercentage: number;
+    averageScore: number; // ✅ Cambiado de compliancePercentage a averageScore
     targets: {
         calories: number;
         protein: number;
@@ -34,12 +34,11 @@ export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
     endDate,
     totalWeeks,
     currentWeek,
-    compliancePercentage,
+    averageScore, // ✅ Renombrado
     targets,
 }) => {
     const formattedStartDate = formatDisplayDate(startDate);
     const formattedEndDate = formatDisplayDate(endDate);
-    const compliance = Math.round(compliancePercentage);
     const progress = totalWeeks > 0 ? (currentWeek / totalWeeks) * 100 : 0;
 
     return (
@@ -103,14 +102,11 @@ export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
                     </View>
                 </View>
 
-                {/* Compliance con posición absoluta abajo a la derecha */}
+                {/* Score promedio con posición absoluta abajo a la derecha */}
                 <View style={styles.complianceWrapper}>
                     <View style={styles.complianceContainer}>
                         <ThemedText variant="bold" size={30} color={theme.colors.text}>
-                            {compliance}
-                        </ThemedText>
-                        <ThemedText variant="bold" size={18} color={theme.colors.text}>
-                            %
+                            {Math.round(averageScore)} {/* ✅ Usando averageScore */}
                         </ThemedText>
                     </View>
                 </View>

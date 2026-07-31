@@ -171,7 +171,7 @@ const CutPhaseDetail: React.FC = () => {
                     endDate={dashboard.endDate}
                     totalWeeks={dashboard.totalWeeks}
                     currentWeek={dashboard.currentWeek}
-                    compliancePercentage={dashboard.summary.compliancePercentage}
+                    averageScore={dashboard.summary.averageScore}
                     targets={dashboard.targets}
                 />
                 <AdherenceCalendar

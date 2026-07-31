@@ -6,8 +6,8 @@ export const pastelTheme: Theme = {
     background: '#FFF5F8', // rosa muy claro
     card: '#E0F7FA',       // azul pastel
     primary: '#FFDDA0',    // amarillo pastel
-    text: '#333333',        // gris oscuro
-    border: '#FFB6C1',     // rosa suave
+    text: '#333333',
+    border: '#FFB6C1',
     notification: '#FFDDA0',
   },
   fonts: {
