@@ -416,6 +416,7 @@ export class CutPhaseService {
         const currentWeek = Math.min(Math.floor(diffDays / 7) + 1, cutPhase.totalWeeks);
 
         this.logger.log(`Current week: ${currentWeek}, total weeks: ${cutPhase.totalWeeks}`);
+const streaks = await this.getStreaks(cutPhaseId);
 
         return {
             cutPhaseId: cutPhase.id,
@@ -475,6 +476,7 @@ export class CutPhaseService {
             days: daysWithData,
             weeklySummary: this.calculateWeeklySummary(daysWithData, cutPhase.totalWeeks),
             trends: this.calculateTrends(daysWithData),
+            streaks: streaks,
         };
     }
 
@@ -515,7 +517,6 @@ export class CutPhaseService {
         return weeklySummary;
     }
 
-    // En cutphase.service.ts - Agregar método para calcular rachas
     async getStreaks(cutPhaseId: string): Promise<{ currentStreak: number; bestStreak: number; lastFailedDate: string | null }> {
         const days = await this.cutPhaseDayRepo.find({
             where: { cutPhaseId },
