@@ -50,7 +50,7 @@ const PhotoGallery: React.FC = () => {
             setCurrentSearchDate(date);
             const logs = await weightLogService.getAll();
             const logForDate = logs.find(log => log.date === date);
-            
+
             if (logForDate && logForDate.photos && logForDate.photos.length > 0) {
                 setSearchResults(logForDate.photos);
             } else {
@@ -83,14 +83,13 @@ const PhotoGallery: React.FC = () => {
     const formatDisplayDate = (dateString: string) => {
         const [year, month, day] = dateString.split('-').map(Number);
         const localDate = new Date(year, month - 1, day);
-        
-        const formatter = new Intl.DateTimeFormat('es-CO', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
 
-        return formatter.format(localDate);
+        const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+        const dia = String(localDate.getDate()).padStart(2, '0');
+        const mes = meses[localDate.getMonth()];
+        const año = localDate.getFullYear();
+
+        return `${dia} ${mes} ${año}`;
     };
 
     const fetchData = async () => {

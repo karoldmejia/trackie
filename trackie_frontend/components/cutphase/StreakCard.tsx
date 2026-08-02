@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.primary,
     },
     dayCircleToday: {
-        borderWidth: 2,
+        borderWidth: 1,
         borderColor: theme.colors.textLight,
     },
     lastFailedContainer: {

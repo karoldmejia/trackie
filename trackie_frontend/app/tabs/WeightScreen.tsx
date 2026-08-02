@@ -51,118 +51,110 @@ const WeightScreen: React.FC = () => {
 
   // Función para formatear fecha para mostrar (DD/MM/YYYY)
   const formatDisplayDateFull = (date: Date): string => {
-    const day = String(date.getDate()).padStart(2, '0');
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}/${month}/${year}`;
+    const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    const dia = String(date.getDate()).padStart(2, '0');
+    const mes = meses[date.getMonth()];
+    const año = date.getFullYear();
+    return `${dia} ${mes} ${año}`;
   };
-
-const getMonthStartDate = (date: Date): Date => {
+  const getMonthStartDate = (date: Date): Date => {
     const monthStart = new Date(date.getFullYear(), date.getMonth(), 1);
     monthStart.setHours(0, 0, 0, 0);
     return monthStart;
-};
+  };
 
-const getMonthEndDate = (date: Date): Date => {
+  const getMonthEndDate = (date: Date): Date => {
     const monthEnd = new Date(date.getFullYear(), date.getMonth() + 1, 0);
     monthEnd.setHours(23, 59, 59, 999);
     return monthEnd;
-};
+  };
 
-const formatDisplayMonth = (date: Date): string => {
-    const formatter = new Intl.DateTimeFormat('es-CO', {
-        month: 'long',
-        year: 'numeric'
-    });
-    return formatter.format(date);
-};
-
-const calculateAverageFilteringZeros = (values: number[]): number => {
+  const calculateAverageFilteringZeros = (values: number[]): number => {
     const validValues = values.filter(v => v > 0);
     if (validValues.length === 0) return 0;
     const sum = validValues.reduce((acc, val) => acc + val, 0);
     return sum / validValues.length;
-};
+  };
 
-const calculateMonthsFromLogs = (logs: WeightLog[]): WeightLog[] => {
+  const calculateMonthsFromLogs = (logs: WeightLog[]): WeightLog[] => {
     if (!logs.length) return [];
 
     const months: WeightLog[] = [];
     const sortedLogs = [...logs].sort((a, b) =>
-        parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
+      parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
     );
 
     const monthMap = new Map<string, WeightLog[]>();
 
     for (const log of sortedLogs) {
-        const logDate = parseLocalDate(log.date);
-        const monthStart = getMonthStartDate(logDate);
-        const monthKey = formatLocalDate(monthStart);
-        
-        if (!monthMap.has(monthKey)) {
-            monthMap.set(monthKey, []);
-        }
-        monthMap.get(monthKey)!.push(log);
+      const logDate = parseLocalDate(log.date);
+      const monthStart = getMonthStartDate(logDate);
+      const monthKey = formatLocalDate(monthStart);
+
+      if (!monthMap.has(monthKey)) {
+        monthMap.set(monthKey, []);
+      }
+      monthMap.get(monthKey)!.push(log);
     }
 
     for (const [monthKey, logsInMonth] of monthMap) {
-        // Usar la función auxiliar para calcular promedios
-        const avgWeight = calculateAverageFilteringZeros(
-            logsInMonth.map(l => l.weight)
-        );
-        const avgWaist = calculateAverageFilteringZeros(
-            logsInMonth.map(l => l.waist || 0)
-        );
-        const avgBodyfat = calculateAverageFilteringZeros(
-            logsInMonth.map(l => l.bodyfat || 0)
-        );
-        const avgHips = calculateAverageFilteringZeros(
-            logsInMonth.map(l => l.hips || 0)
-        );
+      // Usar la función auxiliar para calcular promedios
+      const avgWeight = calculateAverageFilteringZeros(
+        logsInMonth.map(l => l.weight)
+      );
+      const avgWaist = calculateAverageFilteringZeros(
+        logsInMonth.map(l => l.waist || 0)
+      );
+      const avgBodyfat = calculateAverageFilteringZeros(
+        logsInMonth.map(l => l.bodyfat || 0)
+      );
+      const avgHips = calculateAverageFilteringZeros(
+        logsInMonth.map(l => l.hips || 0)
+      );
 
-        months.push({
-            id: monthKey,
-            date: monthKey,
-            weight: Math.round(avgWeight * 100) / 100,
-            waist: avgWaist > 0 ? Math.round(avgWaist * 100) / 100 : 0,
-            bodyfat: avgBodyfat > 0 ? Math.round(avgBodyfat * 100) / 100 : 0,
-            hips: avgHips > 0 ? Math.round(avgHips * 100) / 100 : 0,
-            photos: [],
-        });
+      months.push({
+        id: monthKey,
+        date: monthKey,
+        weight: Math.round(avgWeight * 100) / 100,
+        waist: avgWaist > 0 ? Math.round(avgWaist * 100) / 100 : 0,
+        bodyfat: avgBodyfat > 0 ? Math.round(avgBodyfat * 100) / 100 : 0,
+        hips: avgHips > 0 ? Math.round(avgHips * 100) / 100 : 0,
+        photos: [],
+      });
     }
 
     return months.sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
-};
+  };
 
   const handleSearchPress = () => {
     setSearchModalVisible(true);
   };
 
-const handleSearch = async (date: string) => {
+  const handleSearch = async (date: string) => {
     try {
-        setCurrentSearchDate(date);
-        const allLogsData = await weightLogService.getAll().catch(() => []);
+      setCurrentSearchDate(date);
+      const allLogsData = await weightLogService.getAll().catch(() => []);
 
-        // Calcular meses
-        const months = calculateMonthsFromLogs(allLogsData);
+      // Calcular meses
+      const months = calculateMonthsFromLogs(allLogsData);
 
-        // Encontrar el mes que contiene la fecha buscada
-        const targetDate = parseLocalDate(date);
-        const result = months.filter(month => {
-            const monthStart = parseLocalDate(month.date);
-            const monthEnd = getMonthEndDate(monthStart);
-            return targetDate >= monthStart && targetDate <= monthEnd;
-        });
+      // Encontrar el mes que contiene la fecha buscada
+      const targetDate = parseLocalDate(date);
+      const result = months.filter(month => {
+        const monthStart = parseLocalDate(month.date);
+        const monthEnd = getMonthEndDate(monthStart);
+        return targetDate >= monthStart && targetDate <= monthEnd;
+      });
 
-        setWeeklySearchResults(result);
-        setIsSearchingWeekly(true);
-        setSearchModalVisible(false);
+      setWeeklySearchResults(result);
+      setIsSearchingWeekly(true);
+      setSearchModalVisible(false);
     } catch (error) {
-        console.error('Error searching:', error);
-        setWeeklySearchResults([]);
-        setIsSearchingWeekly(true);
+      console.error('Error searching:', error);
+      setWeeklySearchResults([]);
+      setIsSearchingWeekly(true);
     }
-};
+  };
 
   const handleClearSearch = () => {
     setIsSearchingWeekly(false);
@@ -175,16 +167,16 @@ const handleSearch = async (date: string) => {
   };
 
   const handleLogPress = (log: WeightLog) => {
-      const monthStartDate = parseLocalDate(log.date);
-      const monthEndDate = getMonthEndDate(monthStartDate);
-      
-      router.push({
-          pathname: '/MonthDetailScreen',
-          params: {
-              monthStart: formatLocalDate(monthStartDate),
-              monthEnd: formatLocalDate(monthEndDate),
-          }
-      });
+    const monthStartDate = parseLocalDate(log.date);
+    const monthEndDate = getMonthEndDate(monthStartDate);
+
+    router.push({
+      pathname: '/MonthDetailScreen',
+      params: {
+        monthStart: formatLocalDate(monthStartDate),
+        monthEnd: formatLocalDate(monthEndDate),
+      }
+    });
   };
 
   const handleMetricPress = (metric: string) => {
@@ -343,83 +335,82 @@ const handleSearch = async (date: string) => {
     setRefreshing(false);
   };
 
-const monthlyAveragesAsLogs = useMemo(() => {
+  const monthlyAveragesAsLogs = useMemo(() => {
     if (!allLogs.length) return [];
 
     const months: WeightLog[] = [];
-    const sortedLogs = [...allLogs].sort((a, b) => 
-        parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
+    const sortedLogs = [...allLogs].sort((a, b) =>
+      parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()
     );
 
     const monthMap = new Map<string, WeightLog[]>();
 
     for (const log of sortedLogs) {
-        const logDate = parseLocalDate(log.date);
-        const monthStart = getMonthStartDate(logDate);
-        const monthKey = formatLocalDate(monthStart);
-        
-        if (!monthMap.has(monthKey)) {
-            monthMap.set(monthKey, []);
-        }
-        monthMap.get(monthKey)!.push(log);
+      const logDate = parseLocalDate(log.date);
+      const monthStart = getMonthStartDate(logDate);
+      const monthKey = formatLocalDate(monthStart);
+
+      if (!monthMap.has(monthKey)) {
+        monthMap.set(monthKey, []);
+      }
+      monthMap.get(monthKey)!.push(log);
     }
 
     for (const [monthKey, logsInMonth] of monthMap) {
-        const avgWeight = calculateAverageFilteringZeros(
-            logsInMonth.map(l => l.weight)
-        );
-        const avgWaist = calculateAverageFilteringZeros(
-            logsInMonth.map(l => l.waist || 0)
-        );
-        const avgBodyfat = calculateAverageFilteringZeros(
-            logsInMonth.map(l => l.bodyfat || 0)
-        );
-        const avgHips = calculateAverageFilteringZeros(
-            logsInMonth.map(l => l.hips || 0)
-        );
+      const avgWeight = calculateAverageFilteringZeros(
+        logsInMonth.map(l => l.weight)
+      );
+      const avgWaist = calculateAverageFilteringZeros(
+        logsInMonth.map(l => l.waist || 0)
+      );
+      const avgBodyfat = calculateAverageFilteringZeros(
+        logsInMonth.map(l => l.bodyfat || 0)
+      );
+      const avgHips = calculateAverageFilteringZeros(
+        logsInMonth.map(l => l.hips || 0)
+      );
 
-        months.push({
-            id: monthKey,
-            date: monthKey,
-            weight: Math.round(avgWeight * 100) / 100,
-            waist: avgWaist > 0 ? Math.round(avgWaist * 100) / 100 : 0,
-            bodyfat: avgBodyfat > 0 ? Math.round(avgBodyfat * 100) / 100 : 0,
-            hips: avgHips > 0 ? Math.round(avgHips * 100) / 100 : 0,
-            photos: [],
-        });
+      months.push({
+        id: monthKey,
+        date: monthKey,
+        weight: Math.round(avgWeight * 100) / 100,
+        waist: avgWaist > 0 ? Math.round(avgWaist * 100) / 100 : 0,
+        bodyfat: avgBodyfat > 0 ? Math.round(avgBodyfat * 100) / 100 : 0,
+        hips: avgHips > 0 ? Math.round(avgHips * 100) / 100 : 0,
+        photos: [],
+      });
     }
 
     return months.sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
-}, [allLogs]);
+  }, [allLogs]);
 
   useEffect(() => {
     fetchData();
   }, []);
 
-const getCurrentMonthAverage = (monthlyAverages: WeightLog[]): number => {
+  const getCurrentMonthAverage = (monthlyAverages: WeightLog[]): number => {
     if (monthlyAverages.length === 0) return 0;
     return monthlyAverages[0].weight;
-};
+  };
 
-const progress = Math.min(Math.max(((initialWeight - currentWeight) / (initialWeight - targetWeight)) * 100, 0), 100);
-const currentMonthAverage = getCurrentMonthAverage(monthlyAveragesAsLogs);
+  const progress = Math.min(Math.max(((initialWeight - currentWeight) / (initialWeight - targetWeight)) * 100, 0), 100);
+  const currentMonthAverage = getCurrentMonthAverage(monthlyAveragesAsLogs);
 
   const formatDisplayDate = (dateString: string) => {
     const [year, month, day] = dateString.split('-').map(Number);
     const localDate = new Date(year, month - 1, day);
 
-    const formatter = new Intl.DateTimeFormat('es-CO', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    const dia = String(localDate.getDate()).padStart(2, '0');
+    const mes = meses[localDate.getMonth()];
+    const año = localDate.getFullYear();
 
-    return formatter.format(localDate);
+    return `${dia} ${mes} ${año}`;
   };
 
-  
+
   return (
-    
+
     <View style={styles.container}>
       <NavBar
         logo={logo}

@@ -8,7 +8,7 @@ interface CutPhaseDetailsHeaderProps {
     endDate: string;
     totalWeeks: number;
     currentWeek: number;
-    averageScore: number; // ✅ Cambiado de compliancePercentage a averageScore
+    averageScore: number;
     targets: {
         calories: number;
         protein: number;
@@ -21,12 +21,13 @@ interface CutPhaseDetailsHeaderProps {
 const formatDisplayDate = (dateString: string) => {
     const [year, month, day] = dateString.split('-').map(Number);
     const localDate = new Date(year, month - 1, day);
-    const formatter = new Intl.DateTimeFormat('es-CO', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-    });
-    return formatter.format(localDate);
+    
+    const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    const dia = String(localDate.getDate()).padStart(2, '0');
+    const mes = meses[localDate.getMonth()];
+    const año = localDate.getFullYear();
+    
+    return `${dia} ${mes} ${año}`;
 };
 
 export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
@@ -34,7 +35,7 @@ export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
     endDate,
     totalWeeks,
     currentWeek,
-    averageScore, // ✅ Renombrado
+    averageScore,
     targets,
 }) => {
     const formattedStartDate = formatDisplayDate(startDate);
@@ -106,7 +107,7 @@ export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
                 <View style={styles.complianceWrapper}>
                     <View style={styles.complianceContainer}>
                         <ThemedText variant="bold" size={30} color={theme.colors.text}>
-                            {Math.round(averageScore)} {/* ✅ Usando averageScore */}
+                            {Math.round(averageScore)}
                         </ThemedText>
                     </View>
                 </View>
@@ -151,6 +152,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         minHeight: 60,
+
     },
     leftColumn: {
         flex: 1,
@@ -176,7 +178,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 12,
         alignItems: 'center',
-        flexWrap: 'wrap',
+        flexWrap: 'nowrap',
     },
     targetItem: {
         flexDirection: 'row',

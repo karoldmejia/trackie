@@ -1,4 +1,3 @@
-// services/shoppingListService.ts
 import api from './api';
 
 export enum UnitOfMeasure {

@@ -18,10 +18,21 @@ interface WeeklyDailyCardProps {
     onPress: (weekData: WeeklyDailyAverage) => void;
 }
 
-export const WeeklyDailyCard: React.FC<WeeklyDailyCardProps> = ({
-    weekData,
-    onPress,
-}) => {
+const formatDisplayDate = (dateString: string) => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day);
+    
+    const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+    const dia = String(localDate.getDate()).padStart(2, '0');
+    const mes = meses[localDate.getMonth()];
+    const año = localDate.getFullYear();
+    
+    return `${dia} ${mes} ${año}`;
+};
+
+export const WeeklyDailyCard: React.FC<WeeklyDailyCardProps> = ({weekData,onPress}) => {
+    const formattedWeekRange = `${formatDisplayDate(weekData.weekStart)} - ${formatDisplayDate(weekData.weekEnd)}`;
+
     return (
         <TouchableOpacity
             style={styles.historyCard}
@@ -31,7 +42,7 @@ export const WeeklyDailyCard: React.FC<WeeklyDailyCardProps> = ({
             <View style={styles.historyCardContent}>
                 <View style={styles.historyDate}>
                     <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                        {weekData.weekRange}
+                        {formattedWeekRange}
                     </ThemedText>
                 </View>
                 <View style={styles.historyStats}>

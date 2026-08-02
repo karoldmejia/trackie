@@ -35,8 +35,17 @@ export const PlannedMealCard: React.FC<PlannedMealCardProps> = ({
         ? dishes.map(d => d.name).join(', ')
         : 'Sin plato asignado';
 
-    const formattedTime = time.substring(0, 5);
+    const formatTimeToAMPM = (timeStr: string): string => {
+        if (!timeStr) return '';
+        
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        const period = hours >= 12 ? 'PM' : 'AM';
+        let hour12 = hours % 12;
+        if (hour12 === 0) hour12 = 12; // 12 AM o 12 PM
+        return `${hour12}:${String(minutes).padStart(2, '0')} ${period}`;
+    };
 
+    const formattedTime = formatTimeToAMPM(time);
     return (
         <TouchableOpacity 
             style={styles.card} 

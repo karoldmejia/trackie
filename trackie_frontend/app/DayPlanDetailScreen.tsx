@@ -73,20 +73,28 @@ const DayPlanDetailScreen: React.FC = () => {
     };
 
     const handleAddPlannedMeal = async (data: {
-        date: string;
+        startDate: string;
+        endDate: string;
         time: string;
         mealType: string;
         dishIds: string[];
     }) => {
         try {
+            const singleDateData = {
+                date: data.startDate,
+                time: data.time,
+                mealType: data.mealType,
+                dishIds: data.dishIds,
+            };
+
             if (isEditing && editingMeal && dayPlan) {
                 await mealPlannerService.updatePlannedMeal(editingMeal.id, {
-                    mealType: data.mealType as any,
-                    time: data.time,
+                    mealType: singleDateData.mealType as any,
+                    time: singleDateData.time,
                 });
 
                 const currentDishIds = editingMeal.dishes.map(d => d.id);
-                const newDishIds = data.dishIds.filter(id => !currentDishIds.includes(id));
+                const newDishIds = singleDateData.dishIds.filter(id => !currentDishIds.includes(id));
 
                 if (newDishIds.length > 0 && dayPlan) {
                     await mealPlannerService.addDishesToPlannedMeal(
@@ -96,9 +104,9 @@ const DayPlanDetailScreen: React.FC = () => {
                 }
             } else if (dayPlan) {
                 await mealPlannerService.addPlannedMeal(dayPlan.id, {
-                    mealType: data.mealType as any,
-                    time: data.time,
-                    dishIds: data.dishIds,
+                    mealType: singleDateData.mealType as any,
+                    time: singleDateData.time,
+                    dishIds: singleDateData.dishIds,
                 });
             }
 
@@ -108,6 +116,7 @@ const DayPlanDetailScreen: React.FC = () => {
             setIsEditing(false);
         } catch (error) {
             console.error('Error saving planned meal:', error);
+            alert('Error al guardar la comida planificada');
         }
     };
 
@@ -255,7 +264,7 @@ const DayPlanDetailScreen: React.FC = () => {
                         ))
                     ) : (
                         <View style={styles.emptyMealsContainer}>
-                        <ThemedText variant="medium" size={13} color={theme.colors.placeholder}>
+                            <ThemedText variant="medium" size={13} color={theme.colors.placeholder}>
                                 No hay comidas planificadas para este día
                             </ThemedText>
                         </View>

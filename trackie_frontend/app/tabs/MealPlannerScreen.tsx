@@ -84,45 +84,70 @@ const MealPlannerScreen: React.FC = () => {
     };
 
     const handleAddPlannedMeal = async (data: {
-        date: string;
+        startDate: string;
+        endDate: string;
         time: string;
         mealType: string;
         dishIds: string[];
     }) => {
         try {
+            // Si es edición, buscar el dayPlan que contiene el meal
             if (isEditing && editingMeal) {
-                // Editar: usar el método existente
-                await mealPlannerService.updatePlannedMeal(editingMeal.id, {
-                    mealType: data.mealType as any,
-                    time: data.time,
-                });
+                const dayPlan = dayPlans.find(dp =>
+                    dp.plannedMeals?.some(m => m.id === editingMeal.id)
+                );
 
-                const currentDishIds = editingMeal.dishes.map(d => d.id);
-                const newDishIds = data.dishIds.filter(id => !currentDishIds.includes(id));
+                if (dayPlan) {
+                    await mealPlannerService.updatePlannedMeal(editingMeal.id, {
+                        mealType: data.mealType as any,
+                        time: data.time,
+                    });
 
-                if (newDishIds.length > 0) {
-                    await mealPlannerService.addDishesToPlannedMeal(
-                        editingMeal.id,
-                        newDishIds
-                    );
+                    const currentDishIds = editingMeal.dishes.map(d => d.id);
+                    const newDishIds = data.dishIds.filter(id => !currentDishIds.includes(id));
+
+                    if (newDishIds.length > 0) {
+                        await mealPlannerService.addDishesToPlannedMeal(
+                            editingMeal.id,
+                            newDishIds
+                        );
+                    }
                 }
             } else {
-                // Crear nuevo: usar el nuevo método que crea el DayPlan automáticamente
-                await mealPlannerService.addPlannedMealByDate(data.date, {
-                    mealType: data.mealType as any,
-                    time: data.time,
-                    dishIds: data.dishIds,
-                });
+                // Crear nuevo: usar el rango de fechas
+                const start = new Date(data.startDate);
+                const end = new Date(data.endDate);
+
+                if (start.getTime() === end.getTime()) {
+                    // Misma fecha: usar addPlannedMealByDate
+                    await mealPlannerService.addPlannedMealByDate(data.startDate, {
+                        mealType: data.mealType as any,
+                        time: data.time,
+                        dishIds: data.dishIds,
+                    });
+                } else {
+                    // Rango de fechas
+                    await mealPlannerService.addPlannedMealRange({
+                        startDate: data.startDate,
+                        endDate: data.endDate,
+                        time: data.time,
+                        mealType: data.mealType,
+                        dishIds: data.dishIds,
+                    });
+                }
             }
 
             await fetchData();
             setShowAddForm(false);
             setEditingMeal(null);
             setIsEditing(false);
+            setDayPlanId(undefined);
         } catch (error) {
             console.error('Error saving planned meal:', error);
+            alert('Error al guardar la comida planificada');
         }
     };
+
 
     const handleAddPress = async () => {
         const today = getTodayDate();

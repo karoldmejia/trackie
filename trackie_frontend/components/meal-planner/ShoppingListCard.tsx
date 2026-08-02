@@ -15,9 +15,19 @@ const UNIT_OPTIONS = [
     { label: 'lb', value: UnitOfMeasure.POUND },
     { label: 'L', value: UnitOfMeasure.LITER },
     { label: 'mL', value: UnitOfMeasure.MILLILITER },
-    { label: 'Unidad', value: UnitOfMeasure.UNIT },
+    { label: 'und', value: UnitOfMeasure.UNIT },
     { label: 'Docena', value: UnitOfMeasure.DOZEN },
 ];
+const UNIT_DISPLAY_MAP: Record<string, string> = {
+    'kg': 'kg',
+    'g': 'g',
+    'mg': 'mg',
+    'lb': 'lb',
+    'L': 'L',
+    'mL': 'mL',
+    'unidad': 'und',
+    'docena': 'docena',
+};
 
 interface ShoppingListCardProps {
     shoppingList: ShoppingList;
@@ -38,7 +48,6 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
         return new Date(year, month - 1, day);
     };
 
-    // Estados para edición de fechas
     const [isEditingDates, setIsEditingDates] = useState(false);
     const { id, startDate, endDate, items, totalCost, totalItems } = shoppingList;
     const [editStartDate, setEditStartDate] = useState(createDateFromString(startDate));
@@ -52,26 +61,31 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
     }, [startDate, endDate]);
 
     const [expanded, setExpanded] = useState(isAlwaysExpanded);
-    const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showDeleteListModal, setShowDeleteListModal] = useState(false);
     const [showAddForm, setShowAddForm] = useState(false);
     const [newItemName, setNewItemName] = useState('');
     const [newItemUnit, setNewItemUnit] = useState<UnitOfMeasure>(UnitOfMeasure.UNIT);
     const [newItemUnitPrice, setNewItemUnitPrice] = useState('');
     const [newItemQuantity, setNewItemQuantity] = useState('');
+    const [showDeleteItemModal, setShowDeleteItemModal] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
     const formatDateRange = () => {
-        const start = createDateFromString(startDate).toLocaleDateString('es-CO', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        });
-        const end = createDateFromString(endDate).toLocaleDateString('es-CO', {
-            day: 'numeric',
-            month: 'short',
-            year: 'numeric'
-        });
+        const start = formatDisplayDate(startDate);
+        const end = formatDisplayDate(endDate);
         return `${start} - ${end}`;
+    };
+
+    const formatDisplayDate = (dateString: string) => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        const localDate = new Date(year, month - 1, day);
+
+        const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
+        const dia = String(localDate.getDate()).padStart(2, '0');
+        const mes = meses[localDate.getMonth()];
+        const año = localDate.getFullYear();
+
+        return `${dia} ${mes} ${año}`;
     };
 
     const formatDateForDisplay = (date: Date) => {
@@ -114,6 +128,12 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
         }
     };
 
+    const sortedItems = [...items].sort((a, b) => {
+        if (a.status === b.status) return 0;
+        if (a.status === PurchaseStatus.PENDING) return -1;
+        return 1;
+    });
+
     const getDaysRemaining = () => {
         const end = createDateFromString(endDate);
         const today = new Date();
@@ -136,12 +156,22 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
         }
     };
 
-    const deleteItem = async (itemId: string) => {
-        try {
-            await shoppingListService.deleteItem(itemId);
-            onUpdate();
-        } catch (error) {
-            console.error('Error deleting item:', error);
+    const handleDeleteItemPress = (itemId: string) => {
+        setItemToDelete(itemId);
+        setShowDeleteItemModal(true);
+    };
+
+    const confirmDeleteItem = async () => {
+        if (itemToDelete) {
+            try {
+                await shoppingListService.deleteItem(itemToDelete);
+                onUpdate();
+            } catch (error) {
+                console.error('Error deleting item:', error);
+            } finally {
+                setShowDeleteItemModal(false);
+                setItemToDelete(null);
+            }
         }
     };
 
@@ -157,7 +187,6 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
 
     const handleSaveDates = async () => {
         try {
-            // Guardar las fechas en el servidor
             const updatedList = await shoppingListService.update(id, {
                 startDate: formatDateForApi(editStartDate),
                 endDate: formatDateForApi(editEndDate),
@@ -165,8 +194,6 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
 
             setEditStartDate(createDateFromString(updatedList.startDate));
             setEditEndDate(createDateFromString(updatedList.endDate));
-
-            // Salir del modo edición y actualizar la lista
             setIsEditingDates(false);
             onUpdate();
         } catch (error) {
@@ -208,7 +235,6 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
                     activeOpacity={isAlwaysExpanded || isEditingDates ? 1 : 0.7}
                 >
                     <View style={styles.headerLeft}>
-                        {/* Fecha - clickeable para editar */}
                         {!isEditingDates ? (
                             <TouchableOpacity
                                 onPress={() => setIsEditingDates(true)}
@@ -310,7 +336,6 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
                     </View>
                 </TouchableOpacity>
 
-                {/* Botón Delete - oculto cuando se editan fechas */}
                 {!isEditingDates && (
                     <TouchableOpacity
                         style={styles.deleteListButton}
@@ -331,7 +356,7 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
             {/* Items - solo visible cuando está expandido */}
             {expanded && (
                 <View style={styles.itemsContainer}>
-                    {items.map((item) => (
+                    {sortedItems.map((item) => (
                         <View key={item.id} style={styles.itemRow}>
                             <TouchableOpacity
                                 style={styles.checkButton}
@@ -347,7 +372,7 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
 
                             <View style={styles.itemInfo}>
                                 <ThemedText variant="regular" size={14} color={theme.colors.text} numberOfLines={1}>
-                                    {item.quantity}{item.unitOfMeasure} de {item.name}
+                                    {item.quantity}{UNIT_DISPLAY_MAP[item.unitOfMeasure] || item.unitOfMeasure} de {item.name}
                                 </ThemedText>
                             </View>
 
@@ -357,7 +382,7 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
                                 </ThemedText>
                                 <TouchableOpacity
                                     style={styles.deleteButton}
-                                    onPress={() => setShowDeleteModal(true)}
+                                    onPress={() => handleDeleteItemPress(item.id)}
                                 >
                                     <Icon
                                         name="X"
@@ -367,18 +392,6 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
                                     />
                                 </TouchableOpacity>
                             </View>
-
-                            <ConfirmModal
-                                visible={showDeleteModal}
-                                onClose={() => setShowDeleteModal(false)}
-                                onConfirm={() => {
-                                    deleteItem(item.id);
-                                    setShowDeleteModal(false);
-                                }}
-                                title="Eliminar item"
-                                message={`¿Estás seguro de que quieres eliminar "${item.name}" de la lista?`}
-                                confirmText="Eliminar"
-                            />
                         </View>
                     ))}
 
@@ -394,7 +407,6 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
                         </TouchableOpacity>
                     ) : (
                         <View style={styles.addFormContainer}>
-                            {/* Primera fila: Producto + Unidad */}
                             <View style={styles.formRow}>
                                 <TextInput
                                     style={[styles.formInput, styles.formInputName]}
@@ -452,12 +464,26 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
             )}
 
             <ConfirmModal
+                visible={showDeleteItemModal}
+                onClose={() => {
+                    setShowDeleteItemModal(false);
+                    setItemToDelete(null);
+                }}
+                onConfirm={confirmDeleteItem}
+                title="Eliminar item"
+                message={`¿Estás seguro de que quieres eliminar este item de la lista?`}
+                confirmText="Eliminar"
+                cancelText="Cancelar"
+            />
+
+            <ConfirmModal
                 visible={showDeleteListModal}
                 onClose={() => setShowDeleteListModal(false)}
                 onConfirm={deleteList}
                 title="Eliminar lista"
                 message={`¿Estás seguro de que quieres eliminar la lista de compras del ${formatDateRange()}?`}
                 confirmText="Eliminar"
+                cancelText="Cancelar"
             />
         </View>
     );
