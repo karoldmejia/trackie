@@ -5,8 +5,9 @@ import { In, Repository } from 'typeorm';
 import { PlannedMeal } from '../entities/planned-meal.entity';
 import { Dish } from '../entities/dish.entity';
 import { CreateDayPlanDto } from '../dtos/day-plan.dto';
-import { CreatePlannedMealDto, UpdatePlannedMealDto } from '../dtos/planned-meal.dto';
+import { CreatePlannedMealDto, CreatePlannedMealRangeDto, UpdatePlannedMealDto } from '../dtos/planned-meal.dto';
 import { CreateDishDto, UpdateDishDto } from '../dtos/dish.dto';
+import { MealType } from 'src/enums/meal-type.enum';
 
 @Injectable()
 export class MealPlannerService {
@@ -347,14 +348,7 @@ export class MealPlannerService {
         return this.plannedMealRepository.save(plannedMeal);
     }
 
-
-    async addPlannedMealRange(data: {
-        startDate: string;
-        endDate: string;
-        time: string;
-        mealType: string;
-        dishIds: string[];
-    }): Promise<PlannedMeal[]> {
+    async addPlannedMealRange(data: CreatePlannedMealRangeDto): Promise<PlannedMeal[]> {
         const { startDate, endDate, time, mealType, dishIds } = data;
 
         const start = new Date(startDate);
@@ -383,18 +377,16 @@ export class MealPlannerService {
             }
 
             const plannedMeal = this.plannedMealRepository.create({
-                mealType: mealType as any,
+                mealType: mealType,
                 time: time,
                 dayPlan: dayPlan,
             });
 
             plannedMeal.dishes = dishes;
-
             plannedMeals.push(plannedMeal);
             currentDate.setDate(currentDate.getDate() + 1);
         }
 
         return this.plannedMealRepository.save(plannedMeals);
     }
-
 }

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, ParseUUIDPipe, HttpCode, HttpStatus, BadRequestException } from '@nestjs/common';
 import { CreateDayPlanDto } from '../dtos/day-plan.dto';
 import { CreateDishDto, UpdateDishDto } from '../dtos/dish.dto';
-import { AddDishesToPlannedMealDto, CreatePlannedMealDto, UpdatePlannedMealDto } from '../dtos/planned-meal.dto';
+import { AddDishesToPlannedMealDto, CreatePlannedMealDto, CreatePlannedMealRangeDto, UpdatePlannedMealDto } from '../dtos/planned-meal.dto';
 import { DayPlan } from '../entities/day-plan.entity';
 import { Dish } from '../entities/dish.entity';
 import { PlannedMeal } from '../entities/planned-meal.entity';
@@ -55,15 +55,22 @@ export class MealPlannerController {
 
     @Post('planned-meals/range')
     @HttpCode(HttpStatus.CREATED)
-    async addPlannedMealRange(@Body() data: { startDate: string; endDate: string; time: string; mealType: string; dishIds: string[] },): Promise<PlannedMeal[]> {
+    async addPlannedMealRange(
+        @Body() data: CreatePlannedMealRangeDto
+    ): Promise<PlannedMeal[]> {
         try {
-            const result = await this.mealPlannerService.addPlannedMealRange(data);
+            const result = await this.mealPlannerService.addPlannedMealRange({
+                startDate: data.startDate,
+                endDate: data.endDate,
+                time: data.time,
+                mealType: data.mealType,
+                dishIds: data.dishIds,
+            });
             return result;
         } catch (error) {
             throw error;
         }
     }
-
 
     @Put('planned-meal/:id')
     async updatePlannedMeal(

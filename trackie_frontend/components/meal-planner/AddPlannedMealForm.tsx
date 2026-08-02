@@ -34,13 +34,14 @@ interface AddPlannedMealFormProps {
     visible: boolean;
     onClose: () => void;
     onSubmit: (data: {
-        date: string;
+        startDate: string;
+        endDate: string;
         time: string;
         mealType: string;
         dishIds: string[];
     }) => void;
     dayPlanId?: string;
-    editingMeal?: PlannedMeal | null; // Para edición
+    editingMeal?: PlannedMeal | null;
     isEditing?: boolean;
     onRemoveDish?: (plannedMealId: string, dishId: string) => Promise<void>;
     editingDate?: string;
@@ -56,8 +57,10 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
     onRemoveDish,
     editingDate,
 }) => {
-    const [date, setDate] = useState(new Date());
-    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [startDate, setStartDate] = useState(new Date());
+    const [endDate, setEndDate] = useState(new Date());
+    const [showStartDatePicker, setShowStartDatePicker] = useState(false);
+    const [showEndDatePicker, setShowEndDatePicker] = useState(false);
     const [time, setTime] = useState(new Date());
     const [showTimePicker, setShowTimePicker] = useState(false);
     const [mealType, setMealType] = useState('');
@@ -69,6 +72,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
     const [showNewDishInput, setShowNewDishInput] = useState(false);
     const [newDishName, setNewDishName] = useState('');
     const [isCreatingDish, setIsCreatingDish] = useState(false);
+    const [applyToAll, setApplyToAll] = useState(true); // Opción para aplicar a todas las fechas del rango
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const screenHeight = Dimensions.get('window').height;
@@ -77,16 +81,15 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
     // Cargar datos de edición cuando se abre el modal
     useEffect(() => {
         if (visible) {
-            // Cargar dishes
             loadDishes();
 
-            // Configurar fecha y hora
             if (editingMeal) {
-                // Edición
                 const dateString = editingDate || editingMeal.dayPlan?.date;
                 if (dateString) {
                     const [year, month, day] = dateString.split('-').map(Number);
-                    setDate(new Date(year, month - 1, day));
+                    const date = new Date(year, month - 1, day);
+                    setStartDate(date);
+                    setEndDate(date);
                 }
 
                 const [hours, minutes] = editingMeal.time.split(':').map(Number);
@@ -97,21 +100,21 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                 setMealType(editingMeal.mealType);
                 setSelectedDishIds(editingMeal.dishes.map(d => d.id));
             } else if (editingDate) {
-                // Nueva comida con fecha específica
                 const [year, month, day] = editingDate.split('-').map(Number);
-                setDate(new Date(year, month - 1, day));
+                const date = new Date(year, month - 1, day);
+                setStartDate(date);
+                setEndDate(date);
                 setTime(new Date());
                 setMealType('');
                 setSelectedDishIds([]);
             } else {
-                // Nueva comida con fecha actual
-                setDate(new Date());
+                setStartDate(new Date());
+                setEndDate(new Date());
                 setTime(new Date());
                 setMealType('');
                 setSelectedDishIds([]);
             }
 
-            // Animación
             Animated.spring(slideAnim, {
                 toValue: 1,
                 useNativeDriver: true,
@@ -150,9 +153,25 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
         return `${hours}:${minutes}`;
     };
 
-    const handleDateChange = (event: any, selectedDate?: Date) => {
-        setShowDatePicker(false);
-        if (selectedDate) setDate(selectedDate);
+    const handleStartDateChange = (event: any, selectedDate?: Date) => {
+        setShowStartDatePicker(false);
+        if (selectedDate) {
+            setStartDate(selectedDate);
+            // Si la fecha de fin es anterior a la nueva fecha de inicio, ajustarla
+            if (endDate < selectedDate) {
+                setEndDate(selectedDate);
+            }
+        }
+    };
+
+    const handleEndDateChange = (event: any, selectedDate?: Date) => {
+        setShowEndDatePicker(false);
+        if (selectedDate && selectedDate >= startDate) {
+            setEndDate(selectedDate);
+        } else if (selectedDate && selectedDate < startDate) {
+            // Si la fecha de fin es anterior a la de inicio, mostrar alerta
+            alert('La fecha de fin debe ser posterior a la fecha de inicio');
+        }
     };
 
     const handleTimeChange = (event: any, selectedTime?: Date) => {
@@ -166,15 +185,18 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
         }
 
         onSubmit({
-            date: formatDate(date),
+            startDate: formatDate(startDate),
+            endDate: formatDate(endDate),
             time: formatTime(time),
             mealType,
             dishIds: selectedDishIds,
         });
         handleClose();
     };
+
     const handleClose = () => {
-        setDate(new Date());
+        setStartDate(new Date());
+        setEndDate(new Date());
         setTime(new Date());
         setMealType('');
         setSelectedDishIds([]);
@@ -219,9 +241,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
 
         try {
             await onRemoveDish(editingMeal.id, dishId);
-            // Actualizar la lista de dishes seleccionados
             setSelectedDishIds(prev => prev.filter(id => id !== dishId));
-            // Recargar los dishes
             await loadDishes();
         } catch (error) {
             console.error('Error removing dish:', error);
@@ -232,10 +252,11 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
         dish.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    // Obtener los dishes seleccionados para mostrar
     const selectedDishes = dishes.filter(dish => selectedDishIds.includes(dish.id));
 
     if (!visible) return null;
+
+    const isRange = formatDate(startDate) !== formatDate(endDate);
 
     return (
         <Modal
@@ -259,8 +280,8 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                             })
                         }],
                         height: keyboardShown
-                            ? screenHeight * 0.7 + keyboardHeight
-                            : screenHeight * 0.7
+                            ? screenHeight * 0.75 + keyboardHeight
+                            : screenHeight * 0.75
                     }
                 ]}
             >
@@ -280,21 +301,62 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                     </ThemedText>
 
                     <View style={styles.formContainer}>
-                        {/* Fila 1: Fecha y Hora */}
+                        {/* Rango de fechas */}
                         <View style={styles.row}>
                             <TouchableOpacity
                                 style={[styles.halfColumn, styles.dateButton]}
-                                onPress={() => setShowDatePicker(true)}
+                                onPress={() => setShowStartDatePicker(true)}
                                 activeOpacity={0.7}
                             >
                                 <Icon name="Calendar" size={18} color={theme.colors.placeholder} />
-                                <ThemedText variant="regular" size={14} color={theme.colors.text} style={styles.dateText}>
-                                    {formatDate(date)}
+                                <ThemedText variant="regular" size={13} color={theme.colors.text} style={styles.dateText}>
+                                    {formatDate(startDate)}
                                 </ThemedText>
                             </TouchableOpacity>
 
                             <TouchableOpacity
-                                style={[styles.halfColumn, styles.timeButton]}
+                                style={[styles.halfColumn, styles.dateButton]}
+                                onPress={() => setShowEndDatePicker(true)}
+                                activeOpacity={0.7}
+                            >
+                                <Icon name="Calendar" size={18} color={theme.colors.placeholder} />
+                                <ThemedText variant="regular" size={13} color={theme.colors.text} style={styles.dateText}>
+                                    {formatDate(endDate)}
+                                </ThemedText>
+                            </TouchableOpacity>
+                        </View>
+
+                        {isRange && (
+                            <View style={styles.rangeInfo}>
+                                <ThemedText variant="regular" size={11} color={theme.colors.textLight}>
+                                    {(() => {
+                                        const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
+                                        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                                        return `Se crearán ${diffDays} comidas`;
+                                    })()}
+                                </ThemedText>
+                                <TouchableOpacity
+                                    style={styles.applyAllButton}
+                                    onPress={() => setApplyToAll(!applyToAll)}
+                                >
+                                    <Icon
+                                        name={applyToAll ? 'CheckSquare' : 'Square'}
+                                        size={16}
+                                        color={theme.colors.primary}
+                                        backgroundColor="transparent"
+                                        padding={0}
+                                    />
+                                    <ThemedText variant="regular" size={11} color={theme.colors.primary}>
+                                        Aplicar a todos los días
+                                    </ThemedText>
+                                </TouchableOpacity>
+                            </View>
+                        )}
+
+                        {/* Hora */}
+                        <View style={styles.row}>
+                            <TouchableOpacity
+                                style={[styles.fullColumn, styles.timeButton]}
                                 onPress={() => setShowTimePicker(true)}
                                 activeOpacity={0.7}
                             >
@@ -305,7 +367,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                             </TouchableOpacity>
                         </View>
 
-                        {/* Fila 2: Meal Type */}
+                        {/* Meal Type */}
                         <View style={styles.fullRow}>
                             <FormSelect
                                 icon="Utensils"
@@ -356,7 +418,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                             </View>
                         )}
 
-                        {/* Fila 3: Botón Add Food */}
+                        {/* Botón Add Food */}
                         <TouchableOpacity
                             style={styles.addFoodButton}
                             onPress={() => setShowDishSelector(true)}
@@ -379,7 +441,7 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                             activeOpacity={0.8}
                         >
                             <ThemedText variant="semiBold" size={14} color={theme.colors.white}>
-                                {isEditing ? 'Actualizar' : 'Guardar'}
+                                {isEditing ? 'Actualizar' : isRange ? `Guardar (${Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1} días)` : 'Guardar'}
                             </ThemedText>
                         </TouchableOpacity>
                     </View>
@@ -429,7 +491,6 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                             SELECCIONAR COMIDAS
                         </ThemedText>
 
-                        {/* Header con búsqueda y botón add */}
                         <View style={styles.searchHeader}>
                             <View style={styles.searchContainer}>
                                 <Icon name="Search" size={18} color={theme.colors.placeholder} backgroundColor='transparent' padding={0} />
@@ -449,7 +510,6 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                             </TouchableOpacity>
                         </View>
 
-                        {/* Input para nuevo dish */}
                         {showNewDishInput && (
                             <View style={styles.newDishContainer}>
                                 <TextInput
@@ -473,7 +533,6 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                             </View>
                         )}
 
-                        {/* Lista de dishes */}
                         <FlatList
                             data={filteredDishes}
                             keyExtractor={(item) => item.id}
@@ -519,7 +578,6 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                             }
                         />
 
-                        {/* Botón confirmar selección */}
                         <TouchableOpacity
                             style={[
                                 styles.confirmButton,
@@ -536,13 +594,22 @@ export const AddPlannedMealForm: React.FC<AddPlannedMealFormProps> = ({
                 </Animated.View>
             </Modal>
 
-            {/* Date Picker */}
-            {showDatePicker && (
+            {/* Date Pickers */}
+            {showStartDatePicker && (
                 <DateTimePicker
-                    value={date}
+                    value={startDate}
                     mode="date"
                     display={Platform.OS === 'ios' ? 'spinner' : 'default'}
-                    onChange={handleDateChange}
+                    onChange={handleStartDateChange}
+                />
+            )}
+
+            {showEndDatePicker && (
+                <DateTimePicker
+                    value={endDate}
+                    mode="date"
+                    display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                    onChange={handleEndDateChange}
                 />
             )}
 
@@ -584,11 +651,11 @@ const styles = StyleSheet.create({
         borderRadius: 2,
         alignSelf: 'center',
         marginTop: 12,
-        marginBottom: 20,
+        marginBottom: 16,
     },
     title: {
         textAlign: 'center',
-        marginBottom: 20,
+        marginBottom: 16,
         letterSpacing: 1,
     },
     formContainer: {
@@ -597,8 +664,8 @@ const styles = StyleSheet.create({
     },
     row: {
         flexDirection: 'row',
-        marginBottom: 12,
-        gap: 12,
+        marginBottom: 10,
+        gap: 10,
     },
     halfColumn: {
         flex: 1,
@@ -609,8 +676,17 @@ const styles = StyleSheet.create({
         paddingHorizontal: 12,
         paddingVertical: 12,
     },
+    fullColumn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: theme.colors.background,
+        borderRadius: 20,
+        paddingHorizontal: 12,
+        paddingVertical: 12,
+    },
     fullRow: {
-        marginBottom: 12,
+        marginBottom: 10,
     },
     dateButton: {
         gap: 10,
@@ -620,6 +696,18 @@ const styles = StyleSheet.create({
     },
     dateText: {
         flex: 1,
+    },
+    rangeInfo: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 10,
+        paddingHorizontal: 4,
+    },
+    applyAllButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
     },
     addFoodButton: {
         flexDirection: 'row',
@@ -741,7 +829,6 @@ const styles = StyleSheet.create({
     confirmButtonDisabled: {
         opacity: 0.5,
     },
-    // Nuevos estilos para dishes seleccionados
     selectedDishesContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
