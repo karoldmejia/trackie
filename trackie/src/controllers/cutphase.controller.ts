@@ -15,7 +15,7 @@ export class CutPhaseController {
     async create(@Body() dto: CreateCutPhaseDto): Promise<CutPhase> {
         this.logger.log('POST /cut-phases - Request received');
         this.logger.log(`Request body: ${JSON.stringify(dto, null, 2)}`);
-        
+
         try {
             this.logger.log(`Creating cut phase with dates: ${dto.startDate} - ${dto.endDate}`);
             const result = await this.cutPhaseService.create(dto);
@@ -76,7 +76,7 @@ export class CutPhaseController {
     ): Promise<CutPhase> {
         this.logger.log(`PUT /cut-phases/${id} - Request received`);
         this.logger.log(`Update data: ${JSON.stringify(dto)}`);
-        
+
         try {
             this.logger.log(`Updating cut phase ${id}`);
             const result = await this.cutPhaseService.update(id, dto);
@@ -285,7 +285,7 @@ export class CutPhaseController {
                 currentWeek: dashboard.currentWeek,
                 totalWeeks: dashboard.totalWeeks,
             };
-            
+
             this.logger.log(`Stats for phase ${id} fetched successfully`);
             return result;
         } catch (error) {
@@ -318,7 +318,7 @@ export class CutPhaseController {
         this.logger.log(`PUT /cut-phases/${id}/activate - Request received`);
         try {
             this.logger.log(`Activating phase ${id}`);
-            
+
             // Desactivar todas las fases
             this.logger.log('Finding all phases to deactivate active ones');
             const allPhases = await this.cutPhaseService.findAll();
@@ -328,13 +328,13 @@ export class CutPhaseController {
                     await this.cutPhaseService.update(phase.id, { isActive: false } as any);
                 }
             }
-            
+
             // Activar la seleccionada
             this.logger.log(`Activating phase ${id}`);
             const cutPhase = await this.cutPhaseService.findById(id);
             cutPhase.isActive = true;
             const result = await this.cutPhaseService.update(id, { isActive: true } as any);
-            
+
             this.logger.log(`Phase ${id} activated successfully`);
             return result;
         } catch (error) {
@@ -346,6 +346,18 @@ export class CutPhaseController {
         }
     }
 
+@Get(':id/streaks')
+async getStreaks(@Param('id') id: string): Promise<any> {
+    this.logger.log(`GET /cut-phases/${id}/streaks - Request received`);
+    try {
+        const result = await this.cutPhaseService.getStreaks(id);
+        this.logger.log(`Streaks for phase ${id}: current=${result.currentStreak}, best=${result.bestStreak}`);
+        return result;
+    } catch (error) {
+        this.logger.error(`Error fetching streaks for phase ${id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        throw error;
+    }
+}
     private handleError(error: unknown, context: string): never {
         if (error instanceof Error) {
             this.logger.error(`${context}: ${error.message}`);

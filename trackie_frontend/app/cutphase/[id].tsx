@@ -1,5 +1,6 @@
 import AdherenceCalendar from '@/components/cutphase/AdherenceCalendar';
 import CutPhaseDetailsHeader from '@/components/cutphase/CutPhaseDetailsHeader';
+import StreakCard from '@/components/cutphase/StreakCard';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { cutPhaseService } from '@/services/cutPhaseService';
@@ -61,6 +62,7 @@ const CutPhaseDetail: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+const [streaks, setStreaks] = useState<{ currentStreak: number; bestStreak: number; lastFailedDate: string | null } | null>(null);
 
     const handleGoBack = () => {
         router.back();
@@ -77,19 +79,24 @@ const CutPhaseDetail: React.FC = () => {
         return formatter.format(localDate);
     };
 
-    const fetchData = async () => {
-        if (!id) return;
+const fetchData = async () => {
+    if (!id) return;
 
-        try {
-            setLoading(true);
-            const data = await cutPhaseService.getDashboard(id);
-            setDashboard(data);
-        } catch (error) {
-            console.error('Error fetching dashboard:', error);
-        } finally {
-            setLoading(false);
-        }
-    };
+    try {
+        setLoading(true);
+        const [data, streaksData] = await Promise.all([
+            cutPhaseService.getDashboard(id),
+            cutPhaseService.getStreaks(id)
+        ]);
+        setDashboard(data);
+        setStreaks(streaksData);
+    } catch (error) {
+        console.error('Error fetching dashboard:', error);
+    } finally {
+        setLoading(false);
+    }
+};
+
 
     const onRefresh = async () => {
         setRefreshing(true);
@@ -178,6 +185,13 @@ const CutPhaseDetail: React.FC = () => {
                     days={dashboard.days}
                     totalWeeks={dashboard.totalWeeks}
                 />
+                {streaks && (
+    <StreakCard
+        currentStreak={streaks.currentStreak}
+        bestStreak={streaks.bestStreak}
+        lastFailedDate={streaks.lastFailedDate}
+    />
+)}
 
                 {/* Cumplimiento */}
                 <View style={styles.card}>

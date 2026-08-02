@@ -167,6 +167,10 @@ export const cutPhaseService = {
         const response = await api.put<CutPhaseDay>(`/cut-phases/${phaseId}/days/${date}`);
         return response.data;
     },
+    getStreaks: async (id: string): Promise<{ currentStreak: number; bestStreak: number; lastFailedDate: string | null }> => {
+    const response = await api.get(`/cut-phases/${id}/streaks`);
+    return response.data;
+},
 };
 
 export default cutPhaseService;

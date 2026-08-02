@@ -22,7 +22,7 @@ export class CutPhaseService {
         private readonly cutPhaseDayRepo: Repository<CutPhaseDay>,
         @Inject(forwardRef(() => DailyLogService))
         private readonly dailyLogService: DailyLogService,
-                private readonly weightLogService: WeightLogService,
+        private readonly weightLogService: WeightLogService,
     ) { }
 
     async create(dto: CreateCutPhaseDto): Promise<CutPhase> {
@@ -108,14 +108,14 @@ export class CutPhaseService {
     }
 
     async getCutDays(cutPhaseId: string): Promise<CutPhaseDay[]> {
-    this.logger.log(`Getting cut days for phase ${cutPhaseId}`);
-    const days = await this.cutPhaseDayRepo.find({
-        where: { cutPhaseId },
-        order: { date: 'ASC' }
-    });
-    this.logger.log(`Found ${days.length} cut days for phase ${cutPhaseId}`);
-    return days;
-}
+        this.logger.log(`Getting cut days for phase ${cutPhaseId}`);
+        const days = await this.cutPhaseDayRepo.find({
+            where: { cutPhaseId },
+            order: { date: 'ASC' }
+        });
+        this.logger.log(`Found ${days.length} cut days for phase ${cutPhaseId}`);
+        return days;
+    }
 
     // Generar los días del cut phase
     private async generateCutPhaseDays(cutPhase: CutPhase): Promise<void> {
@@ -154,43 +154,43 @@ export class CutPhaseService {
         this.logger.log(`Generated ${days.length} days for cut phase ${cutPhase.id}`);
     }
 
-async syncAllExistingDays(cutPhaseId: string): Promise<number> {
-    this.logger.log(`Syncing all existing days for cut phase ${cutPhaseId}`);
+    async syncAllExistingDays(cutPhaseId: string): Promise<number> {
+        this.logger.log(`Syncing all existing days for cut phase ${cutPhaseId}`);
 
-    const cutPhase = await this.cutPhaseRepo.findOne({
-        where: { id: cutPhaseId }
-    });
+        const cutPhase = await this.cutPhaseRepo.findOne({
+            where: { id: cutPhaseId }
+        });
 
-    if (!cutPhase) {
-        this.logger.error(`Cut phase ${cutPhaseId} not found`);
-        throw new NotFoundException('Cut phase no encontrado');
-    }
+        if (!cutPhase) {
+            this.logger.error(`Cut phase ${cutPhaseId} not found`);
+            throw new NotFoundException('Cut phase no encontrado');
+        }
 
-    // Obtener todos los DailyLogs en el rango de fechas
-    const dailyLogs = await this.dailyLogService.findByDateRange(
-        cutPhase.startDate,
-        cutPhase.endDate
-    );
+        // Obtener todos los DailyLogs en el rango de fechas
+        const dailyLogs = await this.dailyLogService.findByDateRange(
+            cutPhase.startDate,
+            cutPhase.endDate
+        );
 
-    this.logger.log(`Found ${dailyLogs.length} daily logs to sync`);
+        this.logger.log(`Found ${dailyLogs.length} daily logs to sync`);
 
-    let syncedCount = 0;
-    for (const log of dailyLogs) {
-        try {
-            await this.updateDayCompliance(cutPhaseId, log.date);
-            syncedCount++;
-        } catch (error) {
-            if (error instanceof Error) {
-                this.logger.error(`Error syncing day ${log.date}: ${error.message}`);
-            } else {
-                this.logger.error(`Error syncing day ${log.date}: Unknown error`);
+        let syncedCount = 0;
+        for (const log of dailyLogs) {
+            try {
+                await this.updateDayCompliance(cutPhaseId, log.date);
+                syncedCount++;
+            } catch (error) {
+                if (error instanceof Error) {
+                    this.logger.error(`Error syncing day ${log.date}: ${error.message}`);
+                } else {
+                    this.logger.error(`Error syncing day ${log.date}: Unknown error`);
+                }
             }
         }
-    }
 
-    this.logger.log(`Synced ${syncedCount} days for cut phase ${cutPhaseId}`);
-    return syncedCount;
-}
+        this.logger.log(`Synced ${syncedCount} days for cut phase ${cutPhaseId}`);
+        return syncedCount;
+    }
     // Calcular el cumplimiento de un día
     private calculateDayCompliance(dailyLog: DailyLog, cutPhase: CutPhase): Omit<CutPhaseDay, 'id' | 'cutPhase' | 'cutPhaseId'> {
         this.logger.log(`Calculating compliance for date ${dailyLog.date}`);
@@ -513,6 +513,63 @@ async syncAllExistingDays(cutPhaseId: string): Promise<number> {
         }
 
         return weeklySummary;
+    }
+
+    // En cutphase.service.ts - Agregar método para calcular rachas
+    async getStreaks(cutPhaseId: string): Promise<{ currentStreak: number; bestStreak: number; lastFailedDate: string | null }> {
+        const days = await this.cutPhaseDayRepo.find({
+            where: { cutPhaseId },
+            order: { date: 'DESC' }
+        });
+
+        if (days.length === 0) {
+            return { currentStreak: 0, bestStreak: 0, lastFailedDate: null };
+        }
+
+        const threshold = 90;
+        let currentStreak = 0;
+        let bestStreak = 0;
+        let tempStreak = 0;
+        let lastFailedDate: string | null = null;
+
+        // Calcular racha actual (desde el más reciente)
+        for (let i = 0; i < days.length; i++) {
+            if (days[i].dailyScore >= threshold) {
+                if (i === 0) {
+                    currentStreak = 1;
+                } else {
+                    const prevDate = new Date(days[i - 1].date);
+                    const currDate = new Date(days[i].date);
+                    const diffDays = Math.floor((prevDate.getTime() - currDate.getTime()) / (1000 * 60 * 60 * 24));
+                    if (diffDays === 1) {
+                        currentStreak++;
+                    } else {
+                        break;
+                    }
+                }
+            } else {
+                if (i === 0) {
+                    currentStreak = 0;
+                    lastFailedDate = days[i].date;
+                    break;
+                } else {
+                    lastFailedDate = days[i].date;
+                    break;
+                }
+            }
+        }
+
+        // Calcular mejor racha (histórica)
+        for (const day of days) {
+            if (day.dailyScore >= threshold) {
+                tempStreak++;
+                bestStreak = Math.max(bestStreak, tempStreak);
+            } else {
+                tempStreak = 0;
+            }
+        }
+
+        return { currentStreak, bestStreak, lastFailedDate };
     }
 
     private calculateAttributeCompliance(days: any[], attribute: string): number {
