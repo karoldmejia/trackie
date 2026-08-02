@@ -100,7 +100,7 @@ export const WeeklyPlannerContainer: React.FC<WeeklyPlannerContainerProps> = ({
                             color={'#888888'}
                             backgroundColor={theme.colors.background || '#f5f5f5'}
                         />
-                        <ThemedText style={styles.emptyText}>
+                        <ThemedText variant="medium" size={13} color={theme.colors.placeholder}>
                             No hay planes para esta semana
                         </ThemedText>
                     </View>
@@ -123,10 +123,5 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         gap: 3,
-    },
-    emptyText: {
-        fontSize: 16,
-        color: '#888888',
-        fontWeight: 600
     },
 });

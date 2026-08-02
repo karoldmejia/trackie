@@ -184,4 +184,15 @@ export const mealPlannerService = {
         );
         return response.data;
     },
+
+    addPlannedMealRange: async (data: {
+        startDate: string;
+        endDate: string;
+        time: string;
+        mealType: string;
+        dishIds: string[];
+    }): Promise<PlannedMeal[]> => {
+        const response = await api.post<PlannedMeal[]>('/meal-planner/planned-meals/range', data);
+        return response.data;
+    },
 };

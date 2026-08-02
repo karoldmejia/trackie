@@ -1,5 +1,6 @@
 import AdherenceCalendar from '@/components/cutphase/AdherenceCalendar';
 import CutPhaseDetailsHeader from '@/components/cutphase/CutPhaseDetailsHeader';
+import MeasurementsTable from '@/components/cutphase/MeasurementsTable';
 import StreakCard from '@/components/cutphase/StreakCard';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
@@ -54,6 +55,7 @@ interface DashboardData {
     weeklySummary: any[];
     trends: any;
     days: DayData[];
+    streaks: any;
 }
 
 const CutPhaseDetail: React.FC = () => {
@@ -62,7 +64,7 @@ const CutPhaseDetail: React.FC = () => {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-const [streaks, setStreaks] = useState<{ currentStreak: number; bestStreak: number; lastFailedDate: string | null } | null>(null);
+    const [streaks, setStreaks] = useState<{ currentStreak: number; bestStreak: number; lastFailedDate: string | null } | null>(null);
 
     const handleGoBack = () => {
         router.back();
@@ -79,23 +81,23 @@ const [streaks, setStreaks] = useState<{ currentStreak: number; bestStreak: numb
         return formatter.format(localDate);
     };
 
-const fetchData = async () => {
-    if (!id) return;
+    const fetchData = async () => {
+        if (!id) return;
 
-    try {
-        setLoading(true);
-        const [data, streaksData] = await Promise.all([
-            cutPhaseService.getDashboard(id),
-            cutPhaseService.getStreaks(id)
-        ]);
-        setDashboard(data);
-        setStreaks(streaksData);
-    } catch (error) {
-        console.error('Error fetching dashboard:', error);
-    } finally {
-        setLoading(false);
-    }
-};
+        try {
+            setLoading(true);
+            const [data, streaksData] = await Promise.all([
+                cutPhaseService.getDashboard(id),
+                cutPhaseService.getStreaks(id)
+            ]);
+            setDashboard(data);
+            setStreaks(streaksData);
+        } catch (error) {
+            console.error('Error fetching dashboard:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
 
     const onRefresh = async () => {
@@ -186,148 +188,15 @@ const fetchData = async () => {
                     totalWeeks={dashboard.totalWeeks}
                 />
                 {streaks && (
-    <StreakCard
-        currentStreak={streaks.currentStreak}
-        bestStreak={streaks.bestStreak}
-        lastFailedDate={streaks.lastFailedDate}
-    />
-)}
+                    <StreakCard
+                        currentStreak={dashboard.streaks?.currentStreak || 0}
+                        bestStreak={dashboard.streaks?.bestStreak || 0}
+                        lastFailedDate={dashboard.streaks?.lastFailedDate || null}
+                        days={dashboard.days || []}
+                    />
+                )}
 
-                {/* Cumplimiento */}
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                            Cumplimiento
-                        </ThemedText>
-                    </View>
-                    <View style={styles.complianceContainer}>
-                        <View style={styles.complianceBigNumber}>
-                            <ThemedText variant="bold" size={48} color={theme.colors.primary}>
-                                {Math.round(dashboard.summary.compliancePercentage)}%
-                            </ThemedText>
-                        </View>
-                        <View style={styles.complianceDetails}>
-                            <View style={styles.complianceRow}>
-                                <ThemedText variant="regular" size={14} color={theme.colors.textLight}>
-                                    Días cumplidos:
-                                </ThemedText>
-                                <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                                    {dashboard.summary.daysWithAllMet} / {dashboard.summary.totalDays}
-                                </ThemedText>
-                            </View>
-                            <View style={styles.complianceRow}>
-                                <ThemedText variant="regular" size={14} color={theme.colors.textLight}>
-                                    Score promedio:
-                                </ThemedText>
-                                <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                                    {dashboard.summary.averageScore}
-                                </ThemedText>
-                            </View>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Objetivos diarios */}
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                            Objetivos diarios
-                        </ThemedText>
-                    </View>
-                    <View style={styles.targetsGrid}>
-                        <View style={styles.targetItem}>
-                            <Icon name="Flame" size={20} color={theme.colors.primary} backgroundColor="transparent" padding={0} />
-                            <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {dashboard.targets.calories}
-                            </ThemedText>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                kcal
-                            </ThemedText>
-                        </View>
-                        <View style={styles.targetItem}>
-                            <Icon name="Beef" size={20} color={theme.colors.primary} backgroundColor="transparent" padding={0} />
-                            <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {dashboard.targets.protein}
-                            </ThemedText>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                g
-                            </ThemedText>
-                        </View>
-                        <View style={styles.targetItem}>
-                            <Icon name="Footprints" size={20} color={theme.colors.primary} backgroundColor="transparent" padding={0} />
-                            <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {dashboard.targets.steps}
-                            </ThemedText>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                pasos
-                            </ThemedText>
-                        </View>
-                        <View style={styles.targetItem}>
-                            <Icon name="Droplet" size={20} color={theme.colors.primary} backgroundColor="transparent" padding={0} />
-                            <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {dashboard.targets.water}
-                            </ThemedText>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                L
-                            </ThemedText>
-                        </View>
-                    </View>
-                </View>
-
-                {/* Mediciones */}
-                <View style={styles.card}>
-                    <View style={styles.cardHeader}>
-                        <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                            Mediciones
-                        </ThemedText>
-                    </View>
-                    <View style={styles.measurementsGrid}>
-                        <View style={styles.measurementItem}>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                Peso
-                            </ThemedText>
-                            <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {dashboard.measurements.weight.current || '--'} kg
-                            </ThemedText>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                Inicial: {dashboard.measurements.weight.initial || '--'} kg
-                            </ThemedText>
-                        </View>
-                        <View style={styles.measurementItem}>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                Grasa corporal
-                            </ThemedText>
-                            <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {dashboard.measurements.bodyfat.current || '--'}%
-                            </ThemedText>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                Inicial: {dashboard.measurements.bodyfat.initial || '--'}%
-                            </ThemedText>
-                        </View>
-                        <View style={styles.measurementItem}>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                Cintura
-                            </ThemedText>
-                            <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {dashboard.measurements.waist.current || '--'} cm
-                            </ThemedText>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                Inicial: {dashboard.measurements.waist.initial || '--'} cm
-                            </ThemedText>
-                        </View>
-                        <View style={styles.measurementItem}>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                Cadera
-                            </ThemedText>
-                            <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {dashboard.measurements.hips.current || '--'} cm
-                            </ThemedText>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                Inicial: {dashboard.measurements.hips.initial || '--'} cm
-                            </ThemedText>
-                        </View>
-                    </View>
-                </View>
+                <MeasurementsTable measurements={dashboard.measurements} />
             </ScrollView>
         </View>
     );

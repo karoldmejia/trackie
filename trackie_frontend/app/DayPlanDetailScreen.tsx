@@ -3,6 +3,7 @@ import { AddPlannedMealForm } from '@/components/meal-planner/AddPlannedMealForm
 import { ConfirmModal } from '@/components/meal-planner/ConfirmModal';
 import { DateBadge } from '@/components/meal-planner/DateBagde';
 import { PlannedMealCard } from '@/components/meal-planner/PlannedMealCard';
+import { ThemedText } from '@/components/ThemedText';
 import { DayPlan, mealPlannerService, PlannedMeal } from '@/services/mealPlannerService';
 import { theme } from '@/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -254,17 +255,9 @@ const DayPlanDetailScreen: React.FC = () => {
                         ))
                     ) : (
                         <View style={styles.emptyMealsContainer}>
-                            <Text style={styles.emptyMealsText}>
+                        <ThemedText variant="medium" size={13} color={theme.colors.placeholder}>
                                 No hay comidas planificadas para este día
-                            </Text>
-                            <TouchableOpacity
-                                style={styles.addMealButton}
-                                onPress={handleAddPress}
-                            >
-                                <Text style={styles.addMealButtonText}>
-                                    Agregar comida
-                                </Text>
-                            </TouchableOpacity>
+                            </ThemedText>
                         </View>
                     )}
                 </View>

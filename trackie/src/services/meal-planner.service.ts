@@ -347,4 +347,54 @@ export class MealPlannerService {
         return this.plannedMealRepository.save(plannedMeal);
     }
 
+
+    async addPlannedMealRange(data: {
+        startDate: string;
+        endDate: string;
+        time: string;
+        mealType: string;
+        dishIds: string[];
+    }): Promise<PlannedMeal[]> {
+        const { startDate, endDate, time, mealType, dishIds } = data;
+
+        const start = new Date(startDate);
+        const end = new Date(endDate);
+        const plannedMeals: PlannedMeal[] = [];
+
+        // Obtener los dishes una sola vez
+        const dishes = await this.dishRepository.find({ where: { id: In(dishIds) } });
+        if (dishes.length !== dishIds.length) {
+            throw new BadRequestException('Algunos dishes no existen');
+        }
+
+        let currentDate = new Date(start);
+
+        while (currentDate <= end) {
+            const dateStr = currentDate.toISOString().split('T')[0];
+
+            // Buscar o crear DayPlan para esta fecha
+            let dayPlan = await this.dayPlanRepository.findOne({
+                where: { date: dateStr }
+            });
+
+            if (!dayPlan) {
+                dayPlan = this.dayPlanRepository.create({ date: dateStr });
+                dayPlan = await this.dayPlanRepository.save(dayPlan);
+            }
+
+            const plannedMeal = this.plannedMealRepository.create({
+                mealType: mealType as any,
+                time: time,
+                dayPlan: dayPlan,
+            });
+
+            plannedMeal.dishes = dishes;
+
+            plannedMeals.push(plannedMeal);
+            currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        return this.plannedMealRepository.save(plannedMeals);
+    }
+
 }

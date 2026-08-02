@@ -226,8 +226,9 @@ const MealPlannerScreen: React.FC = () => {
                     </View>
                 ) : (
                     <View style={styles.emptyContainer}>
-                        <ThemedText style={styles.emptyTitle}>Sin comidas planificadas</ThemedText>
-                        <ThemedText style={styles.emptySubtitle}>
+                        <ThemedText variant="medium" size={15} color={theme.colors.text}>Sin comidas planificadas</ThemedText>
+                        <ThemedText variant="regular" size={13} color={theme.colors.placeholder}>
+
                             Agrega tus primeras comidas para hoy
                         </ThemedText>
                     </View>

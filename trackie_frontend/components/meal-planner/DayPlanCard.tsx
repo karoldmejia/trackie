@@ -71,7 +71,6 @@ export const DayPlanCard: React.FC<DayPlanCardProps> = ({
             activeOpacity={0.7}
         >
             <View style={styles.rowContainer}>
-                {/* Imagen - más grande que el rectángulo */}
                 <View style={styles.imageWrapper}>
                     <Image 
                         source={imageSource} 
@@ -80,7 +79,6 @@ export const DayPlanCard: React.FC<DayPlanCardProps> = ({
                     />
                 </View>
 
-                {/* Rectángulo blanco - empieza en la mitad de la imagen */}
                 <View style={styles.contentContainer}>
                     <View style={styles.textWrapper}>
                         <View style={styles.headerRow}>
@@ -97,7 +95,7 @@ export const DayPlanCard: React.FC<DayPlanCardProps> = ({
                                     {mealSummary}
                                 </ThemedText>
                             ) : (
-                                <ThemedText style={styles.emptyText} numberOfLines={1}>
+                        <ThemedText variant="regular" size={13} color={theme.colors.placeholder}>
                                     Sin comidas planificadas
                                 </ThemedText>
                             )}

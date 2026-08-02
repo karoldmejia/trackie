@@ -53,6 +53,18 @@ export class MealPlannerController {
         return this.mealPlannerService.addPlannedMeal(dayPlanId, createPlannedMealDto);
     }
 
+    @Post('planned-meals/range')
+    @HttpCode(HttpStatus.CREATED)
+    async addPlannedMealRange(@Body() data: { startDate: string; endDate: string; time: string; mealType: string; dishIds: string[] },): Promise<PlannedMeal[]> {
+        try {
+            const result = await this.mealPlannerService.addPlannedMealRange(data);
+            return result;
+        } catch (error) {
+            throw error;
+        }
+    }
+
+
     @Put('planned-meal/:id')
     async updatePlannedMeal(
         @Param('id', ParseUUIDPipe) id: string,
