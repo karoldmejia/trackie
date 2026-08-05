@@ -207,8 +207,8 @@ export class CutPhaseService {
         const weights = {
             calories: 0.30,
             protein: 0.30,
-            steps: 0.15,
-            workout: 0.15,
+            steps: 0.25,
+            workout: 0.05,
             water: 0.10,
         };
 
@@ -416,7 +416,7 @@ export class CutPhaseService {
         const currentWeek = Math.min(Math.floor(diffDays / 7) + 1, cutPhase.totalWeeks);
 
         this.logger.log(`Current week: ${currentWeek}, total weeks: ${cutPhase.totalWeeks}`);
-const streaks = await this.getStreaks(cutPhaseId);
+        const streaks = await this.getStreaks(cutPhaseId);
 
         return {
             cutPhaseId: cutPhase.id,
