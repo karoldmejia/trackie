@@ -26,8 +26,6 @@ export class CutPhaseService {
     ) { }
 
     async create(dto: CreateCutPhaseDto): Promise<CutPhase> {
-        this.logger.log('Received create request with DTO:');
-        this.logger.log(JSON.stringify(dto, null, 2));
 
         const requiredFields = ['startDate', 'endDate', 'targetCalories', 'targetProtein', 'targetSteps', 'targetWater', 'workoutsPerWeek'];
         for (const field of requiredFields) {
@@ -36,15 +34,6 @@ export class CutPhaseService {
                 throw new BadRequestException(`El campo ${field} es requerido`);
             }
         }
-
-        // Validar tipos
-        this.logger.log(`startDate: ${dto.startDate}, type: ${typeof dto.startDate}`);
-        this.logger.log(`endDate: ${dto.endDate}, type: ${typeof dto.endDate}`);
-        this.logger.log(`targetCalories: ${dto.targetCalories}, type: ${typeof dto.targetCalories}`);
-        this.logger.log(`targetProtein: ${dto.targetProtein}, type: ${typeof dto.targetProtein}`);
-        this.logger.log(`targetSteps: ${dto.targetSteps}, type: ${typeof dto.targetSteps}`);
-        this.logger.log(`targetWater: ${dto.targetWater}, type: ${typeof dto.targetWater}`);
-        this.logger.log(`workoutsPerWeek: ${dto.workoutsPerWeek}, type: ${typeof dto.workoutsPerWeek}`);
 
         // Validar fechas
         const startDate = new Date(dto.startDate);
@@ -290,25 +279,20 @@ export class CutPhaseService {
 
     // Actualizar un día específico
     async updateDayCompliance(cutPhaseId: string, date: string): Promise<CutPhaseDay> {
-        this.logger.log(`Updating day compliance for cut phase ${cutPhaseId}, date ${date}`);
 
         const cutPhase = await this.cutPhaseRepo.findOne({
             where: { id: cutPhaseId }
         });
 
         if (!cutPhase) {
-            this.logger.error(`Cut phase ${cutPhaseId} not found`);
             throw new NotFoundException('Cut phase no encontrado');
         }
 
-        this.logger.log(`Fetching daily log for date ${date}`);
         const dailyLog = await this.dailyLogService.findByDate(date);
         if (!dailyLog) {
-            this.logger.error(`No daily log found for date ${date}`);
             throw new NotFoundException(`No hay datos para la fecha ${date}`);
         }
 
-        this.logger.log(`Finding existing cut phase day for date ${date}`);
         let cutPhaseDay = await this.cutPhaseDayRepo.findOne({
             where: { cutPhaseId, date }
         });
@@ -316,17 +300,13 @@ export class CutPhaseService {
         const compliance = this.calculateDayCompliance(dailyLog, cutPhase);
 
         if (cutPhaseDay) {
-            this.logger.log(`Updating existing day for ${date}`);
             Object.assign(cutPhaseDay, compliance);
         } else {
-            this.logger.log(`Creating new day for ${date}`);
             cutPhaseDay = this.cutPhaseDayRepo.create({
                 ...compliance,
                 cutPhaseId,
             });
         }
-
-        this.logger.log(`Saving day for ${date}`);
         return this.cutPhaseDayRepo.save(cutPhaseDay);
     }
 

@@ -29,7 +29,6 @@ import { CutPhase } from './entities/cutphase.entity';
 import { CutPhaseDay } from './entities/cutphaseday.entity';
 import { CutPhaseController } from './controllers/cutphase.controller';
 import { CutPhaseService } from './services/cutphase.service';
-import { DailyLogSubscriber } from './services/daily-log.subscriber';
 
 @Module({
   imports: [
@@ -77,7 +76,6 @@ import { DailyLogSubscriber } from './services/daily-log.subscriber';
     MealPlannerService,
     ShoppingListService,
     CutPhaseService,
-    DailyLogSubscriber,
   ],
 })
 export class AppModule {}

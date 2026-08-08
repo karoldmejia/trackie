@@ -1,8 +1,9 @@
-import { Injectable } from "@nestjs/common";
+import { forwardRef, Inject, Injectable, Logger } from "@nestjs/common";
 import { CreateDailyLogDto } from "../dtos/dailylog.dto";
 import { DailyLog } from "../entities/dailylog.entity";
 import { Between, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
+import { CutPhaseService } from "./cutphase.service";
 
 export interface GoodBadDaysResult {
     goodDays: number;
@@ -51,9 +52,13 @@ export interface FullStatsResult {
 
 @Injectable()
 export class DailyLogService {
+    private readonly logger = new Logger(DailyLogService.name);
+
     constructor(
         @InjectRepository(DailyLog)
         private readonly dailyLogRepo: Repository<DailyLog>,
+        @Inject(forwardRef(() => CutPhaseService))
+        private readonly cutPhaseService: CutPhaseService,
     ) { }
 
     // Función auxiliar para obtener la fecha local en formato YYYY-MM-DD
@@ -65,33 +70,90 @@ export class DailyLogService {
         return `${year}-${month}-${day}`;
     }
 
+
     // Crear o actualizar (upsert)
     async create(dto: CreateDailyLogDto): Promise<DailyLog> {
         const date = dto.date || this.getLocalDate();
         let existing = await this.dailyLogRepo.findOne({ where: { date } });
 
+        let savedLog: DailyLog;
         if (existing) {
             Object.assign(existing, dto);
-            return this.dailyLogRepo.save(existing);
+            savedLog = await this.dailyLogRepo.save(existing);
         } else {
             const log = this.dailyLogRepo.create({
                 ...dto,
                 date,
             });
-            return this.dailyLogRepo.save(log);
+            savedLog = await this.dailyLogRepo.save(log);
         }
+
+        await this.syncWithCutPhase(savedLog);
+
+        return savedLog;
     }
 
-    // Actualizar o crear (versión explícita)
     async upsert(dto: CreateDailyLogDto): Promise<DailyLog> {
         let log = await this.dailyLogRepo.findOne({ where: { date: dto.date } });
+        let savedLog: DailyLog;
+
         if (!log) {
             log = this.dailyLogRepo.create(dto);
+            savedLog = await this.dailyLogRepo.save(log);
         } else {
             Object.assign(log, dto);
+            savedLog = await this.dailyLogRepo.save(log);
         }
-        
-        return this.dailyLogRepo.save(log);
+
+        await this.syncWithCutPhase(savedLog);
+
+        return savedLog;
+    }
+
+    // Método específico para actualizar solo algunos campos
+    async updateByDate(date: string, dto: Partial<CreateDailyLogDto>): Promise<DailyLog> {
+        let log = await this.dailyLogRepo.findOne({ where: { date } });
+        let savedLog: DailyLog;
+
+        if (!log) {
+            log = this.dailyLogRepo.create({
+                ...dto,
+                date,
+            });
+            savedLog = await this.dailyLogRepo.save(log);
+        } else {
+            Object.assign(log, dto);
+            savedLog = await this.dailyLogRepo.save(log);
+        }
+
+        await this.syncWithCutPhase(savedLog);
+
+        return savedLog;
+    }
+
+    private async syncWithCutPhase(dailyLog: DailyLog): Promise<void> {
+        try {
+            this.logger?.log(`Syncing daily log ${dailyLog.date} with cut phase`);
+
+            const activePhase = await this.cutPhaseService.findActive();
+
+            if (!activePhase) {
+                this.logger?.log(`No active phase found for date ${dailyLog.date}`);
+                return;
+            }
+
+            if (dailyLog.date < activePhase.startDate || dailyLog.date > activePhase.endDate) {
+                this.logger?.log(`Date ${dailyLog.date} outside phase range (${activePhase.startDate} - ${activePhase.endDate})`);
+                return;
+            }
+
+            this.logger?.log(`Updating day compliance for phase ${activePhase.id}, date ${dailyLog.date}`);
+            await this.cutPhaseService.updateDayCompliance(activePhase.id, dailyLog.date);
+            this.logger?.log(`Successfully synced date ${dailyLog.date}`);
+
+        } catch (error) {
+            console.error(`Error syncing daily log ${dailyLog.date} with cut phase:`, error);
+        }
     }
 
     // Obtener todos los registros
@@ -125,20 +187,6 @@ export class DailyLogService {
         return total / logs.length;
     }
 
-    // Método específico para actualizar solo algunos campos
-    async updateByDate(date: string, dto: Partial<CreateDailyLogDto>): Promise<DailyLog> {
-        let log = await this.dailyLogRepo.findOne({ where: { date } });
-        if (!log) {
-            log = this.dailyLogRepo.create({
-                ...dto,
-                date,
-            });
-        } else {
-            Object.assign(log, dto);
-        }
-        return this.dailyLogRepo.save(log);
-    }
-
     /**
      * Calcular días buenos y malos basado en límite de calorías y objetivo de pasos
      * @param start Fecha inicio (YYYY-MM-DD)
@@ -153,7 +201,7 @@ export class DailyLogService {
         stepGoal: number
     ): Promise<GoodBadDaysResult> {
         const logs = await this.findByDateRange(start, end);
-        
+
         if (!logs.length) {
             return {
                 goodDays: 0,
@@ -180,7 +228,7 @@ export class DailyLogService {
         logs.forEach(log => {
             const isGood = log.calories <= calorieLimit && log.steps >= stepGoal;
             const isBad = log.calories > calorieLimit || log.steps < stepGoal;
-            
+
             if (isGood) {
                 goodDaysList.push(log);
             } else if (isBad) {
@@ -215,13 +263,13 @@ export class DailyLogService {
         stepGoal: number
     ): Promise<DayClassification[]> {
         const logs = await this.findByDateRange(start, end);
-        
+
         return logs.map(log => {
             const isCaloriesOk = log.calories <= calorieLimit;
             const isStepsOk = log.steps >= stepGoal;
             const isGood = isCaloriesOk && isStepsOk;
             const isBad = !isCaloriesOk || !isStepsOk;
-            
+
             let reason = '';
             if (!isCaloriesOk && !isStepsOk) {
                 reason = `Excediste el límite de calorías (${log.calories}/${calorieLimit} kcal) y no alcanzaste el objetivo de pasos (${log.steps}/${stepGoal})`;
@@ -230,7 +278,7 @@ export class DailyLogService {
             } else if (!isStepsOk) {
                 reason = `No alcanzaste el objetivo de pasos: ${log.steps}/${stepGoal}`;
             }
-            
+
             return {
                 date: log.date,
                 calories: log.calories,
@@ -254,35 +302,35 @@ export class DailyLogService {
         const logs = await this.findByDateRange(start, end);
         const goodBadStats = await this.getGoodBadDays(start, end, calorieLimit, stepGoal);
         const classifications = await this.classifyDays(start, end, calorieLimit, stepGoal);
-        
+
         // Calcular totales
         const totalCalories = logs.reduce((sum, log) => sum + log.calories, 0);
         const totalSteps = logs.reduce((sum, log) => sum + log.steps, 0);
-        
+
         // Encontrar mejor y peor día en calorías y pasos
         const bestDayCalories = logs.length ? Math.max(...logs.map(l => l.calories)) : 0;
         const worstDayCalories = logs.length ? Math.min(...logs.map(l => l.calories)) : 0;
         const bestDaySteps = logs.length ? Math.max(...logs.map(l => l.steps)) : 0;
         const worstDaySteps = logs.length ? Math.min(...logs.map(l => l.steps)) : 0;
-        
+
         const bestDay = logs.length ? [...logs].sort((a, b) => b.calories - a.calories)[0] : null;
-        
+
         // Calcular tendencia (comparación con período anterior)
         const daysCount = Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 3600 * 24));
         const previousStart = new Date(start);
         previousStart.setDate(previousStart.getDate() - daysCount);
         const previousEnd = new Date(start);
         previousEnd.setDate(previousEnd.getDate() - 1);
-        
+
         const previousLogs = await this.findByDateRange(
             this.getLocalDate(previousStart),
             this.getLocalDate(previousEnd)
         );
-        
-        const previousAvg = previousLogs.length 
-            ? previousLogs.reduce((sum, log) => sum + log.calories, 0) / previousLogs.length 
+
+        const previousAvg = previousLogs.length
+            ? previousLogs.reduce((sum, log) => sum + log.calories, 0) / previousLogs.length
             : 0;
-        
+
         const currentAvg = goodBadStats.averageCalories;
         const trend = previousAvg ? ((currentAvg - previousAvg) / previousAvg) * 100 : 0;
 
