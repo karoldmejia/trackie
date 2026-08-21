@@ -83,7 +83,7 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
 
     const maxCellSize = Math.floor((availableWidth - labelWidth - (weeks.length - 1) * gap) / weeks.length);
     const cellSize = Math.min(Math.max(maxCellSize, 14), 32); // entre 14px y 32px
-    const rowGap = cellSize < 20 ? 0 : Math.max(cellSize * 0.2, 4);
+   const rowGap = cellSize * 0.2;
 
     const handleDayPress = (day: DayData) => {
         setSelectedDay(day);
@@ -119,7 +119,7 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
                 {/* Filas: días de la semana */}
                 {DAYS_OF_WEEK.map((dayLabel, dayIndex) => (
                     <View key={dayIndex} style={[styles.row, { marginBottom: rowGap }]}>
-                        <View style={[styles.dayLabelCell, { width: labelWidth }]}>
+                        <View style={[styles.dayLabelCell, { width: labelWidth, height: cellSize }]}>
                             <ThemedText
                                 variant="regular"
                                 size={9}
@@ -342,7 +342,6 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     dayLabelCell: {
-        height: 24,
         alignItems: 'center',
         justifyContent: 'center',
     },

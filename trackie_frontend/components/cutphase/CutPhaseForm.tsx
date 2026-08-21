@@ -1,4 +1,3 @@
-// components/cutphase/CutPhaseForm.tsx
 import { FormInput } from '@/components/FormInput';
 import { FormSelect } from '@/components/FormSelect';
 import { Icon } from '@/components/icon';
@@ -195,8 +194,8 @@ export const CutPhaseForm: React.FC<CutPhaseFormProps> = ({
                             })
                         }],
                         height: keyboardShown
-                            ? screenHeight * 0.8 + keyboardHeight
-                            : screenHeight * 0.8
+                            ? screenHeight * 0.6 + keyboardHeight
+                            : screenHeight * 0.6
                     }
                 ]}
             >

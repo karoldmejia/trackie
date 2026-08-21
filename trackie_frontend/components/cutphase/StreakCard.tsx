@@ -102,23 +102,23 @@ export const StreakCard: React.FC<StreakCardProps> = ({
             const weekDays = [];
             let month = getMonthName(weekStart);
 
- for (let i = 0; i < 7; i++) {
-    const date = new Date(weekStart);
-    date.setDate(weekStart.getDate() + i);
-    const dateStr = getDateStr(date);
-    
-    const dayData = days.find(d => d.date === dateStr);
-    const isStreak = dayData ? dayData.dailyScore >= 90 : false;
-    const isToday = dateStr === getDateStr(today);
+            for (let i = 0; i < 7; i++) {
+                const date = new Date(weekStart);
+                date.setDate(weekStart.getDate() + i);
+                const dateStr = getDateStr(date);
 
-    weekDays.push({
-        date: dateStr,
-        shortDay: getShortDayName(date),
-        isStreak,
-        isToday,
-        dayNumber: date.getDate(),
-    });
-}
+                const dayData = days.find(d => d.date === dateStr);
+                const isStreak = dayData ? dayData.dailyScore >= 90 : false;
+                const isToday = dateStr === getDateStr(today);
+
+                weekDays.push({
+                    date: dateStr,
+                    shortDay: getShortDayName(date),
+                    isStreak,
+                    isToday,
+                    dayNumber: date.getDate(),
+                });
+            }
             allWeeks.push({
                 id: weekStart.toISOString().split('T')[0],
                 startDate: weekStart.toISOString().split('T')[0],
@@ -177,9 +177,10 @@ export const StreakCard: React.FC<StreakCardProps> = ({
                                     />
                                 ) : (
                                     <ThemedText
-                                        variant={day.isToday ? "semiBold" : "regular"}
+                                        variant={day.isToday ? "medium" : "regular"}
                                         size={13}
                                         color={theme.colors.textLight}
+                                        style={styles.dayNumberText}
                                     >
                                         {day.dayNumber}
                                     </ThemedText>
@@ -383,8 +384,14 @@ const styles = StyleSheet.create({
         backgroundColor: theme.colors.primary,
     },
     dayCircleToday: {
-        borderWidth: 1.5,
+        borderWidth: 1.2,
         borderColor: theme.colors.textLight,
+    },
+    dayNumberText: {
+        textAlign: 'center',
+        textAlignVertical: 'center',
+        includeFontPadding: false,
+        lineHeight: 13,
     },
 });
 
