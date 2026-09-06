@@ -10,6 +10,7 @@ import { DailyLog } from '../entities/dailylog.entity';
 import { WorkoutType } from '../enums/workouttype.enum';
 import { WeeklySummary } from '../interfaces/weekly-summary.interface';
 import { TrendsData, WeeklyTrend } from '../interfaces/weekly-trend.interface';
+import { WeightLog } from 'src/entities/weightlog.entity';
 
 @Injectable()
 export class CutPhaseService {
@@ -369,17 +370,10 @@ export class CutPhaseService {
         );
         this.logger.log(`Found ${allWeightLogs.length} weight logs`);
 
-        const sortedWeightLogs = allWeightLogs.sort((a, b) =>
-            a.date.localeCompare(b.date)
-        );
-
-        const initialMeasurement = sortedWeightLogs.length > 0 ? sortedWeightLogs[0] : null;
-        const currentMeasurement = sortedWeightLogs.length > 0
-            ? sortedWeightLogs[sortedWeightLogs.length - 1]
-            : null;
-
-        this.logger.log(`Initial measurement: ${JSON.stringify(initialMeasurement)}`);
-        this.logger.log(`Current measurement: ${JSON.stringify(currentMeasurement)}`);
+        const weeklyWeightAvg = this.calculateWeeklyWeightAverage(allWeightLogs);
+        const lastMeasurements = this.getLastMeasurementWithValue(allWeightLogs);
+        const firstWeight = this.getFirstWeightMeasurement(allWeightLogs);
+        const lastWeight = this.getLastWeightMeasurement(allWeightLogs);
 
         // Calcular estadísticas
         const totalDays = daysWithData.length;
@@ -397,6 +391,13 @@ export class CutPhaseService {
 
         this.logger.log(`Current week: ${currentWeek}, total weeks: ${cutPhase.totalWeeks}`);
         const streaks = await this.getStreaks(cutPhaseId);
+
+        const caloriesCarryover = this.calculateWeeklyCarryover(
+            dailyLogs,
+            cutPhase.targetCalories,
+            new Date(),
+            cutPhase.startDate
+        );
 
         return {
             cutPhaseId: cutPhase.id,
@@ -423,40 +424,44 @@ export class CutPhaseService {
             },
 
             measurements: {
+                // Peso: promedio semanal
                 weight: {
-                    initial: initialMeasurement?.weight || null,
-                    current: currentMeasurement?.weight || null,
-                    difference: initialMeasurement && currentMeasurement
-                        ? currentMeasurement.weight - initialMeasurement.weight
+                    average: weeklyWeightAvg,  // NUEVO: promedio de la semana
+                    initial: firstWeight?.weight || null,
+                    current: lastWeight?.weight || null,
+                    difference: firstWeight && lastWeight
+                        ? Number((lastWeight.weight - firstWeight.weight).toFixed(2))
                         : null
                 },
+                // Bodyfat: última medición con valor
                 bodyfat: {
-                    initial: initialMeasurement?.bodyfat || null,
-                    current: currentMeasurement?.bodyfat || null,
-                    difference: initialMeasurement && currentMeasurement && initialMeasurement.bodyfat && currentMeasurement.bodyfat
-                        ? currentMeasurement.bodyfat - initialMeasurement.bodyfat
-                        : null
+                    initial: null,  // No tenemos initial para bodyfat
+                    current: lastMeasurements.bodyfat.value,
+                    currentDate: lastMeasurements.bodyfat.date,
+                    difference: null
                 },
+                // Waist: última medición con valor
                 waist: {
-                    initial: initialMeasurement?.waist || null,
-                    current: currentMeasurement?.waist || null,
-                    difference: initialMeasurement && currentMeasurement && initialMeasurement.waist && currentMeasurement.waist
-                        ? currentMeasurement.waist - initialMeasurement.waist
-                        : null
+                    initial: null,
+                    current: lastMeasurements.waist.value,
+                    currentDate: lastMeasurements.waist.date,
+                    difference: null
                 },
+                // Hips: última medición con valor
                 hips: {
-                    initial: initialMeasurement?.hips || null,
-                    current: currentMeasurement?.hips || null,
-                    difference: initialMeasurement && currentMeasurement && initialMeasurement.hips && currentMeasurement.hips
-                        ? currentMeasurement.hips - initialMeasurement.hips
-                        : null
+                    initial: null,
+                    current: lastMeasurements.hips.value,
+                    currentDate: lastMeasurements.hips.date,
+                    difference: null
                 },
             },
-
             days: daysWithData,
             weeklySummary: this.calculateWeeklySummary(daysWithData, cutPhase.totalWeeks),
             trends: this.calculateTrends(daysWithData),
             streaks: streaks,
+            caloriesCarryover,
+            weeklyAverages: this.calculateWeeklyAverages(daysWithData, cutPhase.totalWeeks),
+
         };
     }
 
@@ -496,6 +501,59 @@ export class CutPhaseService {
 
         return weeklySummary;
     }
+
+/**
+ * Calcula los promedios semanales de calorías, proteínas, pasos y agua
+ */
+private calculateWeeklyAverages(daysWithData: any[], totalWeeks: number): Array<{
+    weekNumber: number;
+    averages: { calories: number; protein: number; steps: number; water: number };
+    daysWithData: number;
+}> {
+    const weeklyAverages: Array<{
+        weekNumber: number;
+        averages: { calories: number; protein: number; steps: number; water: number };
+        daysWithData: number;
+    }> = [];
+
+    for (let week = 1; week <= totalWeeks; week++) {
+        const weekDays = daysWithData.filter(d => d.weekNumber === week);
+        const daysWithLogs = weekDays.filter(d => d.dailyScore > 0);
+        const count = daysWithLogs.length;
+
+        if (count === 0) {
+            weeklyAverages.push({
+                weekNumber: week,
+                averages: { calories: 0, protein: 0, steps: 0, water: 0 },
+                daysWithData: 0,
+            });
+            continue;
+        }
+
+        let totalCalories = 0, totalProtein = 0, totalSteps = 0, totalWater = 0;
+
+        for (const day of daysWithLogs) {
+            totalCalories += day.calories || 0;
+            totalProtein += day.protein || 0;
+            totalSteps += day.steps || 0;
+            totalWater += day.water || 0;
+        }
+
+        weeklyAverages.push({
+            weekNumber: week,
+            averages: {
+                calories: Number((totalCalories / count).toFixed(1)),
+                protein: Number((totalProtein / count).toFixed(1)),
+                steps: Math.round(totalSteps / count),
+                water: Number((totalWater / count).toFixed(1)),
+            },
+            daysWithData: count,
+        });
+    }
+
+    return weeklyAverages;
+}
+
 
     async getStreaks(cutPhaseId: string): Promise<{ currentStreak: number; bestStreak: number; lastFailedDate: string | null }> {
         const days = await this.cutPhaseDayRepo.find({
@@ -605,6 +663,172 @@ export class CutPhaseService {
         return trends;
     }
 
+    private calculateWeeklyCarryover(logs: DailyLog[], targetCalories: number, currentDate: Date, phaseStartDate: string) {
+        // Obtener el inicio de la semana basado en la fase
+        const weekStart = this.getWeekStartFromPhase(currentDate, phaseStartDate);
+        const weekLogs = logs.filter(log => log.date >= weekStart);
+
+        if (weekLogs.length === 0) {
+            return { runningBalance: 0, adjustedBudget: targetCalories };
+        }
+
+        const totalConsumed = weekLogs.reduce((sum, log) => sum + log.calories, 0);
+        const targetForElapsed = weekLogs.length * targetCalories;
+        const runningBalance = totalConsumed - targetForElapsed; // Positivo = ahorro
+
+        const daysRemaining = 7 - weekLogs.length;
+        const adjustedBudget = targetCalories + runningBalance;
+
+        return {
+            runningBalance,
+            adjustedBudget: Math.round(adjustedBudget),
+            daysRemaining,
+            averagePerDay: daysRemaining > 0
+                ? Math.round((adjustedBudget) / daysRemaining)
+                : 0,
+        };
+    }
+
+    private calculateStepCarryover(logs: DailyLog[], targetSteps: number, currentDate: Date, phaseStartDate: string) {
+        const weekStart = this.getWeekStartFromPhase(currentDate, phaseStartDate);
+        const weekLogs = logs.filter(log => log.date >= weekStart);
+
+        if (weekLogs.length === 0) {
+            return {
+                totalSteps: 0,
+                averageNeeded: targetSteps,
+                daysRemaining: 7
+            };
+        }
+
+        const totalSteps = weekLogs.reduce((sum, log) => sum + log.steps, 0);
+        const targetForElapsed = weekLogs.length * targetSteps;
+        const stepBalance = totalSteps - targetForElapsed; // Positivo = adelantado
+
+        const daysRemaining = 7 - weekLogs.length;
+        const stepsRemaining = (7 * targetSteps) - totalSteps;
+        const averageNeeded = daysRemaining > 0
+            ? Math.ceil(stepsRemaining / daysRemaining)
+            : 0;
+
+        return {
+            totalSteps,
+            stepBalance,
+            daysRemaining,
+            stepsRemaining: Math.max(0, stepsRemaining),
+            averageNeeded,
+            isAhead: stepBalance > 0,
+            isBehind: stepBalance < 0,
+        };
+    }
+
+    private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
+        const d = new Date(date);
+        const start = new Date(phaseStartDate);
+
+        // Calcular cuántos días han pasado desde el inicio de la fase
+        const diffDays = Math.floor((d.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+
+        // Calcular el inicio de la semana actual (múltiplo de 7)
+        const weekNumber = Math.floor(diffDays / 7);
+        const weekStart = new Date(start);
+        weekStart.setDate(start.getDate() + (weekNumber * 7));
+
+        return this.getLocalDate(weekStart);
+    }
+
+    /**
+ * Calcula el promedio de peso de la semana actual
+ */
+    private calculateWeeklyWeightAverage(weightLogs: WeightLog[]): number | null {
+        if (weightLogs.length === 0) return null;
+
+        // Obtener logs con peso válido
+        const logsWithWeight = weightLogs.filter(log =>
+            log.weight !== undefined &&
+            log.weight !== null &&
+            log.weight > 0
+        );
+
+        if (logsWithWeight.length === 0) return null;
+
+        // Calcular promedio
+        const total = logsWithWeight.reduce((sum, log) => sum + log.weight, 0);
+        const average = total / logsWithWeight.length;
+
+        return Number(average.toFixed(2));
+    }
+
+    /**
+     * Obtiene la última medición que tenga un valor específico
+     * Para cada medida  busca el registro más reciente que tenga un valor válido (no null, no undefined, no 0)
+     */
+    private getLastMeasurementWithValue(weightLogs: WeightLog[]): {
+        bodyfat: { value: number | null; date: string | null };
+        waist: { value: number | null; date: string | null };
+        hips: { value: number | null; date: string | null };
+    } {
+        // Ordenar de más reciente a más antiguo
+        const sortedLogs = [...weightLogs].sort((a, b) =>
+            b.date.localeCompare(a.date)
+        );
+
+        let bodyfatValue: number | null = null;
+        let bodyfatDate: string | null = null;
+        let waistValue: number | null = null;
+        let waistDate: string | null = null;
+        let hipsValue: number | null = null;
+        let hipsDate: string | null = null;
+
+        for (const log of sortedLogs) {
+            if (bodyfatValue === null && log.bodyfat !== undefined && log.bodyfat !== null && log.bodyfat > 0) {
+                bodyfatValue = log.bodyfat;
+                bodyfatDate = log.date;
+            }
+
+            if (waistValue === null && log.waist !== undefined && log.waist !== null && log.waist > 0) {
+                waistValue = log.waist;
+                waistDate = log.date;
+            }
+
+            if (hipsValue === null && log.hips !== undefined && log.hips !== null && log.hips > 0) {
+                hipsValue = log.hips;
+                hipsDate = log.date;
+            }
+            if (bodyfatValue !== null && waistValue !== null && hipsValue !== null) {
+                break;
+            }
+        }
+
+        return {
+            bodyfat: { value: bodyfatValue, date: bodyfatDate },
+            waist: { value: waistValue, date: waistDate },
+            hips: { value: hipsValue, date: hipsDate },
+        };
+    }
+
+    /**
+     * Obtiene la última medición de peso (para el valor "current" del peso)
+     */
+    private getLastWeightMeasurement(weightLogs: WeightLog[]): WeightLog | null {
+        const logsWithWeight = weightLogs
+            .filter(log => log.weight !== undefined && log.weight !== null && log.weight > 0)
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        return logsWithWeight.length > 0 ? logsWithWeight[logsWithWeight.length - 1] : null;
+    }
+
+    /**
+     * Obtiene la primera medición de peso (para el valor "initial" del peso)
+     */
+    private getFirstWeightMeasurement(weightLogs: WeightLog[]): WeightLog | null {
+        const logsWithWeight = weightLogs
+            .filter(log => log.weight !== undefined && log.weight !== null && log.weight > 0)
+            .sort((a, b) => a.date.localeCompare(b.date));
+
+        return logsWithWeight.length > 0 ? logsWithWeight[0] : null;
+    }
+
     // Métodos CRUD básicos
     async findAll(): Promise<CutPhase[]> {
         this.logger.log('Finding all cut phases');
@@ -617,11 +841,33 @@ export class CutPhaseService {
 
     async findActive(): Promise<CutPhase | null> {
         this.logger.log('Finding active cut phase');
-        const result = await this.cutPhaseRepo.findOne({
-            where: { isActive: true }
-        });
-        this.logger.log(`Active cut phase found: ${result?.id || 'none'}`);
-        return result;
+
+        const today = this.getLocalDate(new Date());
+
+        // Buscar fase activa dentro del rango de fechas
+        const result = await this.cutPhaseRepo
+            .createQueryBuilder('cutPhase')
+            .where('cutPhase.isActive = :isActive', { isActive: true })
+            .andWhere('cutPhase.startDate <= :today', { today })
+            .andWhere('cutPhase.endDate >= :today', { today })
+            .getOne();
+
+        if (result) {
+            this.logger.log(`Active cut phase found: ${result.id}`);
+            return result;
+        }
+
+        // Desactivar fases que ya no están en rango
+        await this.cutPhaseRepo
+            .createQueryBuilder()
+            .update(CutPhase)
+            .set({ isActive: false })
+            .where('isActive = :isActive', { isActive: true })
+            .andWhere('endDate < :today OR startDate > :today', { today })
+            .execute();
+
+        this.logger.log('No active cut phase found');
+        return null;
     }
 
     async findById(id: string): Promise<CutPhase> {

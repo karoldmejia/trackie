@@ -54,4 +54,10 @@ export class CutPhase {
     @OneToMany(() => CutPhaseDay, (cutPhaseDay) => cutPhaseDay.cutPhase)
     days: CutPhaseDay[];
 
+    get isActuallyActive(): boolean {
+        const today = new Date();
+        const end = new Date(this.endDate);
+        return this.isActive && end >= today;
+    }
+
 }

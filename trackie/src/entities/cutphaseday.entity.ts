@@ -42,4 +42,6 @@ export class CutPhaseDay {
 
     @Column()
     cutPhaseId: string;
+
+    
 }
