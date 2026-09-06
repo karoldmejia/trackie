@@ -45,6 +45,9 @@ export class CutPhase {
     @Column({ type: 'boolean', default: true })
     isActive: boolean;
 
+    @Column({ type: 'int' })
+    weeklyTargetSteps: number;
+
     @CreateDateColumn()
     createdAt: Date;
 

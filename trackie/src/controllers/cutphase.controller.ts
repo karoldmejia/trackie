@@ -2,7 +2,7 @@ import { Controller, Get, Post, Put, Delete, Body, Param, Query, HttpStatus, Htt
 import { CutPhaseService } from '../services/cutphase.service';
 import { CutPhase } from '../entities/cutphase.entity';
 import { CutPhaseDay } from '../entities/cutphaseday.entity';
-import { CreateCutPhaseDto, UpdateCutPhaseDto } from '../enums/cutday.dto';
+import { CreateCutPhaseDto, UpdateCutPhaseDto } from '../dtos/cutday.dto';
 
 @Controller('cut-phases')
 export class CutPhaseController {

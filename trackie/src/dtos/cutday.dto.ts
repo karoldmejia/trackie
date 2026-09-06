@@ -24,6 +24,10 @@ export class CreateCutPhaseDto {
     @Min(0)
     targetSteps: number;
 
+    @IsInt()
+    @Min(0)
+    weeklyTargetSteps: number;
+
     @IsNumber()
     @Min(0)
     targetWater: number;

@@ -5,7 +5,7 @@ import { CutPhase } from '../entities/cutphase.entity';
 import { CutPhaseDay } from '../entities/cutphaseday.entity';
 import { DailyLogService } from './dailylog.service';
 import { WeightLogService } from './weightlog.service';
-import { CreateCutPhaseDto, UpdateCutPhaseDto } from '../enums/cutday.dto';
+import { CreateCutPhaseDto, UpdateCutPhaseDto } from '../dtos/cutday.dto';
 import { DailyLog } from '../entities/dailylog.entity';
 import { WorkoutType } from '../enums/workouttype.enum';
 import { WeeklySummary } from '../interfaces/weekly-summary.interface';
@@ -28,7 +28,7 @@ export class CutPhaseService {
 
     async create(dto: CreateCutPhaseDto): Promise<CutPhase> {
 
-        const requiredFields = ['startDate', 'endDate', 'targetCalories', 'targetProtein', 'targetSteps', 'targetWater', 'workoutsPerWeek'];
+        const requiredFields = ['startDate', 'endDate', 'targetCalories', 'targetProtein', 'targetSteps', 'targetWater', 'workoutsPerWeek', 'weeklyTargetSteps'];
         for (const field of requiredFields) {
             if (!dto[field] && dto[field] !== 0) {
                 this.logger.error(`Missing required field: ${field}`);
@@ -63,13 +63,12 @@ export class CutPhaseService {
         const totalWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
         this.logger.log(`Calculated totalWeeks: ${totalWeeks}`);
 
-        // Desactivar otras fases activas
-        this.logger.log('Desactivando otras fases activas...');
-        await this.cutPhaseRepo.update({ isActive: true }, { isActive: false });
+        const weeklyTargetSteps = dto.weeklyTargetSteps * 7;
 
         // Crear la fase
         const cutPhaseData = {
             ...dto,
+            weeklyTargetSteps: weeklyTargetSteps,
             totalWeeks,
             isActive: true,
         };
@@ -399,6 +398,13 @@ export class CutPhaseService {
             cutPhase.startDate
         );
 
+        const stepsCarryover = this.calculateStepCarryover(
+            dailyLogs,
+            cutPhase.weeklyTargetSteps,
+            new Date(),
+            cutPhase.startDate
+        );
+
         return {
             cutPhaseId: cutPhase.id,
             startDate: cutPhase.startDate,
@@ -502,57 +508,57 @@ export class CutPhaseService {
         return weeklySummary;
     }
 
-/**
- * Calcula los promedios semanales de calorías, proteínas, pasos y agua
- */
-private calculateWeeklyAverages(daysWithData: any[], totalWeeks: number): Array<{
-    weekNumber: number;
-    averages: { calories: number; protein: number; steps: number; water: number };
-    daysWithData: number;
-}> {
-    const weeklyAverages: Array<{
+    /**
+     * Calcula los promedios semanales de calorías, proteínas, pasos y agua
+     */
+    private calculateWeeklyAverages(daysWithData: any[], totalWeeks: number): Array<{
         weekNumber: number;
         averages: { calories: number; protein: number; steps: number; water: number };
         daysWithData: number;
-    }> = [];
+    }> {
+        const weeklyAverages: Array<{
+            weekNumber: number;
+            averages: { calories: number; protein: number; steps: number; water: number };
+            daysWithData: number;
+        }> = [];
 
-    for (let week = 1; week <= totalWeeks; week++) {
-        const weekDays = daysWithData.filter(d => d.weekNumber === week);
-        const daysWithLogs = weekDays.filter(d => d.dailyScore > 0);
-        const count = daysWithLogs.length;
+        for (let week = 1; week <= totalWeeks; week++) {
+            const weekDays = daysWithData.filter(d => d.weekNumber === week);
+            const daysWithLogs = weekDays.filter(d => d.dailyScore > 0);
+            const count = daysWithLogs.length;
 
-        if (count === 0) {
+            if (count === 0) {
+                weeklyAverages.push({
+                    weekNumber: week,
+                    averages: { calories: 0, protein: 0, steps: 0, water: 0 },
+                    daysWithData: 0,
+                });
+                continue;
+            }
+
+            let totalCalories = 0, totalProtein = 0, totalSteps = 0, totalWater = 0;
+
+            for (const day of daysWithLogs) {
+                totalCalories += day.calories || 0;
+                totalProtein += day.protein || 0;
+                totalSteps += day.steps || 0;
+                totalWater += day.water || 0;
+            }
+
             weeklyAverages.push({
                 weekNumber: week,
-                averages: { calories: 0, protein: 0, steps: 0, water: 0 },
-                daysWithData: 0,
+                averages: {
+                    calories: Number((totalCalories / count).toFixed(1)),
+                    protein: Number((totalProtein / count).toFixed(1)),
+                    steps: Math.round(totalSteps / count),
+                    water: Number((totalWater / count).toFixed(1)),
+                },
+                daysWithData: count,
             });
-            continue;
         }
 
-        let totalCalories = 0, totalProtein = 0, totalSteps = 0, totalWater = 0;
-
-        for (const day of daysWithLogs) {
-            totalCalories += day.calories || 0;
-            totalProtein += day.protein || 0;
-            totalSteps += day.steps || 0;
-            totalWater += day.water || 0;
-        }
-
-        weeklyAverages.push({
-            weekNumber: week,
-            averages: {
-                calories: Number((totalCalories / count).toFixed(1)),
-                protein: Number((totalProtein / count).toFixed(1)),
-                steps: Math.round(totalSteps / count),
-                water: Number((totalWater / count).toFixed(1)),
-            },
-            daysWithData: count,
-        });
+        return weeklyAverages;
     }
-
-    return weeklyAverages;
-}
 
 
     async getStreaks(cutPhaseId: string): Promise<{ currentStreak: number; bestStreak: number; lastFailedDate: string | null }> {
