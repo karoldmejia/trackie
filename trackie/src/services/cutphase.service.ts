@@ -371,7 +371,7 @@ export class CutPhaseService {
 
         const weeklyWeightAvg = this.calculateWeeklyWeightAverage(allWeightLogs);
         const lastMeasurements = this.getLastMeasurementWithValue(allWeightLogs);
-        const firstWeight = this.getFirstWeightMeasurement(allWeightLogs);
+        const firstMeasurements = this.getFirstMeasurementWithValue(allWeightLogs);
         const lastWeight = this.getLastWeightMeasurement(allWeightLogs);
 
         // Calcular estadísticas
@@ -430,35 +430,44 @@ export class CutPhaseService {
             },
 
             measurements: {
-                // Peso: promedio semanal
+                // Peso
                 weight: {
-                    average: weeklyWeightAvg,  // NUEVO: promedio de la semana
-                    initial: firstWeight?.weight || null,
+                    average: weeklyWeightAvg,
+                    initial: firstMeasurements.weight.value || null,
                     current: lastWeight?.weight || null,
-                    difference: firstWeight && lastWeight
-                        ? Number((lastWeight.weight - firstWeight.weight).toFixed(2))
+                    difference: firstMeasurements.weight.value && lastWeight?.weight
+                        ? Number((lastWeight.weight - firstMeasurements.weight.value).toFixed(2))
                         : null
                 },
-                // Bodyfat: última medición con valor
+                // Bodyfat
                 bodyfat: {
-                    initial: null,  // No tenemos initial para bodyfat
+                    initial: firstMeasurements.bodyfat.value || null,
+                    initialDate: firstMeasurements.bodyfat.date || null,
                     current: lastMeasurements.bodyfat.value,
                     currentDate: lastMeasurements.bodyfat.date,
-                    difference: null
+                    difference: firstMeasurements.bodyfat.value && lastMeasurements.bodyfat.value
+                        ? Number((lastMeasurements.bodyfat.value - firstMeasurements.bodyfat.value).toFixed(2))
+                        : null
                 },
-                // Waist: última medición con valor
+                // Waist
                 waist: {
-                    initial: null,
+                    initial: firstMeasurements.waist.value || null,
+                    initialDate: firstMeasurements.waist.date || null,
                     current: lastMeasurements.waist.value,
                     currentDate: lastMeasurements.waist.date,
-                    difference: null
+                    difference: firstMeasurements.waist.value && lastMeasurements.waist.value
+                        ? Number((lastMeasurements.waist.value - firstMeasurements.waist.value).toFixed(2))
+                        : null
                 },
-                // Hips: última medición con valor
+                // Hips
                 hips: {
-                    initial: null,
+                    initial: firstMeasurements.hips.value || null,
+                    initialDate: firstMeasurements.hips.date || null,
                     current: lastMeasurements.hips.value,
                     currentDate: lastMeasurements.hips.date,
-                    difference: null
+                    difference: firstMeasurements.hips.value && lastMeasurements.hips.value
+                        ? Number((lastMeasurements.hips.value - firstMeasurements.hips.value).toFixed(2))
+                        : null
                 },
             },
             days: daysWithData,
@@ -825,14 +834,65 @@ export class CutPhaseService {
     }
 
     /**
-     * Obtiene la primera medición de peso (para el valor "initial" del peso)
+     * Obtiene el primer registro (más antiguo) del rango que tenga valor para cada medida
      */
-    private getFirstWeightMeasurement(weightLogs: WeightLog[]): WeightLog | null {
-        const logsWithWeight = weightLogs
-            .filter(log => log.weight !== undefined && log.weight !== null && log.weight > 0)
-            .sort((a, b) => a.date.localeCompare(b.date));
+    private getFirstMeasurementWithValue(weightLogs: WeightLog[]): {
+        weight: { value: number | null; date: string | null };
+        bodyfat: { value: number | null; date: string | null };
+        waist: { value: number | null; date: string | null };
+        hips: { value: number | null; date: string | null };
+    } {
+        // Ordenar de más antiguo a más reciente
+        const sortedLogs = [...weightLogs].sort((a, b) =>
+            a.date.localeCompare(b.date)
+        );
 
-        return logsWithWeight.length > 0 ? logsWithWeight[0] : null;
+        let weightValue: number | null = null;
+        let weightDate: string | null = null;
+        let bodyfatValue: number | null = null;
+        let bodyfatDate: string | null = null;
+        let waistValue: number | null = null;
+        let waistDate: string | null = null;
+        let hipsValue: number | null = null;
+        let hipsDate: string | null = null;
+
+        for (const log of sortedLogs) {
+            // Peso
+            if (weightValue === null && log.weight !== undefined && log.weight !== null && log.weight > 0) {
+                weightValue = log.weight;
+                weightDate = log.date;
+            }
+
+            // Bodyfat
+            if (bodyfatValue === null && log.bodyfat !== undefined && log.bodyfat !== null && log.bodyfat > 0) {
+                bodyfatValue = log.bodyfat;
+                bodyfatDate = log.date;
+            }
+
+            // Waist
+            if (waistValue === null && log.waist !== undefined && log.waist !== null && log.waist > 0) {
+                waistValue = log.waist;
+                waistDate = log.date;
+            }
+
+            // Hips
+            if (hipsValue === null && log.hips !== undefined && log.hips !== null && log.hips > 0) {
+                hipsValue = log.hips;
+                hipsDate = log.date;
+            }
+
+            // Si encontramos todas, salimos
+            if (weightValue !== null && bodyfatValue !== null && waistValue !== null && hipsValue !== null) {
+                break;
+            }
+        }
+
+        return {
+            weight: { value: weightValue, date: weightDate },
+            bodyfat: { value: bodyfatValue, date: bodyfatDate },
+            waist: { value: waistValue, date: waistDate },
+            hips: { value: hipsValue, date: hipsDate },
+        };
     }
 
     // Métodos CRUD básicos
