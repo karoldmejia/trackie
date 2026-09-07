@@ -707,8 +707,20 @@ export class CutPhaseService {
     }
 
     private calculateStepCarryover(logs: DailyLog[], targetSteps: number, currentDate: Date, phaseStartDate: string) {
-        const weekStart = this.getWeekStartFromPhase(currentDate, phaseStartDate);
-        const weekLogs = logs.filter(log => log.date >= weekStart);
+    const weekStart = this.getWeekStartFromPhase(currentDate, phaseStartDate);
+    
+    // ✅ LOG PARA DEBUG
+    console.log('📅 Fecha actual:', this.getLocalDate(currentDate));
+    console.log('📅 Inicio de semana (weekStart):', weekStart);
+    console.log('📅 Fecha de inicio de la fase:', phaseStartDate);
+    
+    const weekLogs = logs.filter(log => log.date >= weekStart);
+    
+    // ✅ LOG PARA DEBUG
+    console.log('📊 Total de logs:', logs.length);
+    console.log('📊 Logs de esta semana:', weekLogs.length);
+    console.log('📊 Logs de esta semana (fechas):', weekLogs.map(l => l.date));
+    
 
         if (weekLogs.length === 0) {
             return {
