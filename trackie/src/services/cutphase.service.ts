@@ -682,7 +682,8 @@ export class CutPhaseService {
 
     private calculateWeeklyCarryover(logs: DailyLog[], targetCalories: number, currentDate: Date, phaseStartDate: string) {
         // Obtener el inicio de la semana basado en la fase
-        const weekStart = this.getWeekStartFromPhase(currentDate, phaseStartDate);
+        const localDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+        const weekStart = this.getWeekStartFromPhase(localDate, phaseStartDate);
         const weekLogs = logs.filter(log => log.date >= weekStart);
 
         if (weekLogs.length === 0) {
@@ -707,20 +708,20 @@ export class CutPhaseService {
     }
 
     private calculateStepCarryover(logs: DailyLog[], targetSteps: number, currentDate: Date, phaseStartDate: string) {
-    const weekStart = this.getWeekStartFromPhase(currentDate, phaseStartDate);
-    
-    // ✅ LOG PARA DEBUG
-    console.log('📅 Fecha actual:', this.getLocalDate(currentDate));
-    console.log('📅 Inicio de semana (weekStart):', weekStart);
-    console.log('📅 Fecha de inicio de la fase:', phaseStartDate);
-    
-    const weekLogs = logs.filter(log => log.date >= weekStart);
-    
-    // ✅ LOG PARA DEBUG
-    console.log('📊 Total de logs:', logs.length);
-    console.log('📊 Logs de esta semana:', weekLogs.length);
-    console.log('📊 Logs de esta semana (fechas):', weekLogs.map(l => l.date));
-    
+        const localDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+        const weekStart = this.getWeekStartFromPhase(localDate, phaseStartDate);
+        // ✅ LOG PARA DEBUG
+        console.log('📅 Fecha actual:', this.getLocalDate(currentDate));
+        console.log('📅 Inicio de semana (weekStart):', weekStart);
+        console.log('📅 Fecha de inicio de la fase:', phaseStartDate);
+
+        const weekLogs = logs.filter(log => log.date >= weekStart);
+
+        // ✅ LOG PARA DEBUG
+        console.log('📊 Total de logs:', logs.length);
+        console.log('📊 Logs de esta semana:', weekLogs.length);
+        console.log('📊 Logs de esta semana (fechas):', weekLogs.map(l => l.date));
+
 
         if (weekLogs.length === 0) {
             return {
@@ -751,21 +752,21 @@ export class CutPhaseService {
         };
     }
 
-private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
-    // Crear fecha local (sin horas)
-    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-    const start = new Date(phaseStartDate);
-    
-    // Asegurar que startDate también sea local
-    const startLocal = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
+        // Crear fecha local (sin horas)
+        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+        const start = new Date(phaseStartDate);
 
-    const diffDays = Math.floor((d.getTime() - startLocal.getTime()) / (1000 * 60 * 60 * 24));
-    const weekNumber = Math.floor(diffDays / 7);
-    const weekStart = new Date(startLocal);
-    weekStart.setDate(startLocal.getDate() + (weekNumber * 7));
+        // Asegurar que startDate también sea local
+        const startLocal = new Date(start.getFullYear(), start.getMonth(), start.getDate());
 
-    return this.getLocalDate(weekStart);
-}
+        const diffDays = Math.floor((d.getTime() - startLocal.getTime()) / (1000 * 60 * 60 * 24));
+        const weekNumber = Math.floor(diffDays / 7);
+        const weekStart = new Date(startLocal);
+        weekStart.setDate(startLocal.getDate() + (weekNumber * 7));
+
+        return this.getLocalDate(weekStart);
+    }
 
     /**
  * Calcula el promedio de peso de la semana actual
@@ -1016,11 +1017,10 @@ private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
 
     // Función auxiliar
     private getLocalDate(date: Date): string {
+        // Usar el método toISOString pero ajustando la zona horaria
         const year = date.getFullYear();
         const month = String(date.getMonth() + 1).padStart(2, '0');
         const day = String(date.getDate()).padStart(2, '0');
-        const result = `${year}-${month}-${day}`;
-        this.logger.log(`Formatting date ${date.toISOString()} -> ${result}`);
-        return result;
+        return `${year}-${month}-${day}`;
     }
 }
