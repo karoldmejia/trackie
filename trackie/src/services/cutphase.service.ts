@@ -692,7 +692,7 @@ export class CutPhaseService {
 
         const totalConsumed = weekLogs.reduce((sum, log) => sum + log.calories, 0);
         const targetForElapsed = weekLogs.length * targetCalories;
-        const runningBalance = totalConsumed - targetForElapsed; // Positivo = ahorro
+        const runningBalance = targetForElapsed - totalConsumed;
 
         const daysRemaining = 7 - weekLogs.length;
         const adjustedBudget = targetCalories + runningBalance;
@@ -710,18 +710,7 @@ export class CutPhaseService {
     private calculateStepCarryover(logs: DailyLog[], targetSteps: number, currentDate: Date, phaseStartDate: string) {
         const localDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
         const weekStart = this.getWeekStartFromPhase(localDate, phaseStartDate);
-        // ✅ LOG PARA DEBUG
-        console.log('📅 Fecha actual:', this.getLocalDate(currentDate));
-        console.log('📅 Inicio de semana (weekStart):', weekStart);
-        console.log('📅 Fecha de inicio de la fase:', phaseStartDate);
-
         const weekLogs = logs.filter(log => log.date >= weekStart);
-
-        // ✅ LOG PARA DEBUG
-        console.log('📊 Total de logs:', logs.length);
-        console.log('📊 Logs de esta semana:', weekLogs.length);
-        console.log('📊 Logs de esta semana (fechas):', weekLogs.map(l => l.date));
-
 
         if (weekLogs.length === 0) {
             return {
@@ -751,28 +740,28 @@ export class CutPhaseService {
             isBehind: stepBalance < 0,
         };
     }
-private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
-    const dateStr = this.getLocalDate(date);
-    const startStr = phaseStartDate;
-    
-    const d = new Date(dateStr + 'T12:00:00');
-    const start = new Date(startStr + 'T12:00:00');
-    
-    const diffDays = Math.floor((d.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    const daysIntoWeek = diffDays % 7;
-    const weekStart = new Date(start);
-    weekStart.setDate(start.getDate() + (diffDays - daysIntoWeek));
+    private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
+        const dateStr = this.getLocalDate(date);
+        const startStr = phaseStartDate;
 
-    console.log('🔍 getWeekStartFromPhase:', {
-        date: dateStr,
-        phaseStart: startStr,
-        diffDays,
-        daysIntoWeek,
-        weekStart: this.getLocalDate(weekStart)
-    });
+        const d = new Date(dateStr + 'T12:00:00');
+        const start = new Date(startStr + 'T12:00:00');
 
-    return this.getLocalDate(weekStart);
-}
+        const diffDays = Math.floor((d.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+        const daysIntoWeek = diffDays % 7;
+        const weekStart = new Date(start);
+        weekStart.setDate(start.getDate() + (diffDays - daysIntoWeek));
+
+        console.log('🔍 getWeekStartFromPhase:', {
+            date: dateStr,
+            phaseStart: startStr,
+            diffDays,
+            daysIntoWeek,
+            weekStart: this.getLocalDate(weekStart)
+        });
+
+        return this.getLocalDate(weekStart);
+    }
 
     /**
  * Calcula el promedio de peso de la semana actual
