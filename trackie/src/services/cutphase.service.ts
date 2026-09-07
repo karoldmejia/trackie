@@ -28,7 +28,7 @@ export class CutPhaseService {
 
     async create(dto: CreateCutPhaseDto): Promise<CutPhase> {
 
-        const requiredFields = ['startDate', 'endDate', 'targetCalories', 'targetProtein', 'targetSteps', 'targetWater', 'workoutsPerWeek', 'weeklyTargetSteps'];
+        const requiredFields = ['startDate', 'endDate', 'targetCalories', 'targetProtein', 'targetSteps', 'targetWater', 'workoutsPerWeek'];
         for (const field of requiredFields) {
             if (!dto[field] && dto[field] !== 0) {
                 this.logger.error(`Missing required field: ${field}`);
