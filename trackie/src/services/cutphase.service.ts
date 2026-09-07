@@ -63,10 +63,6 @@ export class CutPhaseService {
         const totalWeeks = Math.ceil(diffTime / (1000 * 60 * 60 * 24 * 7));
         this.logger.log(`Calculated totalWeeks: ${totalWeeks}`);
 
-        if(dto.weeklyTargetSteps!=null){
-        dto.weeklyTargetSteps = dto.weeklyTargetSteps * 7;
-        }
-
         // Crear la fase
         const cutPhaseData = {
             ...dto,
