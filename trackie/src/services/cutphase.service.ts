@@ -751,20 +751,21 @@ export class CutPhaseService {
         };
     }
 
-    private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
-        const d = new Date(date);
-        const start = new Date(phaseStartDate);
+private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
+    // Crear fecha local (sin horas)
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const start = new Date(phaseStartDate);
+    
+    // Asegurar que startDate también sea local
+    const startLocal = new Date(start.getFullYear(), start.getMonth(), start.getDate());
 
-        // Calcular cuántos días han pasado desde el inicio de la fase
-        const diffDays = Math.floor((d.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const diffDays = Math.floor((d.getTime() - startLocal.getTime()) / (1000 * 60 * 60 * 24));
+    const weekNumber = Math.floor(diffDays / 7);
+    const weekStart = new Date(startLocal);
+    weekStart.setDate(startLocal.getDate() + (weekNumber * 7));
 
-        // Calcular el inicio de la semana actual (múltiplo de 7)
-        const weekNumber = Math.floor(diffDays / 7);
-        const weekStart = new Date(start);
-        weekStart.setDate(start.getDate() + (weekNumber * 7));
-
-        return this.getLocalDate(weekStart);
-    }
+    return this.getLocalDate(weekStart);
+}
 
     /**
  * Calcula el promedio de peso de la semana actual
