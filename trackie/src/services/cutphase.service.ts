@@ -753,24 +753,33 @@ export class CutPhaseService {
     }
 
 private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
-    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const d = new Date(date);
     const start = new Date(phaseStartDate);
-    const startLocal = new Date(start.getFullYear(), start.getMonth(), start.getDate());
-
-    const diffDays = Math.floor((d.getTime() - startLocal.getTime()) / (1000 * 60 * 60 * 24));
+    
+    const year = d.getFullYear();
+    const month = d.getMonth();
+    const day = d.getDate();
+    const dLocal = new Date(year, month, day);
+    
+    const startYear = start.getFullYear();
+    const startMonth = start.getMonth();
+    const startDay = start.getDate();
+    const startLocal = new Date(startYear, startMonth, startDay);
+    
+    const diffDays = Math.floor((dLocal.getTime() - startLocal.getTime()) / (1000 * 60 * 60 * 24));
     const daysIntoWeek = diffDays % 7;
-    const weekStartDate = new Date(startLocal);
-    weekStartDate.setDate(startLocal.getDate() + (diffDays - daysIntoWeek));
+    const weekStart = new Date(startLocal);
+    weekStart.setDate(startLocal.getDate() + (diffDays - daysIntoWeek));
 
     console.log('🔍 getWeekStartFromPhase:', {
         date: this.getLocalDate(d),
         phaseStart: phaseStartDate,
         diffDays,
         daysIntoWeek,
-        weekStart: this.getLocalDate(weekStartDate)
+        weekStart: this.getLocalDate(weekStart)
     });
 
-    return this.getLocalDate(weekStartDate);
+    return this.getLocalDate(weekStart);
 }
 
     /**
