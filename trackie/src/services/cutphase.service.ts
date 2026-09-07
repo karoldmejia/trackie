@@ -758,20 +758,19 @@ private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
     const startLocal = new Date(start.getFullYear(), start.getMonth(), start.getDate());
 
     const diffDays = Math.floor((d.getTime() - startLocal.getTime()) / (1000 * 60 * 60 * 24));
-    
-    const weekNumber = Math.floor(diffDays / 7);
-    const weekStart = new Date(startLocal);
-    weekStart.setDate(startLocal.getDate() + (weekNumber * 7));
+    const daysIntoWeek = diffDays % 7;
+    const weekStartDate = new Date(startLocal);
+    weekStartDate.setDate(startLocal.getDate() + (diffDays - daysIntoWeek));
 
     console.log('🔍 getWeekStartFromPhase:', {
         date: this.getLocalDate(d),
         phaseStart: phaseStartDate,
         diffDays,
-        weekNumber,
-        weekStart: this.getLocalDate(weekStart)
+        daysIntoWeek,
+        weekStart: this.getLocalDate(weekStartDate)
     });
 
-    return this.getLocalDate(weekStart);
+    return this.getLocalDate(weekStartDate);
 }
 
     /**
