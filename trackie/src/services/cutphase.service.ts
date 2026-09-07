@@ -475,6 +475,8 @@ export class CutPhaseService {
             trends: this.calculateTrends(daysWithData),
             streaks: streaks,
             caloriesCarryover,
+            stepsCarryover,
+
             weeklyAverages: this.calculateWeeklyAverages(daysWithData, cutPhase.totalWeeks),
 
         };
