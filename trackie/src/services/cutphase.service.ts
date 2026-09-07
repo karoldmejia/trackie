@@ -752,21 +752,27 @@ export class CutPhaseService {
         };
     }
 
-    private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
-        // Crear fecha local (sin horas)
-        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-        const start = new Date(phaseStartDate);
+private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const start = new Date(phaseStartDate);
+    const startLocal = new Date(start.getFullYear(), start.getMonth(), start.getDate());
 
-        // Asegurar que startDate también sea local
-        const startLocal = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const diffDays = Math.floor((d.getTime() - startLocal.getTime()) / (1000 * 60 * 60 * 24));
+    
+    const weekNumber = Math.floor(diffDays / 7);
+    const weekStart = new Date(startLocal);
+    weekStart.setDate(startLocal.getDate() + (weekNumber * 7));
 
-        const diffDays = Math.floor((d.getTime() - startLocal.getTime()) / (1000 * 60 * 60 * 24));
-        const weekNumber = Math.floor(diffDays / 7);
-        const weekStart = new Date(startLocal);
-        weekStart.setDate(startLocal.getDate() + (weekNumber * 7));
+    console.log('🔍 getWeekStartFromPhase:', {
+        date: this.getLocalDate(d),
+        phaseStart: phaseStartDate,
+        diffDays,
+        weekNumber,
+        weekStart: this.getLocalDate(weekStart)
+    });
 
-        return this.getLocalDate(weekStart);
-    }
+    return this.getLocalDate(weekStart);
+}
 
     /**
  * Calcula el promedio de peso de la semana actual
