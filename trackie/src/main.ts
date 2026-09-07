@@ -5,8 +5,10 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
+      process.env.TZ = 'America/Bogota';
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  
+
   // Servir archivos estáticos (para acceder a las fotos subidas)
   app.useStaticAssets(join(__dirname, '..', 'uploads'), {
     prefix: '/uploads/',
