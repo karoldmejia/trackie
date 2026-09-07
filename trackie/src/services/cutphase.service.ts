@@ -751,13 +751,12 @@ export class CutPhaseService {
             isBehind: stepBalance < 0,
         };
     }
-
 private getWeekStartFromPhase(date: Date, phaseStartDate: string): string {
     const dateStr = this.getLocalDate(date);
     const startStr = phaseStartDate;
     
-    const d = new Date(dateStr);
-    const start = new Date(startStr);
+    const d = new Date(dateStr + 'T12:00:00');
+    const start = new Date(startStr + 'T12:00:00');
     
     const diffDays = Math.floor((d.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
     const daysIntoWeek = diffDays % 7;
