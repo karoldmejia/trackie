@@ -1,7 +1,8 @@
 import AdherenceCalendar from '@/components/cutphase/AdherenceCalendar';
 import CutPhaseDetailsHeader from '@/components/cutphase/CutPhaseDetailsHeader';
 import MeasurementsTable from '@/components/cutphase/MeasurementsTable';
-import StreakCard from '@/components/cutphase/StreakCard';
+import MetricSquare from '@/components/cutphase/MetricSquare';
+import WeeklyAveragesCarousel from '@/components/cutphase/WeeklyAveragesCarousel';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { cutPhaseService } from '@/services/cutPhaseService';
@@ -56,6 +57,31 @@ interface DashboardData {
     trends: any;
     days: DayData[];
     streaks: any;
+    caloriesCarryover?: {
+        runningBalance: number;
+        adjustedBudget: number;
+        daysRemaining: number;
+        averagePerDay: number;
+    };
+    stepsCarryover?: {
+        totalSteps: number;
+        stepBalance: number;
+        daysRemaining: number;
+        stepsRemaining: number;
+        averageNeeded: number;
+        isAhead: boolean;
+        isBehind: boolean;
+    };
+    weeklyAverages: Array<{
+        weekNumber: number;
+        averages: {
+            calories: number;
+            protein: number;
+            steps: number;
+            water: number;
+        };
+        daysWithData: number;
+    }>;
 }
 
 const CutPhaseDetail: React.FC = () => {
@@ -90,6 +116,7 @@ const CutPhaseDetail: React.FC = () => {
                 cutPhaseService.getDashboard(id),
                 cutPhaseService.getStreaks(id)
             ]);
+
             setDashboard(data);
             setStreaks(streaksData);
         } catch (error) {
@@ -187,6 +214,26 @@ const CutPhaseDetail: React.FC = () => {
                     days={dashboard.days}
                     totalWeeks={dashboard.totalWeeks}
                 />
+                <View style={styles.metricsRow}>
+                    <MetricSquare
+                        label="Balance calórico acumulado"
+                        mainValue={`${(dashboard.caloriesCarryover?.runningBalance ?? 0) > 0 ? '+' : ''}${dashboard.caloriesCarryover?.runningBalance ?? 0} kcal`}
+                        style={styles.leftMetric}
+                    />
+                    <MetricSquare
+                        label="Pasos necesarios para meta"
+                        mainValue={`${dashboard.stepsCarryover?.averageNeeded ?? 0}`}
+                        subValue={`x${dashboard.stepsCarryover?.daysRemaining ?? 0} días`}
+                        style={styles.rightMetric}
+                    />
+                </View>
+                <WeeklyAveragesCarousel
+                    weeklyAverages={dashboard.weeklyAverages || []}
+                    currentWeek={dashboard.currentWeek}
+                    totalWeeks={dashboard.totalWeeks}
+                />
+                {/* 
+
                 {streaks && (
                     <StreakCard
                         currentStreak={dashboard.streaks?.currentStreak || 0}
@@ -195,7 +242,7 @@ const CutPhaseDetail: React.FC = () => {
                         days={dashboard.days || []}
                     />
                 )}
-
+*/}
                 <MeasurementsTable measurements={dashboard.measurements} />
             </ScrollView>
         </View>
@@ -297,6 +344,17 @@ const styles = StyleSheet.create({
         paddingVertical: 4,
         borderBottomWidth: 1,
         borderBottomColor: theme.colors.secondary,
+    },
+    metricsRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginBottom: 12,
+    },
+    leftMetric: {
+        flex: 1,
+    },
+    rightMetric: {
+        flex: 1,
     },
 });
 
