@@ -141,24 +141,13 @@ export class CutPhaseService {
     }
 
     async syncAllExistingDays(cutPhaseId: string): Promise<number> {
-        this.logger.log(`Syncing all existing days for cut phase ${cutPhaseId}`);
+        const cutPhase = await this.cutPhaseRepo.findOne({ where: { id: cutPhaseId } });
+        if (!cutPhase) throw new NotFoundException('Cut phase no encontrado');
 
-        const cutPhase = await this.cutPhaseRepo.findOne({
-            where: { id: cutPhaseId }
-        });
-
-        if (!cutPhase) {
-            this.logger.error(`Cut phase ${cutPhaseId} not found`);
-            throw new NotFoundException('Cut phase no encontrado');
-        }
-
-        // Obtener todos los DailyLogs en el rango de fechas
         const dailyLogs = await this.dailyLogService.findByDateRange(
             cutPhase.startDate,
             cutPhase.endDate
         );
-
-        this.logger.log(`Found ${dailyLogs.length} daily logs to sync`);
 
         let syncedCount = 0;
         for (const log of dailyLogs) {
@@ -166,22 +155,23 @@ export class CutPhaseService {
                 await this.updateDayCompliance(cutPhaseId, log.date);
                 syncedCount++;
             } catch (error) {
-                if (error instanceof Error) {
-                    this.logger.error(`Error syncing day ${log.date}: ${error.message}`);
-                } else {
-                    this.logger.error(`Error syncing day ${log.date}: Unknown error`);
-                }
+                // ...
             }
         }
-
-        this.logger.log(`Synced ${syncedCount} days for cut phase ${cutPhaseId}`);
         return syncedCount;
     }
-    // Calcular el cumplimiento de un día
-    private calculateDayCompliance(dailyLog: DailyLog, cutPhase: CutPhase): Omit<CutPhaseDay, 'id' | 'cutPhase' | 'cutPhaseId'> {
-        this.logger.log(`Calculating compliance for date ${dailyLog.date}`);
 
-        const caloriesMet = dailyLog.calories <= cutPhase.targetCalories;
+    // Calcular el cumplimiento de un día
+    private calculateDayCompliance(dailyLog: DailyLog, cutPhase: CutPhase, allDailyLogs: DailyLog[]): Omit<CutPhaseDay, 'id' | 'cutPhase' | 'cutPhaseId'> {
+        this.logger.log(`Calculating compliance for date ${dailyLog.date}`);
+        const weeklyBalance = this.calculateWeeklyCaloriesBalanceUpToDate(
+            allDailyLogs,
+            cutPhase.targetCalories,
+            dailyLog.date,
+            cutPhase.startDate
+        );
+
+        const caloriesMet = weeklyBalance >= 0;
         const proteinMet = dailyLog.proteinGrams >= cutPhase.targetProtein;
         const stepsMet = dailyLog.steps >= cutPhase.targetSteps;
         const waterMet = dailyLog.waterLiters >= cutPhase.targetWater;
@@ -221,6 +211,24 @@ export class CutPhaseService {
         return result;
     }
 
+    private calculateWeeklyCaloriesBalanceUpToDate(dailyLogs: DailyLog[], targetCalories: number, date: string, phaseStartDate: string,): number {
+        const weekStart = this.getWeekStartFromPhase(
+            new Date(date + 'T12:00:00'),
+            phaseStartDate
+        );
+
+        const logsUpToDate = dailyLogs.filter(
+            log => log.date >= weekStart && log.date <= date
+        );
+
+        if (logsUpToDate.length === 0) return 0;
+
+        const totalConsumed = logsUpToDate.reduce((sum, log) => sum + (log.calories || 0), 0);
+        const targetForElapsed = logsUpToDate.length * targetCalories;
+
+        return targetForElapsed - totalConsumed;
+    }
+
     // Calcular número de semana
     private calculateWeekNumber(date: string, startDate: string): number {
         const d = new Date(date);
@@ -258,7 +266,7 @@ export class CutPhaseService {
 
         this.logger.log(`Creating ${dailyLogs.length} days for cut phase ${cutPhaseId}`);
         const days = dailyLogs.map(log => {
-            const compliance = this.calculateDayCompliance(log, cutPhase);
+            const compliance = this.calculateDayCompliance(log, cutPhase, dailyLogs);
             return this.cutPhaseDayRepo.create({
                 ...compliance,
                 cutPhaseId,
@@ -276,35 +284,45 @@ export class CutPhaseService {
 
     // Actualizar un día específico
     async updateDayCompliance(cutPhaseId: string, date: string): Promise<CutPhaseDay> {
-
-        const cutPhase = await this.cutPhaseRepo.findOne({
-            where: { id: cutPhaseId }
-        });
-
-        if (!cutPhase) {
-            throw new NotFoundException('Cut phase no encontrado');
-        }
+        const cutPhase = await this.cutPhaseRepo.findOne({ where: { id: cutPhaseId } });
+        if (!cutPhase) throw new NotFoundException('Cut phase no encontrado');
 
         const dailyLog = await this.dailyLogService.findByDate(date);
-        if (!dailyLog) {
-            throw new NotFoundException(`No hay datos para la fecha ${date}`);
-        }
+        if (!dailyLog) throw new NotFoundException(`No hay datos para la fecha ${date}`);
 
-        let cutPhaseDay = await this.cutPhaseDayRepo.findOne({
-            where: { cutPhaseId, date }
-        });
+        const allLogs = await this.dailyLogService.findByDateRange(
+            cutPhase.startDate,
+            cutPhase.endDate
+        );
 
-        const compliance = this.calculateDayCompliance(dailyLog, cutPhase);
+        const weekNumber = this.calculateWeekNumber(date, cutPhase.startDate);
+        const logsOfSameWeek = allLogs.filter(log =>
+            this.calculateWeekNumber(log.date, cutPhase.startDate) === weekNumber
+        );
 
-        if (cutPhaseDay) {
-            Object.assign(cutPhaseDay, compliance);
-        } else {
-            cutPhaseDay = this.cutPhaseDayRepo.create({
-                ...compliance,
-                cutPhaseId,
+        let lastSaved: CutPhaseDay | null = null;
+
+        for (const log of logsOfSameWeek) {
+            const compliance = this.calculateDayCompliance(log, cutPhase, allLogs);
+
+            let cutPhaseDay = await this.cutPhaseDayRepo.findOne({
+                where: { cutPhaseId, date: log.date }
             });
+
+            if (cutPhaseDay) {
+                Object.assign(cutPhaseDay, compliance);
+            } else {
+                cutPhaseDay = this.cutPhaseDayRepo.create({
+                    ...compliance,
+                    cutPhaseId,
+                });
+            }
+
+            const saved = await this.cutPhaseDayRepo.save(cutPhaseDay);
+            if (log.date === date) lastSaved = saved;
         }
-        return this.cutPhaseDayRepo.save(cutPhaseDay);
+
+        return lastSaved!;
     }
 
     async getDashboard(cutPhaseId: string): Promise<any> {
@@ -432,8 +450,8 @@ export class CutPhaseService {
                     average: weeklyWeightAvg,
                     initial: firstMeasurements.weight.value || null,
                     current: weeklyWeightAvg || null,
-                    difference: firstMeasurements.weight.value && lastWeight?.weight
-                        ? Number((lastWeight.weight - firstMeasurements.weight.value).toFixed(2))
+                    difference: firstMeasurements.weight.value && weeklyWeightAvg
+                        ? Number((weeklyWeightAvg - firstMeasurements.weight.value).toFixed(2))
                         : null
                 },
                 // Bodyfat
@@ -519,7 +537,7 @@ export class CutPhaseService {
     /**
      * Calcula los promedios semanales de calorías, proteínas, pasos y agua
      */
-    private calculateWeeklyAverages(daysWithData: any[], totalWeeks: number): Array<{weekNumber: number;averages: { calories: number; protein: number; steps: number; water: number }; daysWithData: number;}> {
+    private calculateWeeklyAverages(daysWithData: any[], totalWeeks: number): Array<{ weekNumber: number; averages: { calories: number; protein: number; steps: number; water: number }; daysWithData: number; }> {
         const weeklyAverages: Array<{
             weekNumber: number;
             averages: { calories: number; protein: number; steps: number; water: number };
