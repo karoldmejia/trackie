@@ -366,7 +366,7 @@ export class CutPhaseService {
         );
         this.logger.log(`Found ${allWeightLogs.length} weight logs`);
 
-        const weeklyWeightAvg = this.calculateWeeklyWeightAverage(allWeightLogs);
+        const weeklyWeightAvg = this.calculateWeeklyWeightAverage(allWeightLogs, cutPhase.startDate);
         const lastMeasurements = this.getLastMeasurementWithValue(allWeightLogs);
         const firstMeasurements = this.getFirstMeasurementWithValue(allWeightLogs);
         const lastWeight = this.getLastWeightMeasurement(allWeightLogs);
@@ -431,7 +431,7 @@ export class CutPhaseService {
                 weight: {
                     average: weeklyWeightAvg,
                     initial: firstMeasurements.weight.value || null,
-                    current: lastWeight?.weight || null,
+                    current: weeklyWeightAvg || null,
                     difference: firstMeasurements.weight.value && lastWeight?.weight
                         ? Number((lastWeight.weight - firstMeasurements.weight.value).toFixed(2))
                         : null
@@ -519,11 +519,7 @@ export class CutPhaseService {
     /**
      * Calcula los promedios semanales de calorías, proteínas, pasos y agua
      */
-    private calculateWeeklyAverages(daysWithData: any[], totalWeeks: number): Array<{
-        weekNumber: number;
-        averages: { calories: number; protein: number; steps: number; water: number };
-        daysWithData: number;
-    }> {
+    private calculateWeeklyAverages(daysWithData: any[], totalWeeks: number): Array<{weekNumber: number;averages: { calories: number; protein: number; steps: number; water: number }; daysWithData: number;}> {
         const weeklyAverages: Array<{
             weekNumber: number;
             averages: { calories: number; protein: number; steps: number; water: number };
@@ -763,10 +759,9 @@ export class CutPhaseService {
     /**
  * Calcula el promedio de peso de la semana actual
  */
-    private calculateWeeklyWeightAverage(weightLogs: WeightLog[]): number | null {
+    private calculateWeeklyWeightAverage(weightLogs: WeightLog[], cutPhaseStartDate: string): number | null {
         if (weightLogs.length === 0) return null;
 
-        // Obtener logs con peso válido
         const logsWithWeight = weightLogs.filter(log =>
             log.weight !== undefined &&
             log.weight !== null &&
@@ -775,9 +770,32 @@ export class CutPhaseService {
 
         if (logsWithWeight.length === 0) return null;
 
-        // Calcular promedio
-        const total = logsWithWeight.reduce((sum, log) => sum + log.weight, 0);
-        const average = total / logsWithWeight.length;
+        // Ordenar de más reciente a más antiguo
+        const sortedLogs = [...logsWithWeight].sort((a, b) =>
+            b.date.localeCompare(a.date)
+        );
+
+        // Calcular el weekNumber del log más reciente
+        const mostRecentLog = sortedLogs[0];
+        const mostRecentWeek = this.calculateWeekNumber(
+            mostRecentLog.date,
+            cutPhaseStartDate
+        );
+
+        // Filtrar solo los logs de esa misma semana
+        const logsOfLastWeek = sortedLogs.filter(log => {
+            const weekNumber = this.calculateWeekNumber(log.date, cutPhaseStartDate);
+            return weekNumber === mostRecentWeek;
+        });
+
+        if (logsOfLastWeek.length === 0) return null;
+
+        const total = logsOfLastWeek.reduce((sum, log) => sum + log.weight, 0);
+        const average = total / logsOfLastWeek.length;
+
+        this.logger.log(
+            `Weekly weight average for week ${mostRecentWeek}: ${average} (${logsOfLastWeek.length} logs)`
+        );
 
         return Number(average.toFixed(2));
     }
