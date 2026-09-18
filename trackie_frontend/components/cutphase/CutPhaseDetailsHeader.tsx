@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         width: '100%',
-        gap: 0,
+        gap: 6,
     },
     progressBarTrack: {
         flex: 1,

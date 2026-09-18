@@ -141,7 +141,7 @@ const WeeklyAveragesCarousel: React.FC<WeeklyAveragesCarouselProps> = ({
         <View style={styles.container}>
             <View style={styles.header}>
                 <ThemedText variant="medium" size={12} color={theme.colors.text}>
-                    Promedio de semana {currentWeekNumber}
+                    Promedio por semana
                 </ThemedText>
                 <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
                     {currentIndex + 1} / {displayWeeks.length}
