@@ -264,7 +264,7 @@ const HomeScreen: React.FC = () => {
                 <View style={styles.gallerySection}>
                     <LongButton
                         onPress={handleCutPhasesPress}
-                        text="Etapas de déficit"
+                        text="Fases nutricionales"
                         iconLeft="TrendingDown"
                     />
                 </View>

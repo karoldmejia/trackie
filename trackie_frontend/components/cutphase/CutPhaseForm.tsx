@@ -33,6 +33,11 @@ const CUT_DURATION_OPTIONS = [
     { label: '12 semanas', value: '12' },
     { label: '14 semanas', value: '14' },
     { label: '16 semanas', value: '16' },
+    { label: '18 semanas', value: '18' },
+    { label: '20 semanas', value: '20' },
+    { label: '22 semanas', value: '22' },
+    { label: '24 semanas', value: '24' },
+
 ];
 
 const WORKOUTS_PER_WEEK_OPTIONS = [

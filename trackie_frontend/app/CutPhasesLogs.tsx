@@ -116,7 +116,7 @@ const CutPhasesLogs: React.FC = () => {
                     </TouchableOpacity>
                     <View style={styles.titleContainer}>
                         <ThemedText variant="medium" size={14} color={theme.colors.text}>
-                            Mis etapas de déficit
+                            Mis fases nutricionales
                         </ThemedText>
                     </View>
                     <TouchableOpacity
@@ -148,7 +148,7 @@ const CutPhasesLogs: React.FC = () => {
                 </TouchableOpacity>
                 <View style={styles.titleContainer}>
                     <ThemedText variant="medium" size={14} color={theme.colors.text}>
-                        Mis etapas de déficit
+                        Mis fases nutricionales
                     </ThemedText>
                 </View>
                 <TouchableOpacity
@@ -183,7 +183,7 @@ const CutPhasesLogs: React.FC = () => {
                                 padding={0}
                             />
                             <ThemedText variant="regular" size={14} color={theme.colors.textLight}>
-                                No hay etapas de déficit aún
+                                No hay fases nutricionales aún
                             </ThemedText>
                         </View>
                     ) : (
