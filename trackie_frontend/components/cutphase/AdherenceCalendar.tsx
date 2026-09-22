@@ -158,7 +158,7 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
                                     style={[styles.row, { marginBottom: rowGap }]}
                                 >
                                     {transposedData[dayIndex]?.map((day, weekIndex) => {
-                                        const isEmpty = !day || day.dailyScore === 0;
+                                        const isEmpty = !day;
                                         const bgColor = isEmpty
                                             ? '#f0f0f0'
                                             : getScoreColor(day.dailyScore);
