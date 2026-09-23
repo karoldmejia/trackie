@@ -27,7 +27,6 @@ interface AdherenceCalendarProps {
 }
 
 const getScoreColor = (score: number): string => {
-    if (score === 0) return 'FCF5F6';
     if (score < 50) return '#FFF0F2';
     if (score < 75) return '#FCD7DD';
     if (score < 90) return '#FFB6C1';

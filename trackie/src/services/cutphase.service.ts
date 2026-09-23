@@ -491,19 +491,16 @@ export class CutPhaseService {
                 continue;
             }
 
-            const daysWithData = weekDays.filter(d => d.dailyScore > 0);
-            const daysWithAllMet = weekDays.filter(d => d.allMet);
-
-            this.logger.log(`Week ${week}: ${weekDays.length} days, ${daysWithData.length} with data, ${daysWithAllMet.length} all met`);
+            this.logger.log(`Week ${week}: ${weekDays.length} days, ${weekDays.length} with data, ${weekDays.length} all met`);
 
             weeklySummary.push({
                 weekNumber: week,
                 startDate: weekDays[0].date,
                 endDate: weekDays[weekDays.length - 1].date,
                 daysCount: weekDays.length,
-                daysWithAllMet: daysWithAllMet.length,
-                compliancePercentage: daysWithData.length > 0
-                    ? (daysWithAllMet.length / daysWithData.length) * 100
+                daysWithAllMet: weekDays.length,
+                compliancePercentage: weekDays.length > 0
+                    ? (weekDays.length / weekDays.length) * 100
                     : 0,
                 caloriesCompliance: this.calculateAttributeCompliance(weekDays, 'caloriesMet'),
                 proteinCompliance: this.calculateAttributeCompliance(weekDays, 'proteinMet'),
@@ -528,8 +525,7 @@ export class CutPhaseService {
 
         for (let week = 1; week <= totalWeeks; week++) {
             const weekDays = daysWithData.filter(d => d.weekNumber === week);
-            const daysWithLogs = weekDays.filter(d => d.dailyScore > 0);
-            const count = daysWithLogs.length;
+            const count = weekDays.length;
 
             if (count === 0) {
                 weeklyAverages.push({
@@ -542,7 +538,7 @@ export class CutPhaseService {
 
             let totalCalories = 0, totalProtein = 0, totalSteps = 0, totalWater = 0;
 
-            for (const day of daysWithLogs) {
+            for (const day of weekDays) {
                 totalCalories += day.calories || 0;
                 totalProtein += day.protein || 0;
                 totalSteps += day.steps || 0;
@@ -622,12 +618,11 @@ export class CutPhaseService {
     }
 
     private calculateAttributeCompliance(days: any[], attribute: string): number {
-        const relevantDays = days.filter(d => d.dailyScore > 0);
-        if (relevantDays.length === 0) return 0;
+        if (days.length === 0) return 0;
 
-        const metCount = relevantDays.filter(d => d[attribute] === true).length;
-        const result = (metCount / relevantDays.length) * 100;
-        this.logger.log(`Attribute ${attribute}: ${metCount}/${relevantDays.length} = ${result}%`);
+        const metCount = days.filter(d => d[attribute] === true).length;
+        const result = (metCount / days.length) * 100;
+        this.logger.log(`Attribute ${attribute}: ${metCount}/${days.length} = ${result}%`);
         return result;
     }
 
@@ -654,7 +649,7 @@ export class CutPhaseService {
                     compliancePercentage: compliance,
                 });
 
-                if (weekDays.filter(d => d.dailyScore > 0).length > 0) {
+                if (weekDays.length > 0) {
                     overallSum += compliance;
                     overallCount++;
                 }
