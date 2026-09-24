@@ -199,8 +199,8 @@ export const CutPhaseForm: React.FC<CutPhaseFormProps> = ({
                             })
                         }],
                         height: keyboardShown
-                            ? screenHeight * 0.6 + keyboardHeight
-                            : screenHeight * 0.6
+                            ? screenHeight * 0.7 + keyboardHeight
+                            : screenHeight * 0.7
                     }
                 ]}
             >

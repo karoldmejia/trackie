@@ -83,7 +83,7 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
     // pero con un tamaño FIJO mínimo y máximo razonable.
     // Ya no se reduce hasta 14px porque ahora hay scroll.
     const maxCellSize = Math.floor((availableWidth - labelWidth - (weeks.length - 1) * gap) / weeks.length);
-    const cellSize = Math.min(Math.max(maxCellSize, 18), 32);
+    const cellSize = 18;
     const rowGap = cellSize * 0.2;
 
     // Ancho total del contenido scrolleable (todas las semanas)
