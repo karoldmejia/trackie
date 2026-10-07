@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/theme';
+import { formatShortDate } from '@/utils/date';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
@@ -18,18 +19,6 @@ interface CutPhaseDetailsHeaderProps {
     };
 }
 
-const formatDisplayDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day);
-    
-    const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-    const dia = String(localDate.getDate()).padStart(2, '0');
-    const mes = meses[localDate.getMonth()];
-    const año = localDate.getFullYear();
-    
-    return `${dia} ${mes} ${año}`;
-};
-
 export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
     startDate,
     endDate,
@@ -38,8 +27,8 @@ export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
     averageScore,
     targets,
 }) => {
-    const formattedStartDate = formatDisplayDate(startDate);
-    const formattedEndDate = formatDisplayDate(endDate);
+    const formattedStartDate = formatShortDate(startDate);
+    const formattedEndDate = formatShortDate(endDate);
     const progress = totalWeeks > 0 ? (currentWeek / totalWeeks) * 100 : 0;
 
     return (

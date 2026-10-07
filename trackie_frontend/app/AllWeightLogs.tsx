@@ -6,6 +6,7 @@ import { WeightLogForm } from '@/components/weight/WeightLogForm';
 import { WeightSearchResults } from '@/components/weight/WeightSearchResults';
 import { CreateWeightLogDto, WeightLog, weightLogService } from '@/services/weightLog.service';
 import { theme } from '@/theme';
+import { formatShortDate } from '@/utils/date';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -169,18 +170,6 @@ const AllWeightLogs: React.FC = () => {
         }
     };
 
-const formatDisplayDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day);
-    
-    const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-    const dia = String(localDate.getDate()).padStart(2, '0');
-    const mes = meses[localDate.getMonth()];
-    const año = localDate.getFullYear();
-    
-    return `${dia} ${mes} ${año}`;
-};
-
     const fetchData = async () => {
         try {
             setLoading(true);
@@ -272,7 +261,7 @@ const formatDisplayDate = (dateString: string) => {
                         onLogPress={handleLogPress}
                         onClearSearch={handleClearSearch}
                         searchDate={currentSearchDate}
-                        formatDisplayDate={formatDisplayDate}
+                        formatDisplayDate={formatShortDate}
                     />
                 ) : (
                     <View style={styles.logsContainer}>
@@ -295,7 +284,7 @@ const formatDisplayDate = (dateString: string) => {
                                     key={log.id}
                                     log={log}
                                     onPress={() => handleLogPress(log)}
-                                    formatDisplayDate={formatDisplayDate}
+                                    formatDisplayDate={formatShortDate}
                                 />
                             ))
                         )}

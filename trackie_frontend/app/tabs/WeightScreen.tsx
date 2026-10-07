@@ -10,6 +10,7 @@ import { WeightProgressCard } from '@/components/weight/WeightProgressCard';
 import { Settings, settingsService } from '@/services/settingsService';
 import { CreateWeightLogDto, WeightLog, weightLogService } from '@/services/weightLog.service';
 import { theme } from '@/theme';
+import { formatShortDate } from '@/utils/date';
 import * as FileSystem from 'expo-file-system/legacy';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -396,18 +397,6 @@ const WeightScreen: React.FC = () => {
   const progress = Math.min(Math.max(((initialWeight - currentWeight) / (initialWeight - targetWeight)) * 100, 0), 100);
   const currentMonthAverage = getCurrentMonthAverage(monthlyAveragesAsLogs);
 
-  const formatDisplayDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day);
-
-    const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-    const dia = String(localDate.getDate()).padStart(2, '0');
-    const mes = meses[localDate.getMonth()];
-    const año = localDate.getFullYear();
-
-    return `${dia} ${mes} ${año}`;
-  };
-
 
   return (
 
@@ -465,7 +454,7 @@ const WeightScreen: React.FC = () => {
             searchDate={currentSearchDate}
             onLogPress={handleLogPress}
             onClearSearch={handleClearSearch}
-            formatDisplayDate={formatDisplayDate}
+            formatDisplayDate={formatShortDate}
           />
         ) : (
           <WeightLogList

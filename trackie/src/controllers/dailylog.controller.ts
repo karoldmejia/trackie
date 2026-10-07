@@ -18,11 +18,19 @@ export class DailyLogController {
     async upsert(@Body() dto: CreateDailyLogDto): Promise<DailyLog> {
         return this.dailyLogService.upsert(dto);
     }
-
-    // Obtener todos los registros
     @Get()
-    async findAll(): Promise<DailyLog[]> {
-        return this.dailyLogService.findAll();
+    async findAll(
+        @Query('limit') limit?: string,
+        @Query('offset') offset?: string,
+    ) {
+        if (limit === undefined && offset === undefined) {
+            return this.dailyLogService.findAll();
+        }
+
+        const take = Math.min(parseInt(limit ?? '15', 10) || 15, 100);
+        const skip = Math.max(parseInt(offset ?? '0', 10) || 0, 0);
+
+        return this.dailyLogService.findPaginated(skip, take);
     }
 
     // Obtener registro por fecha

@@ -3,6 +3,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { WeightLogCard } from '@/components/weight/WeightLogCard';
 import { WeightLog, weightLogService } from '@/services/weightLog.service';
 import { theme } from '@/theme';
+import { formatShortDate } from '@/utils/date';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -23,18 +24,6 @@ const MonthDetailScreen: React.FC = () => {
     const parseLocalDate = (dateString: string): Date => {
         const [year, month, day] = dateString.split('-').map(Number);
         return new Date(year, month - 1, day);
-    };
-
-    const formatDisplayDate = (dateString: string) => {
-        const [year, month, day] = dateString.split('-').map(Number);
-        const localDate = new Date(year, month - 1, day);
-
-        const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-        const dia = String(localDate.getDate()).padStart(2, '0');
-        const mes = meses[localDate.getMonth()];
-        const año = localDate.getFullYear();
-
-        return `${dia} ${mes} ${año}`;
     };
 
     const formatDisplayMonth = (dateString: string) => {
@@ -168,7 +157,7 @@ const MonthDetailScreen: React.FC = () => {
                                 key={log.id}
                                 log={log}
                                 onPress={() => handleLogPress(log)}
-                                formatDisplayDate={formatDisplayDate}
+                                formatDisplayDate={formatShortDate}
                             />
                         ))}
                     </View>

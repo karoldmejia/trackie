@@ -1,5 +1,6 @@
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/theme';
+import { formatShortDate } from '@/utils/date';
 import React, { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { Icon } from '../icon';
@@ -81,7 +82,6 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
 
     // Calculamos el tamaño de celda en base al ancho disponible,
     // pero con un tamaño FIJO mínimo y máximo razonable.
-    // Ya no se reduce hasta 14px porque ahora hay scroll.
     const maxCellSize = Math.floor((availableWidth - labelWidth - (weeks.length - 1) * gap) / weeks.length);
     const cellSize = Math.min(Math.max(maxCellSize, 18), 32);
     const rowGap = cellSize * 0.2;
@@ -92,18 +92,6 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
     const handleDayPress = (day: DayData) => {
         setSelectedDay(day);
         setModalVisible(true);
-    };
-
-    const formatDate = (dateString: string) => {
-        const [year, month, day] = dateString.split('-').map(Number);
-        const localDate = new Date(year, month - 1, day);
-
-        const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-        const dia = String(localDate.getDate()).padStart(2, '0');
-        const mes = meses[localDate.getMonth()];
-        const año = localDate.getFullYear();
-
-        return `${dia} ${mes} ${año}`;
     };
 
     const getWorkoutLabel = (workout: string): string => {
@@ -228,7 +216,7 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
                                 <View style={styles.modalHeader}>
                                     <View style={styles.scoreBadgeContainer}>
                                         <ThemedText variant="semiBold" size={12} color={theme.colors.placeholder}>
-                                            {formatDate(selectedDay.date).toUpperCase()}
+                                            {formatShortDate(selectedDay.date).toUpperCase()}
                                         </ThemedText>
                                         <View style={[styles.scoreBadge]}>
                                             <Icon

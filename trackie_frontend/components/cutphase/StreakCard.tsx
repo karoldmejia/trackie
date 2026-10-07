@@ -16,18 +16,6 @@ interface StreakCardProps {
     days: DayData[];
 }
 
-const formatDate = (dateString: string | null): string => {
-    if (!dateString) return 'N/A';
-    const [year, month, day] = dateString.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day);
-    const formatter = new Intl.DateTimeFormat('es-CO', {
-        day: '2-digit',
-        month: 'long',
-        year: 'numeric'
-    });
-    return formatter.format(localDate);
-};
-
 const getDateStr = (date: Date): string => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');

@@ -50,6 +50,12 @@ export interface FullStatsResult {
     };
 }
 
+export interface PaginatedDailyLogs {
+    items: DailyLog[];
+    total: number;
+    hasMore: boolean;
+}
+
 @Injectable()
 export class DailyLogService {
     private readonly logger = new Logger(DailyLogService.name);
@@ -159,6 +165,20 @@ export class DailyLogService {
     // Obtener todos los registros
     async findAll(): Promise<DailyLog[]> {
         return this.dailyLogRepo.find({ order: { date: 'DESC' } });
+    }
+
+    async findPaginated(skip: number, take: number): Promise<PaginatedDailyLogs> {
+        const [items, total] = await this.dailyLogRepo.findAndCount({
+            order: { date: 'DESC' },
+            skip,
+            take,
+        });
+
+        return {
+            items,
+            total,
+            hasMore: skip + items.length < total,
+        };
     }
 
     // Buscar por fecha exacta

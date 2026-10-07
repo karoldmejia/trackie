@@ -1,10 +1,12 @@
 import { DailyLogCard } from '@/components/home/DailyLogCard';
+import { DailyLogEditorHandle, DailyLogEditorHost } from '@/components/home/DailyLogEditorHost';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { DailyLog, dailyLogService } from '@/services/dailyLogService';
 import { theme } from '@/theme';
+import { formatShortWeekRange } from '@/utils/date';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     RefreshControl,
@@ -21,6 +23,7 @@ const WeekDetailScreen: React.FC = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [weekLogs, setWeekLogs] = useState<DailyLog[]>([]);
     const [allLogs, setAllLogs] = useState<DailyLog[]>([]);
+    const editorRef = useRef<DailyLogEditorHandle>(null);
 
     const handleGoBack = () => {
         router.back();
@@ -32,29 +35,14 @@ const WeekDetailScreen: React.FC = () => {
         return new Date(year, month - 1, day);
     };
 
-    const formatDisplayDate = (dateString: string) => {
-        const [year, month, day] = dateString.split('-').map(Number);
-        const localDate = new Date(year, month - 1, day);
-        const formatter = new Intl.DateTimeFormat('es-CO', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-        return formatter.format(localDate);
-    };
-
-    const formatDisplayWeekRange = (start: string, end: string) => {
-        const startDate = parseLocalDate(start);
-        const endDate = parseLocalDate(end);
-        const formatter = new Intl.DateTimeFormat('es-CO', {
-            day: '2-digit',
-            month: 'long',
-        });
-        const year = startDate.getFullYear();
-        const startStr = formatter.format(startDate);
-        const endStr = formatter.format(endDate);
-        return `${startStr} - ${endStr}, ${year}`;
-    };
+    const handleLogDelete = async (log: DailyLog) => {
+    try {
+        await dailyLogService.delete(log.id);
+        await fetchData();
+    } catch (error) {
+        console.error('Error deleting daily log:', error);
+    }
+};
 
     const fetchData = async () => {
         try {
@@ -72,7 +60,7 @@ const WeekDetailScreen: React.FC = () => {
             });
 
             // Ordenar de más reciente a más antiguo
-            const sorted = filtered.sort((a, b) => 
+            const sorted = filtered.sort((a, b) =>
                 parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime()
             );
 
@@ -95,9 +83,7 @@ const WeekDetailScreen: React.FC = () => {
     }, [weekStart, weekEnd]);
 
     const handleLogPress = (log: DailyLog) => {
-        // Aquí puedes abrir el formulario de edición si lo deseas
-        // router.push(`/EditDailyLog?id=${log.id}`);
-        console.log('Log presionado:', log);
+        editorRef.current?.open(log);
     };
 
     if (loading) {
@@ -129,7 +115,7 @@ const WeekDetailScreen: React.FC = () => {
                 </TouchableOpacity>
                 <View style={styles.titleContainer}>
                     <ThemedText variant="medium" size={14} color={theme.colors.text}>
-                        {formatDisplayWeekRange(weekStart, weekEnd)}
+                        {formatShortWeekRange(weekStart, weekEnd)}
                     </ThemedText>
                 </View>
                 <View style={styles.placeholder} />
@@ -157,20 +143,20 @@ const WeekDetailScreen: React.FC = () => {
                 ) : (
                     <View style={styles.logsContainer}>
                         <View style={styles.headerStats}>
-                            <ThemedText variant="regular" size={12} color={theme.colors.textLight}>
-                                {weekLogs.length} registros encontrados
-                            </ThemedText>
                         </View>
                         {weekLogs.map((log) => (
                             <DailyLogCard
                                 key={log.id}
                                 log={log}
                                 onPress={() => handleLogPress(log)}
+                                onDelete={() => handleLogDelete(log)}
                             />
                         ))}
                     </View>
                 )}
             </ScrollView>
+            <DailyLogEditorHost ref={editorRef} onSaved={fetchData} />
+
         </View>
     );
 };
@@ -196,7 +182,8 @@ const styles = StyleSheet.create({
     },
     titleContainer: {
         flex: 1,
-        alignItems: 'center',
+        alignItems: 'flex-start',
+        marginLeft: 16,
     },
     placeholder: {
         width: 40,
@@ -207,7 +194,6 @@ const styles = StyleSheet.create({
         paddingBottom: 100,
     },
     logsContainer: {
-        marginTop: 16,
         marginBottom: 16,
     },
     headerStats: {

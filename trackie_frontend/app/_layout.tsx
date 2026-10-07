@@ -4,6 +4,7 @@ import { SplashScreen, Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import 'react-native-reanimated';
 
 export const unstable_settings = {
@@ -29,69 +30,73 @@ export default function RootLayout() {
   }
 
   return (
-    <View style={styles.container}>
-      <Stack
-        screenOptions={{
-          headerShown: false,
-          contentStyle: {
-            paddingTop: 44,
-            paddingBottom: 44,
-          },
-        }}
-      >
-        <Stack.Screen name="tabs" />
-        <Stack.Screen
-          name="modal"
-          options={{
-            presentation: 'modal',
-            title: 'Agregar / Editar Registro',
-          }}
-        />
-        <Stack.Screen
-          name="CaloriesOverviewScreen"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="StepsOverviewScreen"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="WeightOverviewScreen"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="WaistOverviewScreen"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="BodyfatOverviewScreen"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="HipsOverviewScreen"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="PhotoGallery"
-          options={{ headerShown: false }}
-        />
-        <Stack.Screen
-          name="DayPlanDetailScreen"
-          options={{
+    <GestureHandlerRootView style={{ flex: 1 }}>
+
+      <View style={styles.container}>
+        <Stack
+          screenOptions={{
             headerShown: false,
-            presentation: 'modal',
+            contentStyle: {
+              paddingTop: 44,
+              paddingBottom: 44,
+            },
           }}
-        />
-        <Stack.Screen
-          name="ShoppingListScreen"
-          options={{
-            headerShown: false,
-            presentation: 'modal',
-          }}
-        />
-      </Stack>
-      <StatusBar style="dark" />
-    </View>
+        >
+          <Stack.Screen name="tabs" />
+          <Stack.Screen
+            name="modal"
+            options={{
+              presentation: 'modal',
+              title: 'Agregar / Editar Registro',
+            }}
+          />
+          <Stack.Screen
+            name="CaloriesOverviewScreen"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="StepsOverviewScreen"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="WeightOverviewScreen"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="WaistOverviewScreen"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="BodyfatOverviewScreen"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="HipsOverviewScreen"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="PhotoGallery"
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="DayPlanDetailScreen"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
+          <Stack.Screen
+            name="ShoppingListScreen"
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
+        </Stack>
+        <StatusBar style="dark" />
+      </View>
+    </GestureHandlerRootView>
+
   );
 }
 

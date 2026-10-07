@@ -1,15 +1,16 @@
-import { DailyLogForm, WorkoutType } from '@/components/home/DailyLogForm';
-import { DailyLogList } from '@/components/home/DailyLogList';
+import { DailyLogCard } from '@/components/home/DailyLogCard';
+import { DailyLogEditorHandle, DailyLogEditorHost } from '@/components/home/DailyLogEditorHost';
 import { SearchModal } from '@/components/home/SearchModal';
 import { SearchResults } from '@/components/home/SearchResults';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
-import { CreateDailyLogDto, DailyLog, dailyLogService } from '@/services/dailyLogService';
+import { DailyLog, dailyLogService } from '@/services/dailyLogService';
 import { theme } from '@/theme';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
+    FlatList,
     RefreshControl,
     ScrollView,
     StyleSheet,
@@ -18,6 +19,9 @@ import {
 } from 'react-native';
 
 const AllDailyLogs: React.FC = () => {
+
+    const PAGE_SIZE = 15;
+
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [searchModalVisible, setSearchModalVisible] = useState(false);
@@ -26,8 +30,12 @@ const AllDailyLogs: React.FC = () => {
     const [currentSearchDate, setCurrentSearchDate] = useState<string | undefined>();
     const [allLogs, setAllLogs] = useState<DailyLog[]>([]);
     const [refreshing, setRefreshing] = useState(false);
-    const [editingLog, setEditingLog] = useState<DailyLog | null>(null);
-    const [editFormVisible, setEditFormVisible] = useState(false);
+
+    const editorRef = useRef<DailyLogEditorHandle>(null);
+    const [loadingMore, setLoadingMore] = useState(false);
+
+    const [hasMore, setHasMore] = useState(true);
+    const [offset, setOffset] = useState(0);
 
     const handleGoBack = () => {
         router.back();
@@ -62,74 +70,54 @@ const AllDailyLogs: React.FC = () => {
     };
 
     const handleLogPress = (log: DailyLog) => {
-        setEditingLog(log);
-        setEditFormVisible(true);
-    };
-
-    const handleEditFormSubmit = async (data: {
-        date: string;
-        calories: string;
-        steps: string;
-        proteinGrams: string;
-        waterLiters: string;
-        workout: WorkoutType;
-    }) => {
-        try {
-            const caloriesValue = parseInt(data.calories);
-            const stepsValue = parseInt(data.steps);
-            const proteinGramsValue = parseInt(data.proteinGrams);
-            const waterLitersValue = parseFloat(data.waterLiters);
-
-            const updatedLog: CreateDailyLogDto = {
-                date: data.date,
-                calories: isNaN(caloriesValue) ? 0 : caloriesValue,
-                steps: isNaN(stepsValue) ? 0 : stepsValue,
-                proteinGrams: isNaN(proteinGramsValue) ? 0 : proteinGramsValue,
-                waterLiters: isNaN(waterLitersValue) ? 0 : waterLitersValue,
-                workout: data.workout,
-            };
-
-            await dailyLogService.upsert(updatedLog);
-            await fetchData();
-            setEditFormVisible(false);
-            setEditingLog(null);
-
-            if (isSearching && currentSearchDate === data.date) {
-                const updatedResult = await dailyLogService.getByDate(data.date).catch(() => null);
-                if (updatedResult) {
-                    setSearchResults([updatedResult]);
-                }
-            }
-        } catch (error) {
-            console.error('Error updating daily log:', error);
-        }
-    };
-
-    const formatDisplayDate = (dateString: string) => {
-        const [year, month, day] = dateString.split('-').map(Number);
-        const localDate = new Date(year, month - 1, day);
-        const formatter = new Intl.DateTimeFormat('es-CO', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-        });
-        return formatter.format(localDate);
+        editorRef.current?.open(log);
     };
 
     const fetchData = async () => {
         try {
             setLoading(true);
-            const logs = await dailyLogService.getAll();
-
-            const sortedLogs = [...logs].sort((a, b) =>
-                new Date(b.date).getTime() - new Date(a.date).getTime()
-            );
-
-            setAllLogs(sortedLogs);
+            const { items, hasMore } = await dailyLogService.getPage({
+                limit: PAGE_SIZE,
+                offset: 0,
+            });
+            setAllLogs(items);
+            setOffset(items.length);
+            setHasMore(hasMore);
         } catch (error) {
             console.error('Error fetching daily logs:', error);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const loadMore = async () => {
+        if (loadingMore || !hasMore) return;
+        try {
+            setLoadingMore(true);
+            const { items, hasMore: more } = await dailyLogService.getPage({
+                limit: PAGE_SIZE,
+                offset,
+            });
+            setAllLogs((prev) => [...prev, ...items]);
+            setOffset((o) => o + items.length);
+            setHasMore(more);
+        } catch (error) {
+            console.error('Error loading more:', error);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
+
+    const handleLogDelete = async (log: DailyLog) => {
+        try {
+            await dailyLogService.delete(log.id);
+            setAllLogs((prev) => prev.filter((l) => l.id !== log.id));
+            setOffset((o) => Math.max(0, o - 1));
+            if (isSearching && currentSearchDate === log.date) {
+                handleClearSearch();
+            }
+        } catch (error) {
+            console.error('Error deleting daily log:', error);
         }
     };
 
@@ -195,43 +183,70 @@ const AllDailyLogs: React.FC = () => {
                 </TouchableOpacity>
             </View>
 
-            <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                }
-            >
-                {isSearching ? (
+            {isSearching ? (
+                <ScrollView
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                >
                     <SearchResults
                         results={searchResults}
                         onLogPress={handleLogPress}
                         onClearSearch={handleClearSearch}
                         searchDate={currentSearchDate}
                     />
-                ) : (
-                    <View style={styles.logsContainer}>
-                        {allLogs.length === 0 ? (
-                            <View style={styles.emptyContainer}>
-                                <Icon
-                                    name="Package"
-                                    size={48}
-                                    color={theme.colors.textLight}
-                                    backgroundColor="transparent"
-                                    padding={0}
-                                />
-                                <ThemedText variant="regular" size={14} color={theme.colors.textLight}>
-                                    No hay registros diarios aún
-                                </ThemedText>
-                            </View>
-                        ) : (
-                            <DailyLogList
-                                logs={allLogs}
-                                onLogPress={handleLogPress}
+                </ScrollView>
+            ) : (
+                <FlatList
+                    data={allLogs}
+                    keyExtractor={(log) => log.id}
+                    renderItem={({ item }) => (
+                        <DailyLogCard
+                            log={item}
+                            onPress={() => handleLogPress(item)}
+                            onDelete={() => handleLogDelete(item)}
+                        />
+                    )}
+                    contentContainerStyle={styles.scrollContent}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                    onEndReached={loadMore}
+                    onEndReachedThreshold={0.3}
+                    ListFooterComponent={
+                        loadingMore ? (
+                            <ActivityIndicator
+                                style={{ paddingVertical: 20 }}
+                                color={theme.colors.primary}
                             />
-                        )}
-                    </View>
-                )}
-            </ScrollView>
+                        ) : !hasMore && allLogs.length > 0 ? (
+                            <ThemedText
+                                variant="regular"
+                                size={12}
+                                color={theme.colors.textLight}
+                                style={{ textAlign: 'center', paddingVertical: 16 }}
+                            >
+                                No hay más registros
+                            </ThemedText>
+                        ) : null
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.emptyContainer}>
+                            <Icon
+                                name="Package"
+                                size={48}
+                                color={theme.colors.textLight}
+                                backgroundColor="transparent"
+                                padding={0}
+                            />
+                            <ThemedText variant="regular" size={14} color={theme.colors.textLight}>
+                                No hay registros diarios aún
+                            </ThemedText>
+                        </View>
+                    }
+                />
+            )}
 
             {/* Modal de búsqueda */}
             <SearchModal
@@ -240,25 +255,8 @@ const AllDailyLogs: React.FC = () => {
                 onSearch={handleSearch}
             />
 
-            {/* Formulario de edición */}
-            <DailyLogForm
-                visible={editFormVisible}
-                onClose={() => {
-                    setEditFormVisible(false);
-                    setEditingLog(null);
-                }}
-                onSubmit={handleEditFormSubmit}
-                initialData={editingLog ? {
-                    date: editingLog.date,
-                    calories: editingLog.calories,
-                    steps: editingLog.steps,
-                    proteinGrams: editingLog.proteinGrams,
-                    waterLiters: editingLog.waterLiters,
-                    workout: editingLog.workout,
-                } : undefined}
-                title="Editar Registro"
-                hideDatePicker={true}
-            />
+            <DailyLogEditorHost ref={editorRef} onSaved={fetchData} />
+
         </View>
     );
 };

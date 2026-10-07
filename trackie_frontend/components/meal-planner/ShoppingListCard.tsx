@@ -3,6 +3,7 @@ import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { PurchaseStatus, ShoppingList, shoppingListService, UnitOfMeasure } from '@/services/shoppingListService';
 import { theme } from '@/theme';
+import { formatShortDate } from '@/utils/date';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import React, { useState } from 'react';
 import { Platform, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
@@ -71,21 +72,9 @@ export const ShoppingListCard: React.FC<ShoppingListCardProps> = ({
     const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
     const formatDateRange = () => {
-        const start = formatDisplayDate(startDate);
-        const end = formatDisplayDate(endDate);
+        const start = formatShortDate(startDate);
+        const end = formatShortDate(endDate);
         return `${start} - ${end}`;
-    };
-
-    const formatDisplayDate = (dateString: string) => {
-        const [year, month, day] = dateString.split('-').map(Number);
-        const localDate = new Date(year, month - 1, day);
-
-        const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-        const dia = String(localDate.getDate()).padStart(2, '0');
-        const mes = meses[localDate.getMonth()];
-        const año = localDate.getFullYear();
-
-        return `${dia} ${mes} ${año}`;
     };
 
     const formatDateForDisplay = (date: Date) => {

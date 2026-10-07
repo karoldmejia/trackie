@@ -4,6 +4,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { PhotoSearchResults } from '@/components/weight/PhotoSearchResults';
 import { weightLogService } from '@/services/weightLog.service';
 import { theme } from '@/theme';
+import { formatShortDate } from '@/utils/date';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
@@ -80,18 +81,6 @@ const PhotoGallery: React.FC = () => {
         return `${API_BASE_URL}${uri}`;
     };
 
-    const formatDisplayDate = (dateString: string) => {
-        const [year, month, day] = dateString.split('-').map(Number);
-        const localDate = new Date(year, month - 1, day);
-
-        const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-        const dia = String(localDate.getDate()).padStart(2, '0');
-        const mes = meses[localDate.getMonth()];
-        const año = localDate.getFullYear();
-
-        return `${dia} ${mes} ${año}`;
-    };
-
     const fetchData = async () => {
         try {
             setLoading(true);
@@ -156,7 +145,7 @@ const PhotoGallery: React.FC = () => {
                         padding={0}
                     />
                     <ThemedText variant="medium" size={12} color={theme.colors.placeholder}>
-                        {formatDisplayDate(item.date)}
+                        {formatShortDate(item.date)}
                     </ThemedText>
                 </View>
                 {rows.map((row, rowIndex) => (

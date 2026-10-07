@@ -1,6 +1,7 @@
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/theme';
+import { formatShortDate } from '@/utils/date';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
@@ -19,18 +20,6 @@ interface CutPhaseCardProps {
     onPress: () => void;
 }
 
-const formatDisplayDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day);
-    
-    const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-    const dia = String(localDate.getDate()).padStart(2, '0');
-    const mes = meses[localDate.getMonth()];
-    const año = localDate.getFullYear();
-    
-    return `${dia} ${mes} ${año}`;
-};
-
 const getDifferenceText = (difference: number | null | undefined): string => {
     if (difference === null || difference === undefined) return '--';
     const sign = difference > 0 ? '+' : '';
@@ -38,8 +27,8 @@ const getDifferenceText = (difference: number | null | undefined): string => {
 };
 
 export const CutPhaseCard: React.FC<CutPhaseCardProps> = ({ phase, onPress }) => {
-    const formattedStartDate = formatDisplayDate(phase.startDate);
-    const formattedEndDate = formatDisplayDate(phase.endDate);
+    const formattedStartDate = formatShortDate(phase.startDate);
+    const formattedEndDate = formatShortDate(phase.endDate);
     const compliance = Math.round(phase.averageScore);
 
     return (

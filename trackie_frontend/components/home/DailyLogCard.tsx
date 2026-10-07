@@ -1,7 +1,10 @@
 import { Icon } from '@/components/icon';
 import { theme } from '@/theme';
-import React from 'react';
+import { formatShortDate } from '@/utils/date';
+import React, { useRef } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
 import { ThemedText } from '../ThemedText';
 
 interface DailyLogCardProps {
@@ -15,6 +18,8 @@ interface DailyLogCardProps {
         workout: string;
     };
     onPress: () => void;
+    onDelete?: () => void;
+
 }
 
 const workoutTranslations: Record<string, string> = {
@@ -25,18 +30,6 @@ const workoutTranslations: Record<string, string> = {
     'cardio': 'Cardio',
 };
 
-const formatDisplayDate = (dateString: string) => {
-    const [year, month, day] = dateString.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day);
-    
-    const meses = ['ENE', 'FEB', 'MAR', 'ABR', 'MAY', 'JUN', 'JUL', 'AGO', 'SEP', 'OCT', 'NOV', 'DIC'];
-    const dia = String(localDate.getDate()).padStart(2, '0');
-    const mes = meses[localDate.getMonth()];
-    const año = localDate.getFullYear();
-    
-    return `${dia} ${mes} ${año}`;
-};
-
 const getTranslatedWorkout = (workoutValue?: string): string => {
     if (!workoutValue || workoutValue.trim() === '' || workoutValue === 'none') {
         return 'Ninguno';
@@ -45,30 +38,63 @@ const getTranslatedWorkout = (workoutValue?: string): string => {
     return translated || workoutValue;
 };
 
-export const DailyLogCard: React.FC<DailyLogCardProps> = ({ log, onPress }) => {
-    const formattedDate = formatDisplayDate(log.date);
-    const translatedWorkout = getTranslatedWorkout(log.workout);
+const RightAction: React.FC<{
+    drag: SharedValue<number>;
+    onDelete?: () => void;
+}> = ({ drag, onDelete }) => {
+    const styleAnimation = useAnimatedStyle(() => ({
+        transform: [{ translateX: drag.value + 72 }],
+    }));
 
     return (
+        <Reanimated.View style={styleAnimation}>
+            <TouchableOpacity
+                onPress={onDelete}
+                style={styles.deleteButton}
+                activeOpacity={0.7}
+            >
+                <Icon name="Trash" size={20} color={theme.colors.placeholder} />
+            </TouchableOpacity>
+        </Reanimated.View>
+    );
+};
+
+
+export const DailyLogCard: React.FC<DailyLogCardProps> = ({
+    log,
+    onPress,
+    onDelete,
+}) => {
+    const swipeableRef = useRef<SwipeableMethods>(null);
+
+    const formattedDate = formatShortDate(log.date);
+    const translatedWorkout = getTranslatedWorkout(log.workout);
+
+    const handleDelete = () => {
+        swipeableRef.current?.close();
+        onDelete?.();
+    };
+
+    const card = (
         <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
             <View style={styles.card}>
                 <View style={styles.header}>
                     <View style={styles.headerLeft}>
-                    <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                        {log.calories} calorías, {log.steps} pasos
-                    </ThemedText>
+                        <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
+                            {log.calories} calorías, {log.steps} pasos
+                        </ThemedText>
                     </View>
                     <View style={styles.headerRight}>
-                        <Icon 
-                            name="Calendar" 
-                            size={16} 
+                        <Icon
+                            name="Calendar"
+                            size={16}
                             color={theme.colors.placeholder}
                             backgroundColor="transparent"
                             padding={0}
                         />
-                        <ThemedText 
-                            variant="medium" 
-                            size={12} 
+                        <ThemedText
+                            variant="medium"
+                            size={12}
                             color={theme.colors.placeholder}
                             style={styles.dateText}
                         >
@@ -80,16 +106,16 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({ log, onPress }) => {
                 {/* Energizantes y agua */}
                 <View style={styles.secondaryStats}>
                     <View style={styles.statRow}>
-                        <Icon 
-                            name="Beef" 
-                            size={14} 
+                        <Icon
+                            name="Beef"
+                            size={14}
                             color={theme.colors.textLight}
                             backgroundColor="transparent"
                             padding={0}
                         />
-                        <ThemedText 
-                            variant="medium" 
-                            size={11} 
+                        <ThemedText
+                            variant="medium"
+                            size={11}
                             color={theme.colors.textLight}
                             style={styles.statText}
                         >
@@ -100,16 +126,16 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({ log, onPress }) => {
 
                 {/* Entrenamiento */}
                 <View style={styles.workoutRow}>
-                    <Icon 
-                        name="Dumbbell" 
-                        size={14} 
+                    <Icon
+                        name="Dumbbell"
+                        size={14}
                         color={theme.colors.textLight}
                         backgroundColor="transparent"
                         padding={0}
                     />
-                    <ThemedText 
-                        variant="medium" 
-                        size={11} 
+                    <ThemedText
+                        variant="medium"
+                        size={11}
                         color={theme.colors.textLight}
                         style={styles.workoutText}
                     >
@@ -118,6 +144,22 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({ log, onPress }) => {
                 </View>
             </View>
         </TouchableOpacity>
+    );
+
+    if (!onDelete) return card;
+
+    return (
+        <ReanimatedSwipeable
+            ref={swipeableRef}
+            friction={2}
+            rightThreshold={40}
+            renderRightActions={(progress, drag) => (
+                <RightAction drag={drag} onDelete={handleDelete} />
+            )}
+            overshootRight={false}
+        >
+            {card}
+        </ReanimatedSwipeable>
     );
 };
 
@@ -168,5 +210,14 @@ const styles = StyleSheet.create({
     },
     workoutText: {
         marginLeft: 6,
+    },
+    deleteButton: {
+        width: 60,
+        height: '100%',
+        backgroundColor: 'transparent',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 12,
+        marginLeft: 0,
     },
 });

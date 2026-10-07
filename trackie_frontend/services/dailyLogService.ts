@@ -61,10 +61,21 @@ export interface FullStatsResult {
     };
 }
 
+export interface PaginatedDailyLogs {
+    items: DailyLog[];
+    total: number;
+    hasMore: boolean;
+}
+
 export const dailyLogService = {
     // Obtener todos los logs
     getAll: async () => {
         const response = await api.get<DailyLog[]>('/daily-logs');
+        return response.data;
+    },
+
+    getPage: async (params: { limit: number; offset: number }) => {
+        const response = await api.get<PaginatedDailyLogs>('/daily-logs', { params });
         return response.data;
     },
 
