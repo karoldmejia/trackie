@@ -194,11 +194,24 @@ export class DailyLogService {
         });
     }
 
-    // Eliminar un registro
-    async remove(id: string): Promise<void> {
-        await this.dailyLogRepo.delete(id);
+async remove(id: string): Promise<void> {
+    const log = await this.dailyLogRepo.findOne({ where: { id } });
+
+    if (!log) {
+        this.logger?.log(`DailyLog ${id} not found, nothing to delete`);
+        return;
     }
 
+    const date = log.date;
+
+    await this.dailyLogRepo.delete(id);
+
+    try {
+        await this.cutPhaseService.removeDayByDate(date);
+    } catch (error) {
+        this.logger?.error(`Error removing CutPhaseDay for ${date}: ${error}`);
+    }
+}
     // Promedio de calorías de un rango de fechas
     async getWeeklyAverage(start: string, end: string): Promise<number> {
         const logs = await this.findByDateRange(start, end);

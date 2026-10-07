@@ -307,6 +307,35 @@ export class CutPhaseService {
         return this.cutPhaseDayRepo.save(cutPhaseDay);
     }
 
+    async removeDayByDate(date: string): Promise<void> {
+        this.logger.log(`Removing CutPhaseDay for date ${date}`);
+
+        const phases = await this.cutPhaseRepo
+            .createQueryBuilder('phase')
+            .where('phase.startDate <= :date', { date })
+            .andWhere('phase.endDate >= :date', { date })
+            .getMany();
+
+        if (phases.length === 0) {
+            this.logger.log(`No cut phase contains date ${date}`);
+            return;
+        }
+
+        const phaseIds = phases.map(p => p.id);
+
+        const result = await this.cutPhaseDayRepo
+            .createQueryBuilder()
+            .delete()
+            .from(CutPhaseDay)
+            .where('date = :date', { date })
+            .andWhere('cutPhaseId IN (:...phaseIds)', { phaseIds })
+            .execute();
+
+        this.logger.log(
+            `Deleted ${result.affected ?? 0} CutPhaseDay(s) for date ${date} in phases: ${phaseIds.join(', ')}`
+        );
+    }
+
     async getDashboard(cutPhaseId: string): Promise<any> {
         this.logger.log(`Getting dashboard for cut phase ${cutPhaseId}`);
 
@@ -433,7 +462,7 @@ export class CutPhaseService {
                     initial: firstMeasurements.weight.value || null,
                     current: weeklyWeightAvg || null,
                     difference: firstMeasurements.weight.value && weeklyWeightAvg
-                        ? Number((weeklyWeightAvg- firstMeasurements.weight.value).toFixed(2))
+                        ? Number((weeklyWeightAvg - firstMeasurements.weight.value).toFixed(2))
                         : null
                 },
                 // Bodyfat
@@ -516,7 +545,7 @@ export class CutPhaseService {
     /**
      * Calcula los promedios semanales de calorías, proteínas, pasos y agua
      */
-    private calculateWeeklyAverages(daysWithData: any[], totalWeeks: number): Array<{weekNumber: number;averages: { calories: number; protein: number; steps: number; water: number }; daysWithData: number;}> {
+    private calculateWeeklyAverages(daysWithData: any[], totalWeeks: number): Array<{ weekNumber: number; averages: { calories: number; protein: number; steps: number; water: number }; daysWithData: number; }> {
         const weeklyAverages: Array<{
             weekNumber: number;
             averages: { calories: number; protein: number; steps: number; water: number };
