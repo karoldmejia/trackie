@@ -29,6 +29,14 @@ import { CutPhase } from './entities/cutphase.entity';
 import { CutPhaseDay } from './entities/cutphaseday.entity';
 import { CutPhaseController } from './controllers/cutphase.controller';
 import { CutPhaseService } from './services/cutphase.service';
+import { MetricType } from './entities/metric-type.entity';
+import { DailyLogMetric } from './entities/daily-log-metric.entity';
+import { Program } from './entities/program.entity';
+import { ProgramMetricTarget } from './entities/program-metric-target.entity';
+import { ProgramDay } from './entities/program-day.entity';
+import { BodyMetricType } from './entities/body-metric-type.entity';
+import { WeightLogMetric } from './entities/weight-log-metric.entity';
+import { ProgramMeasurement } from './entities/program-measurement.entity';
 
 @Module({
   imports: [
@@ -44,14 +52,16 @@ import { CutPhaseService } from './services/cutphase.service';
       username: process.env.POSTGRES_USER,
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
-      entities: [DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay],
-      synchronize: true,
-      ssl: process.env.DATABASE_URL
+      // El schema se gestiona con migraciones (src/migrations). Ver `npm run migration:run`.
+      entities: [DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay, MetricType, DailyLogMetric, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, ProgramMeasurement],
+      synchronize: false,
+      // Por defecto se fuerza SSL cuando hay DATABASE_URL (producción). Para desarrollo local: DATABASE_SSL=false
+      ssl: process.env.DATABASE_URL && process.env.DATABASE_SSL !== 'false'
         ? { rejectUnauthorized: false }
         : false,
     }),
 
-    TypeOrmModule.forFeature([DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay]),
+    TypeOrmModule.forFeature([DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay, MetricType, DailyLogMetric, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, ProgramMeasurement]),
 
     MulterModule.register({
       limits: {

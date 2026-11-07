@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Put, Delete, Body, Param, Query } from '@nestjs/common';
 import { CreateDailyLogDto } from '../dtos/dailylog.dto';
-import { DailyLogService, GoodBadDaysResult, DayClassification } from '../services/dailylog.service';
+import { DailyLogService } from '../services/dailylog.service';
 import { DailyLog } from '../entities/dailylog.entity';
 
 @Controller('daily-logs')
@@ -59,51 +59,4 @@ export class DailyLogController {
         return { deleted: true };
     }
 
-    // Obtener días buenos y malos
-    @Get('good-bad-days')
-    async getGoodBadDays(
-        @Query('start') start: string,
-        @Query('end') end: string,
-        @Query('calorieLimit') calorieLimit: string,
-        @Query('stepGoal') stepGoal: string,
-    ): Promise<GoodBadDaysResult> {
-        return this.dailyLogService.getGoodBadDays(
-            start,
-            end,
-            parseInt(calorieLimit) || 2000,
-            parseInt(stepGoal) || 8000
-        );
-    }
-
-    // Obtener clasificación de días con razones
-    @Get('classify')
-    async classifyDays(
-        @Query('start') start: string,
-        @Query('end') end: string,
-        @Query('calorieLimit') calorieLimit: string,
-        @Query('stepGoal') stepGoal: string,
-    ): Promise<DayClassification[]> {
-        return this.dailyLogService.classifyDays(
-            start,
-            end,
-            parseInt(calorieLimit) || 2000,
-            parseInt(stepGoal) || 8000
-        );
-    }
-
-    // Obtener estadísticas completas
-    @Get('full-stats')
-    async getFullStats(
-        @Query('start') start: string,
-        @Query('end') end: string,
-        @Query('calorieLimit') calorieLimit: string,
-        @Query('stepGoal') stepGoal: string,
-    ) {
-        return this.dailyLogService.getFullStats(
-            start,
-            end,
-            parseInt(calorieLimit) || 2000,
-            parseInt(stepGoal) || 8000
-        );
-    }
 }

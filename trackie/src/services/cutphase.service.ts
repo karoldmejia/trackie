@@ -814,7 +814,7 @@ export class CutPhaseService {
 
         if (logsOfLastWeek.length === 0) return null;
 
-        const total = logsOfLastWeek.reduce((sum, log) => sum + log.weight, 0);
+        const total = logsOfLastWeek.reduce((sum, log) => sum + (log.weight ?? 0), 0);
         const average = total / logsOfLastWeek.length;
 
         this.logger.log(

@@ -1,8 +1,10 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateWeightLogDto, UpdateWeightLogDto } from '../dtos/weightlog.dto';
-import { Repository, Between } from 'typeorm';
+import { Repository, Between, DeepPartial } from 'typeorm';
 import { WeightLog } from '../entities/weightlog.entity';
+import { WeightLogMetric } from '../entities/weight-log-metric.entity';
+import { BodyMetricType } from '../entities/body-metric-type.entity';
 import { UploadService } from './upload.service';
 
 export interface WeightStats {
@@ -75,13 +77,85 @@ export class WeightLogService {
     constructor(
         @InjectRepository(WeightLog)
         private readonly weightLogRepo: Repository<WeightLog>,
+        @InjectRepository(WeightLogMetric)
+        private readonly weightLogMetricRepo: Repository<WeightLogMetric>,
+        @InjectRepository(BodyMetricType)
+        private readonly bodyMetricTypeRepo: Repository<BodyMetricType>,
         private readonly uploadService: UploadService,
     ) { }
+
+    // ------------------------------------------------------------------
+    // INTERIM (Fase 1 → Fase 5): puente entre el DTO legado (weight, bodyfat,
+    // waist, hips) y el nuevo modelo basado en weight_log_metrics.
+    // ------------------------------------------------------------------
+    private readonly relations = { metrics: { bodyMetricType: true } } as const;
+
+    private async applyLegacyMetrics(log: WeightLog, dto: Partial<CreateWeightLogDto>): Promise<void> {
+        const keyByField: Record<string, string> = {
+            weight: 'weight',
+            bodyfat: 'bodyfat',
+            waist: 'waist',
+            hips: 'hips',
+        };
+
+        const pending: Array<{ key: string; value: number }> = [];
+        for (const [field, key] of Object.entries(keyByField)) {
+            const raw = (dto as Record<string, unknown>)[field];
+            if (raw !== undefined && raw !== null && !Number.isNaN(Number(raw))) {
+                pending.push({ key, value: Number(raw) });
+            }
+        }
+        if (!pending.length) return;
+
+        const types = await this.bodyMetricTypeRepo.find();
+        const typeByKey = new Map(types.map((t) => [t.key, t]));
+
+        for (const { key, value } of pending) {
+            const bodyMetricType = typeByKey.get(key);
+            if (!bodyMetricType) {
+                this.logger.warn(`BodyMetricType con key "${key}" no existe; se omite el valor ${value}`);
+                continue;
+            }
+            await this.weightLogMetricRepo.query(
+                `INSERT INTO weight_log_metrics ("weightLogId", "bodyMetricTypeId", "value")
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT ("weightLogId", "bodyMetricTypeId") DO UPDATE SET value = EXCLUDED.value`,
+                [log.id, bodyMetricType.id, value],
+            );
+        }
+    }
+
+    /** Adjunta como props propias enumerables los campos legados (shadowing de los getters). */
+    private decorateLegacy<T extends WeightLog | null>(log: T): T {
+        if (!log) return log;
+        Object.defineProperties(log, {
+            weight: { value: log.weight, enumerable: true, configurable: true },
+            bodyfat: { value: log.bodyfat, enumerable: true, configurable: true },
+            waist: { value: log.waist, enumerable: true, configurable: true },
+            hips: { value: log.hips, enumerable: true, configurable: true },
+        });
+        return log;
+    }
+
+    /** Elimina los campos legados del DTO (ya no son columnas). */
+    private stripLegacy<T extends Partial<CreateWeightLogDto> | Partial<UpdateWeightLogDto>>(dto: T): T {
+        const rest: any = { ...(dto as any) };
+        delete rest.weight;
+        delete rest.bodyfat;
+        delete rest.waist;
+        delete rest.hips;
+        return rest;
+    }
+
+    private async finishLegacySave(saved: WeightLog, dto: Partial<CreateWeightLogDto & UpdateWeightLogDto>): Promise<WeightLog> {
+        await this.applyLegacyMetrics(saved, dto as CreateWeightLogDto);
+        return (await this.findByDate(saved.date)) as WeightLog;
+    }
 
     async create(dto: CreateWeightLogDto, photos?: Express.Multer.File[]): Promise<WeightLog> {
         let existing = await this.weightLogRepo.findOne({ where: { date: dto.date } });
 
-        const logData = { ...dto };
+        const logData: any = this.stripLegacy(dto);
 
         // Validar datos numéricos
 
@@ -100,11 +174,11 @@ export class WeightLogService {
         if (existing) {
             Object.assign(existing, logData);
             const result = await this.weightLogRepo.save(existing);
-            return result;
+            return this.finishLegacySave(result, dto);
         } else {
-            const log = this.weightLogRepo.create(logData);
+            const log = this.weightLogRepo.create(logData as DeepPartial<WeightLog>);
             const result = await this.weightLogRepo.save(log);
-            return result;
+            return this.finishLegacySave(result, dto);
         }
     }
 
@@ -166,22 +240,25 @@ export class WeightLogService {
         }
 
         if (existing) {
-            Object.assign(existing, dto);
+            Object.assign(existing, this.stripLegacy(dto));
             this.logger.log(`Actualizando registro existente`);
-            return this.weightLogRepo.save(existing);
+            const saved = await this.weightLogRepo.save(existing);
+            return this.finishLegacySave(saved, dto);
         } else {
-            const log = this.weightLogRepo.create(dto);
+            const log = this.weightLogRepo.create(this.stripLegacy(dto));
             this.logger.log(`Creando nuevo registro`);
-            return this.weightLogRepo.save(log);
+            const saved = await this.weightLogRepo.save(log);
+            return this.finishLegacySave(saved, dto);
         }
     }
 
     async findLast(): Promise<WeightLog | null> {
         const result = await this.weightLogRepo.findOne({
             where: {},
-            order: { date: 'DESC' }
+            order: { date: 'DESC' },
+            relations: this.relations,
         });
-        return result;
+        return this.decorateLegacy(result);
     }
     /**
      * Actualizar registro existente por ID
@@ -202,32 +279,37 @@ export class WeightLogService {
             log.photos = [...(log.photos || []), ...newPhotoUrls];
         }
 
-        Object.assign(log, dto);
-        return this.weightLogRepo.save(log);
+        Object.assign(log, this.stripLegacy(dto));
+        const saved = await this.weightLogRepo.save(log);
+        return this.finishLegacySave(saved, dto);
     }
 
     /**
      * Obtener todos los registros
      */
     async findAll(): Promise<WeightLog[]> {
-        return this.weightLogRepo.find({ order: { date: 'ASC' } });
+        const logs = await this.weightLogRepo.find({ order: { date: 'ASC' }, relations: this.relations });
+        return logs.map((log) => this.decorateLegacy(log));
     }
 
     /**
      * Obtener registros por rango de fechas
      */
     async findByDateRange(start: string, end: string): Promise<WeightLog[]> {
-        return this.weightLogRepo.find({
+        const logs = await this.weightLogRepo.find({
             where: { date: Between(start, end) },
             order: { date: 'ASC' },
+            relations: this.relations,
         });
+        return logs.map((log) => this.decorateLegacy(log));
     }
 
     /**
      * Obtener registro por fecha específica
      */
     async findByDate(date: string): Promise<WeightLog | null> {
-        return this.weightLogRepo.findOne({ where: { date } });
+        const log = await this.weightLogRepo.findOne({ where: { date }, relations: this.relations });
+        return this.decorateLegacy(log);
     }
 
     /**

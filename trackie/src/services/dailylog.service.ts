@@ -1,54 +1,12 @@
 import { forwardRef, Inject, Injectable, Logger } from "@nestjs/common";
 import { CreateDailyLogDto } from "../dtos/dailylog.dto";
 import { DailyLog } from "../entities/dailylog.entity";
-import { Between, Repository } from "typeorm";
+import { DailyLogMetric } from "../entities/daily-log-metric.entity";
+import { MetricType } from "../entities/metric-type.entity";
+import { Between, DeepPartial, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { CutPhaseService } from "./cutphase.service";
 
-export interface GoodBadDaysResult {
-    goodDays: number;
-    badDays: number;
-    totalDays: number;
-    goodDaysPercentage: number;
-    badDaysPercentage: number;
-    averageCalories: number;
-    averageSteps: number;
-    goodDaysList: DailyLog[];
-    badDaysList: DailyLog[];
-}
-
-export interface DayClassification {
-    date: string;
-    calories: number;
-    steps: number;
-    isGood: boolean;
-    isBad: boolean;
-    reason?: string;
-}
-
-export interface FullStatsResult {
-    period: { start: string; end: string };
-    summary: {
-        totalDays: number;
-        totalCalories: number;
-        totalSteps: number;
-        averageCalories: number;
-        averageSteps: number;
-        bestDay: DailyLog | null;
-        bestDayCalories: number;
-        bestDaySteps: number;
-        worstDayCalories: number;
-        worstDaySteps: number;
-    };
-    goodBadStats: GoodBadDaysResult;
-    classifications: DayClassification[];
-    trend: {
-        percentage: number;
-        direction: 'up' | 'down' | 'stable';
-        previousAverage: number;
-        currentAverage: number;
-    };
-}
 
 export interface PaginatedDailyLogs {
     items: DailyLog[];
@@ -63,9 +21,72 @@ export class DailyLogService {
     constructor(
         @InjectRepository(DailyLog)
         private readonly dailyLogRepo: Repository<DailyLog>,
+        @InjectRepository(DailyLogMetric)
+        private readonly dailyLogMetricRepo: Repository<DailyLogMetric>,
+        @InjectRepository(MetricType)
+        private readonly metricTypeRepo: Repository<MetricType>,
         @Inject(forwardRef(() => CutPhaseService))
         private readonly cutPhaseService: CutPhaseService,
     ) { }
+
+    // ------------------------------------------------------------------
+    // INTERIM (Fase 1 → Fase 2): puente entre el DTO legado (calories, steps…)
+    // y el nuevo modelo basado en metric_types. Elimina esta sección junto
+    // con los getters de DailyLog en la Fase 2/6.
+    // ------------------------------------------------------------------
+    private readonly relations = { metrics: { metricType: true } } as const;
+
+    private async applyLegacyMetrics(log: DailyLog, dto: Partial<CreateDailyLogDto>): Promise<void> {
+        const keyByField: Record<string, string | undefined> = {
+            calories: 'calories',
+            steps: 'steps',
+            proteinGrams: 'protein',
+            waterLiters: 'water',
+        };
+
+        const pending: Array<{ key: string; value: number }> = [];
+        for (const [field, key] of Object.entries(keyByField)) {
+            const raw = (dto as Record<string, unknown>)[field];
+            if (raw !== undefined && raw !== null && key) {
+                pending.push({ key, value: Number(raw) });
+            }
+        }
+        if (dto.workout !== undefined && dto.workout !== null) {
+            pending.push({ key: 'workout_count', value: dto.workout === 'none' ? 0 : 1 });
+        }
+
+        if (!pending.length) return;
+
+        const types = await this.metricTypeRepo.find();
+        const typeByKey = new Map(types.map((t) => [t.key, t]));
+
+        for (const { key, value } of pending) {
+            const metricType = typeByKey.get(key);
+            if (!metricType) {
+                this.logger.warn(`MetricType con key "${key}" no existe; se omite el valor ${value}`);
+                continue;
+            }
+            await this.dailyLogMetricRepo.query(
+                `INSERT INTO daily_log_metrics ("dailyLogId", "metricTypeId", "value")
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT ("dailyLogId", "metricTypeId") DO UPDATE SET value = EXCLUDED.value`,
+                [log.id, metricType.id, value],
+            );
+        }
+    }
+
+    /** Adjunta como props propias enumerables los campos legados (shadowing de los getters). */
+    private decorateLegacy<T extends DailyLog | null>(log: T): T {
+        if (!log) return log;
+        Object.defineProperties(log, {
+            calories: { value: log.calories, enumerable: true, configurable: true },
+            steps: { value: log.steps, enumerable: true, configurable: true },
+            proteinGrams: { value: log.proteinGrams, enumerable: true, configurable: true },
+            waterLiters: { value: log.waterLiters, enumerable: true, configurable: true },
+            workout: { value: log.workout, enumerable: true, configurable: true },
+        });
+        return log;
+    }
 
     // Función auxiliar para obtener la fecha local en formato YYYY-MM-DD
     private getLocalDate(date?: Date): string {
@@ -84,15 +105,20 @@ export class DailyLogService {
 
         let savedLog: DailyLog;
         if (existing) {
-            Object.assign(existing, dto);
+            const { calories, steps, proteinGrams, waterLiters, workout, ...rest } = dto as any;
+            Object.assign(existing, rest);
             savedLog = await this.dailyLogRepo.save(existing);
         } else {
+            const { calories, steps, proteinGrams, waterLiters, workout, ...rest } = dto as any;
             const log = this.dailyLogRepo.create({
-                ...dto,
+                ...rest,
                 date,
-            });
+            } as DeepPartial<DailyLog>);
             savedLog = await this.dailyLogRepo.save(log);
         }
+
+        await this.applyLegacyMetrics(savedLog, dto);
+        savedLog = (await this.findByDate(savedLog.date)) as DailyLog;
 
         await this.syncWithCutPhase(savedLog);
 
@@ -103,13 +129,19 @@ export class DailyLogService {
         let log = await this.dailyLogRepo.findOne({ where: { date: dto.date } });
         let savedLog: DailyLog;
 
+        // INTERIM: no persistir los campos legados como columnas (ya no existen);
+        // viajan a daily_log_metrics vía applyLegacyMetrics.
+        const { calories, steps, proteinGrams, waterLiters, workout, ...rest } = dto as any;
         if (!log) {
-            log = this.dailyLogRepo.create(dto);
+            log = this.dailyLogRepo.create(rest as DeepPartial<DailyLog>);
             savedLog = await this.dailyLogRepo.save(log);
         } else {
-            Object.assign(log, dto);
+            Object.assign(log, rest);
             savedLog = await this.dailyLogRepo.save(log);
         }
+
+        await this.applyLegacyMetrics(savedLog, dto);
+        savedLog = (await this.findByDate(savedLog.date)) as DailyLog;
 
         await this.syncWithCutPhase(savedLog);
 
@@ -121,16 +153,20 @@ export class DailyLogService {
         let log = await this.dailyLogRepo.findOne({ where: { date } });
         let savedLog: DailyLog;
 
+        const { calories, steps, proteinGrams, waterLiters, workout, ...rest } = dto as any;
         if (!log) {
             log = this.dailyLogRepo.create({
-                ...dto,
+                ...rest,
                 date,
-            });
+            } as DeepPartial<DailyLog>);
             savedLog = await this.dailyLogRepo.save(log);
         } else {
-            Object.assign(log, dto);
+            Object.assign(log, rest);
             savedLog = await this.dailyLogRepo.save(log);
         }
+
+        await this.applyLegacyMetrics(savedLog, dto);
+        savedLog = (await this.findByDate(savedLog.date)) as DailyLog;
 
         await this.syncWithCutPhase(savedLog);
 
@@ -164,18 +200,20 @@ export class DailyLogService {
 
     // Obtener todos los registros
     async findAll(): Promise<DailyLog[]> {
-        return this.dailyLogRepo.find({ order: { date: 'DESC' } });
+        const logs = await this.dailyLogRepo.find({ order: { date: 'DESC' }, relations: this.relations });
+        return logs.map((log) => this.decorateLegacy(log));
     }
 
     async findPaginated(skip: number, take: number): Promise<PaginatedDailyLogs> {
         const [items, total] = await this.dailyLogRepo.findAndCount({
             order: { date: 'DESC' },
+            relations: this.relations,
             skip,
             take,
         });
 
         return {
-            items,
+            items: items.map((log) => this.decorateLegacy(log)),
             total,
             hasMore: skip + items.length < total,
         };
@@ -183,15 +221,18 @@ export class DailyLogService {
 
     // Buscar por fecha exacta
     async findByDate(date: string): Promise<DailyLog | null> {
-        return this.dailyLogRepo.findOne({ where: { date } });
+        const log = await this.dailyLogRepo.findOne({ where: { date }, relations: this.relations });
+        return this.decorateLegacy(log);
     }
 
     // Buscar rango de fechas (para dashboards y promedio semanal)
     async findByDateRange(start: string, end: string): Promise<DailyLog[]> {
-        return this.dailyLogRepo.find({
+        const logs = await this.dailyLogRepo.find({
             where: { date: Between(start, end) },
             order: { date: 'ASC' },
+            relations: this.relations,
         });
+        return logs.map((log) => this.decorateLegacy(log));
     }
 
 async remove(id: string): Promise<void> {
@@ -218,177 +259,5 @@ async remove(id: string): Promise<void> {
         if (!logs.length) return 0;
         const total = logs.reduce((acc, log) => acc + log.calories, 0);
         return total / logs.length;
-    }
-
-    /**
-     * Calcular días buenos y malos basado en límite de calorías y objetivo de pasos
-     * @param start Fecha inicio (YYYY-MM-DD)
-     * @param end Fecha fin (YYYY-MM-DD)
-     * @param calorieLimit Límite de calorías diarias (ej: 2000)
-     * @param stepGoal Objetivo de pasos diarios (ej: 8000)
-     */
-    async getGoodBadDays(
-        start: string,
-        end: string,
-        calorieLimit: number,
-        stepGoal: number
-    ): Promise<GoodBadDaysResult> {
-        const logs = await this.findByDateRange(start, end);
-
-        if (!logs.length) {
-            return {
-                goodDays: 0,
-                badDays: 0,
-                totalDays: 0,
-                goodDaysPercentage: 0,
-                badDaysPercentage: 0,
-                averageCalories: 0,
-                averageSteps: 0,
-                goodDaysList: [],
-                badDaysList: [],
-            };
-        }
-
-        // Calcular promedio de calorías y pasos
-        const totalCalories = logs.reduce((sum, log) => sum + log.calories, 0);
-        const totalSteps = logs.reduce((sum, log) => sum + log.steps, 0);
-        const averageCalories = totalCalories / logs.length;
-        const averageSteps = totalSteps / logs.length;
-
-        const goodDaysList: DailyLog[] = [];
-        const badDaysList: DailyLog[] = [];
-
-        logs.forEach(log => {
-            const isGood = log.calories <= calorieLimit && log.steps >= stepGoal;
-            const isBad = log.calories > calorieLimit || log.steps < stepGoal;
-
-            if (isGood) {
-                goodDaysList.push(log);
-            } else if (isBad) {
-                badDaysList.push(log);
-            }
-        });
-
-        const totalDays = logs.length;
-        const goodDays = goodDaysList.length;
-        const badDays = badDaysList.length;
-
-        return {
-            goodDays,
-            badDays,
-            totalDays,
-            goodDaysPercentage: (goodDays / totalDays) * 100,
-            badDaysPercentage: (badDays / totalDays) * 100,
-            averageCalories: Math.round(averageCalories),
-            averageSteps: Math.round(averageSteps),  // NUEVO
-            goodDaysList,
-            badDaysList,
-        };
-    }
-
-    /**
-     * Clasificar cada día como bueno o malo con razón
-     */
-    async classifyDays(
-        start: string,
-        end: string,
-        calorieLimit: number,
-        stepGoal: number
-    ): Promise<DayClassification[]> {
-        const logs = await this.findByDateRange(start, end);
-
-        return logs.map(log => {
-            const isCaloriesOk = log.calories <= calorieLimit;
-            const isStepsOk = log.steps >= stepGoal;
-            const isGood = isCaloriesOk && isStepsOk;
-            const isBad = !isCaloriesOk || !isStepsOk;
-
-            let reason = '';
-            if (!isCaloriesOk && !isStepsOk) {
-                reason = `Excediste el límite de calorías (${log.calories}/${calorieLimit} kcal) y no alcanzaste el objetivo de pasos (${log.steps}/${stepGoal})`;
-            } else if (!isCaloriesOk) {
-                reason = `Excediste el límite de calorías: ${log.calories}/${calorieLimit} kcal`;
-            } else if (!isStepsOk) {
-                reason = `No alcanzaste el objetivo de pasos: ${log.steps}/${stepGoal}`;
-            }
-
-            return {
-                date: log.date,
-                calories: log.calories,
-                steps: log.steps,
-                isGood,
-                isBad,
-                reason: reason || '¡Excelente día!',
-            };
-        });
-    }
-
-    /**
-     * Obtener estadísticas completas para un rango de fechas
-     */
-    async getFullStats(
-        start: string,
-        end: string,
-        calorieLimit: number,
-        stepGoal: number
-    ): Promise<FullStatsResult> {
-        const logs = await this.findByDateRange(start, end);
-        const goodBadStats = await this.getGoodBadDays(start, end, calorieLimit, stepGoal);
-        const classifications = await this.classifyDays(start, end, calorieLimit, stepGoal);
-
-        // Calcular totales
-        const totalCalories = logs.reduce((sum, log) => sum + log.calories, 0);
-        const totalSteps = logs.reduce((sum, log) => sum + log.steps, 0);
-
-        // Encontrar mejor y peor día en calorías y pasos
-        const bestDayCalories = logs.length ? Math.max(...logs.map(l => l.calories)) : 0;
-        const worstDayCalories = logs.length ? Math.min(...logs.map(l => l.calories)) : 0;
-        const bestDaySteps = logs.length ? Math.max(...logs.map(l => l.steps)) : 0;
-        const worstDaySteps = logs.length ? Math.min(...logs.map(l => l.steps)) : 0;
-
-        const bestDay = logs.length ? [...logs].sort((a, b) => b.calories - a.calories)[0] : null;
-
-        // Calcular tendencia (comparación con período anterior)
-        const daysCount = Math.ceil((new Date(end).getTime() - new Date(start).getTime()) / (1000 * 3600 * 24));
-        const previousStart = new Date(start);
-        previousStart.setDate(previousStart.getDate() - daysCount);
-        const previousEnd = new Date(start);
-        previousEnd.setDate(previousEnd.getDate() - 1);
-
-        const previousLogs = await this.findByDateRange(
-            this.getLocalDate(previousStart),
-            this.getLocalDate(previousEnd)
-        );
-
-        const previousAvg = previousLogs.length
-            ? previousLogs.reduce((sum, log) => sum + log.calories, 0) / previousLogs.length
-            : 0;
-
-        const currentAvg = goodBadStats.averageCalories;
-        const trend = previousAvg ? ((currentAvg - previousAvg) / previousAvg) * 100 : 0;
-
-        return {
-            period: { start, end },
-            summary: {
-                totalDays: logs.length,
-                totalCalories: totalCalories,
-                totalSteps: totalSteps,
-                averageCalories: goodBadStats.averageCalories,
-                averageSteps: goodBadStats.averageSteps,
-                bestDay: bestDay,
-                bestDayCalories: bestDayCalories,
-                bestDaySteps: bestDaySteps,
-                worstDayCalories: worstDayCalories,
-                worstDaySteps: worstDaySteps,
-            },
-            goodBadStats,
-            classifications,
-            trend: {
-                percentage: trend,
-                direction: trend > 0 ? 'up' : trend < 0 ? 'down' : 'stable',
-                previousAverage: Math.round(previousAvg),
-                currentAverage: currentAvg,
-            },
-        };
     }
 }

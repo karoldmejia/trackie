@@ -10,7 +10,8 @@ export const AppDataSource = new DataSource({
   migrations: ['src/migrations/*{.ts,.js}'],
   synchronize: false,
   logging: true,
-  ssl: {
+  // Por defecto se fuerza SSL (producción). Para Postgres local: DATABASE_SSL=false npm run migration:run
+  ssl: process.env.DATABASE_SSL === 'false' ? false : {
     rejectUnauthorized: false
   }
 });

@@ -2,6 +2,8 @@ import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Settings } from '../entities/setting.entity';
 import { WeightLog } from '../entities/weightlog.entity';
+import { WeightLogMetric } from '../entities/weight-log-metric.entity';
+import { BodyMetricType } from '../entities/body-metric-type.entity';
 import { Repository } from 'typeorm';
 import { UpdateSettingsDto } from '../dtos/settings.dto';
 
@@ -31,7 +33,11 @@ export class SettingsService {
   private async updateStartWeight(settings: Settings): Promise<void> {
     const maxWeight = await this.weightLogRepo
       .createQueryBuilder('weight_logs')
-      .select('MAX(weight)', 'maxWeight')
+      // INTERIM (Fase 1 → Fase 6): leer peso desde weight_log_metrics
+      .innerJoin(WeightLogMetric, 'wlm', 'wlm."weightLogId" = weight_logs."id"')
+      .innerJoin(BodyMetricType, 'bmt', 'bmt."id" = wlm."bodyMetricTypeId"')
+      .where('bmt."key" = :key', { key: 'weight' })
+      .select('MAX(wlm."value")', 'maxWeight')
       .getRawOne();
 
     if (maxWeight && maxWeight.maxWeight !== null) {
