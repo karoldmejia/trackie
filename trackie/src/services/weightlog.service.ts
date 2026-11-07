@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { CreateWeightLogDto, UpdateWeightLogDto } from '../dtos/weightlog.dto';
-import { Repository, Between, DeepPartial } from 'typeorm';
+import { Repository, Between } from 'typeorm';
 import { WeightLog } from '../entities/weightlog.entity';
 import { WeightLogMetric } from '../entities/weight-log-metric.entity';
 import { BodyMetricType } from '../entities/body-metric-type.entity';
@@ -86,80 +86,76 @@ export class WeightLogService {
         private readonly programService: ProgramService,
     ) { }
 
-    // ------------------------------------------------------------------
-    // INTERIM (Fase 1 → Fase 5): puente entre el DTO legado (weight, bodyfat,
-    // waist, hips) y el nuevo modelo basado en weight_log_metrics.
-    // ------------------------------------------------------------------
     private readonly relations = { metrics: { bodyMetricType: true } } as const;
 
-    private async applyLegacyMetrics(log: WeightLog, dto: Partial<CreateWeightLogDto>): Promise<void> {
-        const keyByField: Record<string, string> = {
-            weight: 'weight',
-            bodyfat: 'bodyfat',
-            waist: 'waist',
-            hips: 'hips',
-        };
+    /**
+     * Valida las métricas contra el catálogo body_metric_types:
+     * - key inexistente o inactiva -> 400
+     * - valor no finito o negativo -> 400
+     * Devuelve filas listas para upsert.
+     */
+    validateAndNormalize(
+        metrics: Record<string, unknown> | undefined,
+        catalog: BodyMetricType[],
+    ): Array<{ bodyMetricTypeId: string; value: number }> {
+        const byKey = new Map(catalog.map((m) => [m.key, m]));
+        const unknown: string[] = [];
+        const inactive: string[] = [];
+        const normalized: Array<{ bodyMetricTypeId: string; value: number }> = [];
 
-        const pending: Array<{ key: string; value: number }> = [];
-        for (const [field, key] of Object.entries(keyByField)) {
-            const raw = (dto as Record<string, unknown>)[field];
-            if (raw !== undefined && raw !== null && !Number.isNaN(Number(raw))) {
-                pending.push({ key, value: Number(raw) });
-            }
-        }
-        if (!pending.length) return;
-
-        const types = await this.bodyMetricTypeRepo.find();
-        const typeByKey = new Map(types.map((t) => [t.key, t]));
-
-        for (const { key, value } of pending) {
-            const bodyMetricType = typeByKey.get(key);
-            if (!bodyMetricType) {
-                this.logger.warn(`BodyMetricType con key "${key}" no existe; se omite el valor ${value}`);
+        for (const [rawKey, rawValue] of Object.entries(metrics ?? {})) {
+            const key = rawKey.trim().toLowerCase();
+            const metric = byKey.get(key);
+            if (!metric) {
+                unknown.push(rawKey);
                 continue;
             }
-            await this.weightLogMetricRepo.query(
-                `INSERT INTO weight_log_metrics ("weightLogId", "bodyMetricTypeId", "value")
-                 VALUES ($1, $2, $3)
-                 ON CONFLICT ("weightLogId", "bodyMetricTypeId") DO UPDATE SET value = EXCLUDED.value`,
-                [log.id, bodyMetricType.id, value],
-            );
+            if (!metric.isActive) {
+                inactive.push(key);
+                continue;
+            }
+
+            const value = typeof rawValue === 'number' ? rawValue : Number(rawValue);
+            if (!Number.isFinite(value) || value < 0) {
+                throw new BadRequestException(`La métrica "${key}" debe ser un número finito >= 0`);
+            }
+            normalized.push({ bodyMetricTypeId: metric.id, value });
         }
+
+        if (unknown.length) {
+            throw new BadRequestException(`Métricas corporales desconocidas: ${unknown.join(', ')}`);
+        }
+        if (inactive.length) {
+            throw new BadRequestException(`Métricas corporales inactivas: ${inactive.join(', ')}`);
+        }
+
+        return normalized;
     }
 
-    /** Adjunta como props propias enumerables los campos legados (shadowing de los getters). */
-    private decorateLegacy<T extends WeightLog | null>(log: T): T {
-        if (!log) return log;
-        Object.defineProperties(log, {
-            weight: { value: log.weight, enumerable: true, configurable: true },
-            bodyfat: { value: log.bodyfat, enumerable: true, configurable: true },
-            waist: { value: log.waist, enumerable: true, configurable: true },
-            hips: { value: log.hips, enumerable: true, configurable: true },
+    /** Upsert masivo de las métricas del log (ON CONFLICT weightLogId, bodyMetricTypeId). */
+    private async upsertMetrics(logId: string, metrics: Record<string, unknown> | undefined): Promise<void> {
+        if (!metrics) return;
+
+        const catalog = await this.bodyMetricTypeRepo.find();
+        const rows = this.validateAndNormalize(metrics, catalog);
+        if (rows.length === 0) return;
+
+        const valuesSql: string[] = [];
+        const params: unknown[] = [logId];
+        rows.forEach((row, i) => {
+            const base = params.length + 1;
+            valuesSql.push(`($1, $${base}, $${base + 1})`);
+            params.push(row.bodyMetricTypeId, row.value);
         });
-        return log;
+        await this.weightLogMetricRepo.query(
+            `INSERT INTO weight_log_metrics ("weightLogId", "bodyMetricTypeId", "value")
+             VALUES ${valuesSql.join(', ')}
+             ON CONFLICT ("weightLogId", "bodyMetricTypeId") DO UPDATE SET value = EXCLUDED.value`,
+            params,
+        );
     }
 
-    /** Elimina los campos legados del DTO (ya no son columnas). */
-    private stripLegacy<T extends Partial<CreateWeightLogDto> | Partial<UpdateWeightLogDto>>(dto: T): T {
-        const rest: any = { ...(dto as any) };
-        delete rest.weight;
-        delete rest.bodyfat;
-        delete rest.waist;
-        delete rest.hips;
-        return rest;
-    }
-
-    private async finishLegacySave(saved: WeightLog, dto: Partial<CreateWeightLogDto & UpdateWeightLogDto>): Promise<WeightLog> {
-        await this.applyLegacyMetrics(saved, dto as CreateWeightLogDto);
-        // Fase 5: mantener las snapshots first/last del programa activo
-        await this.recalculateProgramMeasurements();
-        return (await this.findByDate(saved.date)) as WeightLog;
-    }
-
-    /**
-     * Recalcula las filas first/last de program_measurements del programa ACTIVO.
-     * No fatal: un error aquí no debe tumbar la escritura del WeightLog.
-     */
+    /** Recalcula las snapshots first/last del programa activo. No fatal. */
     private async recalculateProgramMeasurements(): Promise<void> {
         try {
             const active = await this.programService.findActive();
@@ -173,12 +169,29 @@ export class WeightLogService {
         }
     }
 
+    private async finishSave(saved: WeightLog, dto: Partial<CreateWeightLogDto & UpdateWeightLogDto>): Promise<WeightLog> {
+        await this.upsertMetrics(saved.id, dto.metrics as Record<string, number> | undefined);
+        // Fase 5: mantener las snapshots first/last del programa activo
+        await this.recalculateProgramMeasurements();
+        return (await this.findByDate(saved.date)) as WeightLog;
+    }
+
+    /** Mapa { key: value } de las métricas del log (vacío si no están cargadas). */
+    private metricValuesOf(log: WeightLog): Record<string, number> {
+        const out: Record<string, number> = {};
+        for (const m of log.metrics ?? []) {
+            const key = m.bodyMetricType?.key;
+            if (key && m.value !== null && m.value !== undefined) {
+                out[key] = m.value;
+            }
+        }
+        return out;
+    }
+
     async create(dto: CreateWeightLogDto, photos?: Express.Multer.File[]): Promise<WeightLog> {
         let existing = await this.weightLogRepo.findOne({ where: { date: dto.date } });
 
-        const logData: any = this.stripLegacy(dto);
-
-        // Validar datos numéricos
+        const logData: Partial<WeightLog> = {};
 
         if (photos && photos.length > 0) {
             const photoUrls = await this.uploadService.savePhotos(photos);
@@ -195,11 +208,11 @@ export class WeightLogService {
         if (existing) {
             Object.assign(existing, logData);
             const result = await this.weightLogRepo.save(existing);
-            return this.finishLegacySave(result, dto);
+            return this.finishSave(result, dto);
         } else {
-            const log = this.weightLogRepo.create(logData as DeepPartial<WeightLog>);
+            const log = this.weightLogRepo.create({ ...logData, date: dto.date });
             const result = await this.weightLogRepo.save(log);
-            return this.finishLegacySave(result, dto);
+            return this.finishSave(result, dto);
         }
     }
 
@@ -261,15 +274,17 @@ export class WeightLogService {
         }
 
         if (existing) {
-            Object.assign(existing, this.stripLegacy(dto));
+            if (dto.photos !== undefined) {
+                existing.photos = dto.photos;
+            }
             this.logger.log(`Actualizando registro existente`);
             const saved = await this.weightLogRepo.save(existing);
-            return this.finishLegacySave(saved, dto);
+            return this.finishSave(saved, dto);
         } else {
-            const log = this.weightLogRepo.create(this.stripLegacy(dto));
+            const log = this.weightLogRepo.create({ date: dto.date, photos: dto.photos });
             this.logger.log(`Creando nuevo registro`);
             const saved = await this.weightLogRepo.save(log);
-            return this.finishLegacySave(saved, dto);
+            return this.finishSave(saved, dto);
         }
     }
 
@@ -279,8 +294,9 @@ export class WeightLogService {
             order: { date: 'DESC' },
             relations: this.relations,
         });
-        return this.decorateLegacy(result);
+        return result;
     }
+
     /**
      * Actualizar registro existente por ID
      */
@@ -300,9 +316,11 @@ export class WeightLogService {
             log.photos = [...(log.photos || []), ...newPhotoUrls];
         }
 
-        Object.assign(log, this.stripLegacy(dto));
+        if (dto.photos !== undefined) {
+            log.photos = dto.photos;
+        }
         const saved = await this.weightLogRepo.save(log);
-        return this.finishLegacySave(saved, dto);
+        return this.finishSave(saved, dto);
     }
 
     /**
@@ -310,27 +328,25 @@ export class WeightLogService {
      */
     async findAll(): Promise<WeightLog[]> {
         const logs = await this.weightLogRepo.find({ order: { date: 'ASC' }, relations: this.relations });
-        return logs.map((log) => this.decorateLegacy(log));
+        return logs;
     }
 
     /**
      * Obtener registros por rango de fechas
      */
     async findByDateRange(start: string, end: string): Promise<WeightLog[]> {
-        const logs = await this.weightLogRepo.find({
+        return this.weightLogRepo.find({
             where: { date: Between(start, end) },
             order: { date: 'ASC' },
             relations: this.relations,
         });
-        return logs.map((log) => this.decorateLegacy(log));
     }
 
     /**
      * Obtener registro por fecha específica
      */
     async findByDate(date: string): Promise<WeightLog | null> {
-        const log = await this.weightLogRepo.findOne({ where: { date }, relations: this.relations });
-        return this.decorateLegacy(log);
+        return this.weightLogRepo.findOne({ where: { date }, relations: this.relations });
     }
 
     /**
@@ -339,139 +355,83 @@ export class WeightLogService {
     async getStats(start: string, end: string): Promise<WeightStats> {
         const logs = await this.findByDateRange(start, end);
 
+        const emptyStats: WeightStats = {
+            max: { weight: 0, bodyfat: 0, hips: 0, waist: 0, date: '' },
+            min: { weight: 0, bodyfat: 0, hips: 0, waist: 0, date: '' },
+            average: { weight: 0, bodyfat: 0, hips: 0, waist: 0 },
+            total: { weight: 0, bodyfat: 0, hips: 0, waist: 0 },
+            count: 0,
+            startDate: start,
+            endDate: end,
+        };
+
         if (logs.length === 0) {
-            return {
-                max: {
-                    weight: 0,
-                    bodyfat: 0,
-                    hips: 0,
-                    waist: 0,
-                    date: '',
-                },
-                min: {
-                    weight: 0,
-                    bodyfat: 0,
-                    hips: 0,
-                    waist: 0,
-                    date: '',
-                },
-                average: {
-                    weight: 0,
-                    bodyfat: 0,
-                    hips: 0,
-                    waist: 0,
-                },
-                total: {
-                    weight: 0,
-                    bodyfat: 0,
-                    hips: 0,
-                    waist: 0,
-                },
-                count: 0,
-                startDate: start,
-                endDate: end,
-            };
+            return emptyStats;
         }
 
-        // Inicializar valores máximos y mínimos
-        let maxWeight = { value: -Infinity, date: '' };
-        let minWeight = { value: Infinity, date: '' };
-        let maxBodyfat = { value: -Infinity, date: '' };
-        let minBodyfat = { value: Infinity, date: '' };
-        let maxHips = { value: -Infinity, date: '' };
-        let minHips = { value: Infinity, date: '' };
-        let maxWaist = { value: -Infinity, date: '' };
-        let minWaist = { value: Infinity, date: '' };
+        const keys = ['weight', 'bodyfat', 'hips', 'waist'] as const;
+        type StatKey = typeof keys[number];
 
-        let totalWeight = 0;
-        let totalBodyfat = 0;
-        let totalHips = 0;
-        let totalWaist = 0;
-        let weightCount = 0;
-        let bodyfatCount = 0;
-        let hipsCount = 0;
-        let waistCount = 0;
+        const stats: Record<StatKey, { max: number; maxDate: string; min: number; minDate: string; total: number; count: number }> = {
+            weight: { max: -Infinity, maxDate: '', min: Infinity, minDate: '', total: 0, count: 0 },
+            bodyfat: { max: -Infinity, maxDate: '', min: Infinity, minDate: '', total: 0, count: 0 },
+            hips: { max: -Infinity, maxDate: '', min: Infinity, minDate: '', total: 0, count: 0 },
+            waist: { max: -Infinity, maxDate: '', min: Infinity, minDate: '', total: 0, count: 0 },
+        };
 
         for (const log of logs) {
-            // Peso
-            if (log.weight !== undefined && log.weight !== null) {
-                totalWeight += log.weight;
-                weightCount++;
+            const values = this.metricValuesOf(log);
+            for (const key of keys) {
+                const value = values[key];
+                if (value === undefined || value === null) continue;
 
-                if (log.weight > maxWeight.value) {
-                    maxWeight = { value: log.weight, date: log.date };
+                const s = stats[key];
+                s.total += value;
+                s.count++;
+                if (value > s.max) {
+                    s.max = value;
+                    s.maxDate = log.date;
                 }
-                if (log.weight < minWeight.value) {
-                    minWeight = { value: log.weight, date: log.date };
-                }
-            }
-
-            // Bodyfat
-            if (log.bodyfat !== undefined && log.bodyfat !== null) {
-                totalBodyfat += log.bodyfat;
-                bodyfatCount++;
-
-                if (log.bodyfat > maxBodyfat.value) {
-                    maxBodyfat = { value: log.bodyfat, date: log.date };
-                }
-                if (log.bodyfat < minBodyfat.value) {
-                    minBodyfat = { value: log.bodyfat, date: log.date };
-                }
-            }
-
-            // Músculo esquelético
-            if (log.hips !== undefined && log.hips !== null) {
-                totalHips += log.hips;
-                hipsCount++;
-
-                if (log.hips > maxHips.value) {
-                    maxHips = { value: log.hips, date: log.date };
-                }
-                if (log.hips < minHips.value) {
-                    minHips = { value: log.hips, date: log.date };
-                }
-            }
-
-            // Waist (cintura)
-            if (log.waist !== undefined && log.waist !== null) {
-                totalWaist += log.waist;
-                waistCount++;
-
-                if (log.waist > maxWaist.value) {
-                    maxWaist = { value: log.waist, date: log.date };
-                }
-                if (log.waist < minWaist.value) {
-                    minWaist = { value: log.waist, date: log.date };
+                if (value < s.min) {
+                    s.min = value;
+                    s.minDate = log.date;
                 }
             }
         }
+
+        const maxVal = (key: StatKey) => (stats[key].count > 0 ? stats[key].max : 0);
+        const minVal = (key: StatKey) => (stats[key].count > 0 ? stats[key].min : 0);
+        const maxDate = (key: StatKey) => (stats[key].count > 0 ? stats[key].maxDate : '');
+        const minDate = (key: StatKey) => (stats[key].count > 0 ? stats[key].minDate : '');
+        const total = (key: StatKey) => Number(stats[key].total.toFixed(2));
+        const average = (key: StatKey) => (stats[key].count > 0 ? Number((stats[key].total / stats[key].count).toFixed(2)) : 0);
 
         return {
             max: {
-                weight: maxWeight.value === -Infinity ? 0 : maxWeight.value,
-                bodyfat: maxBodyfat.value === -Infinity ? 0 : maxBodyfat.value,
-                hips: maxHips.value === -Infinity ? 0 : maxHips.value,
-                waist: maxWaist.value === -Infinity ? 0 : maxWaist.value,
-                date: maxWeight.date || maxBodyfat.date || maxHips.date || maxWaist.date || '',
+                weight: maxVal('weight'),
+                bodyfat: maxVal('bodyfat'),
+                hips: maxVal('hips'),
+                waist: maxVal('waist'),
+                date: stats.weight.maxDate || stats.bodyfat.maxDate || stats.hips.maxDate || stats.waist.maxDate || '',
             },
             min: {
-                weight: minWeight.value === Infinity ? 0 : minWeight.value,
-                bodyfat: minBodyfat.value === Infinity ? 0 : minBodyfat.value,
-                hips: minHips.value === Infinity ? 0 : minHips.value,
-                waist: minWaist.value === Infinity ? 0 : minWaist.value,
-                date: minWeight.date || minBodyfat.date || minHips.date || minWaist.date || '',
+                weight: minVal('weight'),
+                bodyfat: minVal('bodyfat'),
+                hips: minVal('hips'),
+                waist: minVal('waist'),
+                date: stats.weight.minDate || stats.bodyfat.minDate || stats.hips.minDate || stats.waist.minDate || '',
             },
             average: {
-                weight: weightCount > 0 ? Number((totalWeight / weightCount).toFixed(2)) : 0,
-                bodyfat: bodyfatCount > 0 ? Number((totalBodyfat / bodyfatCount).toFixed(2)) : 0,
-                hips: hipsCount > 0 ? Number((totalHips / hipsCount).toFixed(2)) : 0,
-                waist: waistCount > 0 ? Number((totalWaist / waistCount).toFixed(2)) : 0,
+                weight: average('weight'),
+                bodyfat: average('bodyfat'),
+                hips: average('hips'),
+                waist: average('waist'),
             },
             total: {
-                weight: Number(totalWeight.toFixed(2)),
-                bodyfat: Number(totalBodyfat.toFixed(2)),
-                hips: Number(totalHips.toFixed(2)),
-                waist: Number(totalWaist.toFixed(2)),
+                weight: total('weight'),
+                bodyfat: total('bodyfat'),
+                hips: total('hips'),
+                waist: total('waist'),
             },
             count: logs.length,
             startDate: start,

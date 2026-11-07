@@ -33,12 +33,22 @@ async upsertByDate(
     @Body() body: any,
     @UploadedFiles() files: { photos?: Express.Multer.File[] }
 ): Promise<WeightLog> {
+    // El front puede mandar métricas sueltas (weight, bodyfat, waist, hips) o un mapa metrics{}
+    const metrics: Record<string, number> = {};
+    if (body.metrics && typeof body.metrics === 'object') {
+        Object.assign(metrics, body.metrics);
+    } else {
+        for (const key of ['weight', 'bodyfat', 'hips', 'waist'] as const) {
+            const raw = body[key];
+            if (raw !== undefined && raw !== null && raw !== '') {
+                metrics[key] = parseFloat(raw);
+            }
+        }
+    }
+
     const dto: CreateWeightLogDto = {
         date: body.date,
-        weight: parseFloat(body.weight),
-        bodyfat: body.bodyfat ? parseFloat(body.bodyfat) : undefined,
-        hips: body.hips ? parseFloat(body.hips) : undefined,
-        waist: body.waist ? parseFloat(body.waist) : undefined,
+        metrics: Object.keys(metrics).length > 0 ? metrics : undefined,
     };
 
     let photosToDelete: string[] = [];

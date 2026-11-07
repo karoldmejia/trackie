@@ -27,10 +27,6 @@ import { ShoppingItem } from './entities/shopping-item.entity';
 import { ShoppingList } from './entities/shopping-list.entity';
 import { ShoppingListController } from './controllers/shopping-list.controller';
 import { ShoppingListService } from './services/shopping-list.service';
-import { CutPhase } from './entities/cutphase.entity';
-import { CutPhaseDay } from './entities/cutphaseday.entity';
-import { CutPhaseController } from './controllers/cutphase.controller';
-import { CutPhaseService } from './services/cutphase.service';
 import { ProgramController } from './controllers/program.controller';
 import { MetricType } from './entities/metric-type.entity';
 import { DailyLogMetric } from './entities/daily-log-metric.entity';
@@ -68,7 +64,7 @@ import { ProgramRoutineController } from './controllers/program-routine.controll
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
       // El schema se gestiona con migraciones (src/migrations). Ver `npm run migration:run`.
-      entities: [DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay, MetricType, DailyLogMetric, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, ProgramMeasurement, WorkoutRoutine, WorkoutTemplate, WorkoutBlockTemplate, WorkoutExecution, WorkoutBlockExecution, ProgramRoutine],
+      entities: [DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, MetricType, DailyLogMetric, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, ProgramMeasurement, WorkoutRoutine, WorkoutTemplate, WorkoutBlockTemplate, WorkoutExecution, WorkoutBlockExecution, ProgramRoutine],
       synchronize: false,
       // Por defecto se fuerza SSL cuando hay DATABASE_URL (producción). Para desarrollo local: DATABASE_SSL=false
       ssl: process.env.DATABASE_URL && process.env.DATABASE_SSL !== 'false'
@@ -76,7 +72,7 @@ import { ProgramRoutineController } from './controllers/program-routine.controll
         : false,
     }),
 
-    TypeOrmModule.forFeature([DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay, MetricType, DailyLogMetric, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, ProgramMeasurement, WorkoutRoutine, WorkoutTemplate, WorkoutBlockTemplate, WorkoutExecution, WorkoutBlockExecution, ProgramRoutine]),
+    TypeOrmModule.forFeature([DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, MetricType, DailyLogMetric, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, ProgramMeasurement, WorkoutRoutine, WorkoutTemplate, WorkoutBlockTemplate, WorkoutExecution, WorkoutBlockExecution, ProgramRoutine]),
 
     MulterModule.register({
       limits: {
@@ -90,7 +86,6 @@ import { ProgramRoutineController } from './controllers/program-routine.controll
     SettingsController,
     MealPlannerController,
     ShoppingListController,
-    CutPhaseController,
     ProgramController,
     WorkoutRoutineController,
     WorkoutTemplateController,
@@ -106,7 +101,6 @@ import { ProgramRoutineController } from './controllers/program-routine.controll
     CloudinaryService,
     MealPlannerService,
     ShoppingListService,
-    CutPhaseService,
     MetricService,
     ProgramService,
     WorkoutService,

@@ -1,28 +1,17 @@
-import { IsDateString, IsNumber, Min, IsOptional, IsArray, IsString, Max } from 'class-validator';
+import { IsDateString, IsObject, IsOptional, IsString, IsArray } from 'class-validator';
 
+/**
+ * DTO de escritura de un WeightLog.
+ * Las mediciones corporales viajan como un mapa { bodyMetricKey: valor }
+ * validado contra el catálogo body_metric_types en el servicio.
+ */
 export class CreateWeightLogDto {
   @IsDateString()
   date: string;
 
-  @IsNumber()
-  @Min(0)
-  weight: number;
-
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  bodyfat?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  hips?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  waist?: number;
+  @IsObject()
+  metrics?: Record<string, number>;
 
   @IsOptional()
   @IsArray()
@@ -32,25 +21,12 @@ export class CreateWeightLogDto {
 
 export class UpdateWeightLogDto {
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  weight?: number;
+  @IsDateString()
+  date?: string;
 
   @IsOptional()
-  @IsNumber()
-  @Min(0)
-  @Max(100)
-  bodyfat?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  hips?: number;
-
-  @IsOptional()
-  @IsNumber()
-  @Min(0)
-  waist?: number;
+  @IsObject()
+  metrics?: Record<string, number>;
 
   @IsOptional()
   @IsArray()
@@ -58,5 +34,6 @@ export class UpdateWeightLogDto {
   photos?: string[];
 
   @IsOptional()
+  @IsArray()
   photosToDelete?: string[];
 }
