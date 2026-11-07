@@ -448,7 +448,7 @@ export class ProgramService {
             .select('wlm."bodyMetricTypeId"', 'bodyMetricTypeId')
             .addSelect('wlm.value', 'value')
             .addSelect('wlm."weightLogId"', 'weightLogId')
-            .addSelect('wl.date', 'date')
+            .addSelect('wl.date::text', 'date')
             .where('wl.date BETWEEN :start AND :end', { start: program.startDate, end: program.endDate })
             .getRawMany<{ bodyMetricTypeId: string; value: number; weightLogId: string; date: string }>();
 

@@ -6,6 +6,7 @@ import { WeightLog } from '../entities/weightlog.entity';
 import { WeightLogMetric } from '../entities/weight-log-metric.entity';
 import { BodyMetricType } from '../entities/body-metric-type.entity';
 import { UploadService } from './upload.service';
+import { ProgramService } from './program.service';
 
 export interface WeightStats {
     max: {
@@ -82,6 +83,7 @@ export class WeightLogService {
         @InjectRepository(BodyMetricType)
         private readonly bodyMetricTypeRepo: Repository<BodyMetricType>,
         private readonly uploadService: UploadService,
+        private readonly programService: ProgramService,
     ) { }
 
     // ------------------------------------------------------------------
@@ -149,7 +151,26 @@ export class WeightLogService {
 
     private async finishLegacySave(saved: WeightLog, dto: Partial<CreateWeightLogDto & UpdateWeightLogDto>): Promise<WeightLog> {
         await this.applyLegacyMetrics(saved, dto as CreateWeightLogDto);
+        // Fase 5: mantener las snapshots first/last del programa activo
+        await this.recalculateProgramMeasurements();
         return (await this.findByDate(saved.date)) as WeightLog;
+    }
+
+    /**
+     * Recalcula las filas first/last de program_measurements del programa ACTIVO.
+     * No fatal: un error aquí no debe tumbar la escritura del WeightLog.
+     */
+    private async recalculateProgramMeasurements(): Promise<void> {
+        try {
+            const active = await this.programService.findActive();
+            if (!active) {
+                this.logger.log('No hay programa activo; no se recalculan measurements');
+                return;
+            }
+            await this.programService.recalculateMeasurementsForProgram(active.id);
+        } catch (error) {
+            this.logger.error(`Error recalculando measurements del programa activo: ${error}`);
+        }
     }
 
     async create(dto: CreateWeightLogDto, photos?: Express.Multer.File[]): Promise<WeightLog> {
@@ -467,6 +488,8 @@ export class WeightLogService {
             await this.uploadService.deleteMultiplePhotos(log.photos);
         }
         await this.weightLogRepo.delete(id);
+        // Fase 5: mantener las snapshots first/last del programa activo
+        await this.recalculateProgramMeasurements();
     }
 
     /**
@@ -479,6 +502,8 @@ export class WeightLogService {
                 await this.uploadService.deleteMultiplePhotos(log.photos);
             }
             await this.weightLogRepo.delete(log.id);
+            // Fase 5: mantener las snapshots first/last del programa activo
+            await this.recalculateProgramMeasurements();
         }
     }
 }
