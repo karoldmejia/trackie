@@ -12,6 +12,8 @@ import { Dish } from './entities/dish.entity';
 
 import { DailyLogService } from './services/dailylog.service';
 import { WeightLogService } from './services/weightlog.service';
+import { MetricService } from './services/metric.service';
+import { ProgramService } from './services/program.service';
 import { SettingsService } from './services/settings.service';
 import { UploadService } from './services/upload.service';
 import { MealPlannerService } from './services/meal-planner.service';
@@ -86,6 +88,8 @@ import { ProgramMeasurement } from './entities/program-measurement.entity';
     MealPlannerService,
     ShoppingListService,
     CutPhaseService,
+    MetricService,
+    ProgramService,
   ],
 })
 export class AppModule {}

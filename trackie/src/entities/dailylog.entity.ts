@@ -24,8 +24,9 @@ export class DailyLog {
     @UpdateDateColumn()
     updatedAt: Date;
 
-    // INTERIM (Fase 1 → Fase 2): getters de compatibilidad para los services
-    // que aún leen columnas eliminadas. Requieren `metrics.metricType` cargado.
+    // INTERIM (Fase 1 → Fase 3): getters de compatibilidad para los services
+    // que aún leen las columnas eliminadas (cutphase.service hasta que se
+    // reemplace en la Fase 3). Requieren `metrics.metricType` cargado.
     // Eliminar en Fase 6.
     private metricValue(key: string): number {
         const metric = (this.metrics ?? []).find((m) => m.metricType?.key === key);

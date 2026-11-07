@@ -1,60 +1,14 @@
-import { IsInt, Min, IsEnum, IsOptional, IsDateString, IsNumber } from 'class-validator';
-import { WorkoutType } from '../enums/workouttype.enum';
+import { IsDateString, IsObject } from 'class-validator';
 
+/**
+ * DTO de escritura de un DailyLog.
+ * El modelo es dinámico: las métricas viajan como un mapa { metricKey: valor }.
+ * Las claves se validan contra el catálogo (metric_types) en el servicio.
+ */
 export class CreateDailyLogDto {
     @IsDateString()
     date: string; // YYYY-MM-DD
 
-    @IsInt()
-    @Min(0)
-    calories: number;
-
-    @IsInt()
-    @Min(0)
-    steps: number;
-
-    @IsEnum(WorkoutType)
-    @IsOptional()
-    workout?: WorkoutType;
-
-    @IsNumber()
-    @Min(0)
-    @IsOptional()
-    proteinGrams?: number;
-
-    @IsNumber()
-    @Min(0)
-    @IsOptional()
-    waterLiters?: number;
-}
-
-export class UpdateDailyLogDto {
-
-    @IsDateString()
-    @IsOptional()
-    date: string;
-
-    @IsInt()
-    @Min(0)
-    @IsOptional()
-    calories?: number;
-
-    @IsInt()
-    @Min(0)
-    @IsOptional()
-    steps?: number;
-
-    @IsEnum(WorkoutType)
-    @IsOptional()
-    workout?: WorkoutType;
-
-    @IsNumber()
-    @Min(0)
-    @IsOptional()
-    proteinGrams?: number;
-
-    @IsNumber()
-    @Min(0)
-    @IsOptional()
-    waterLiters?: number;
+    @IsObject()
+    metrics: Record<string, number | boolean>;
 }
