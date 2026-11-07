@@ -1,6 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn, Unique, OneToMany } from 'typeorm';
 import { DailyLogMetric } from './daily-log-metric.entity';
 import { ProgramDay } from './program-day.entity';
+import { WorkoutExecution } from './workout-execution.entity';
 import { WorkoutType } from '../enums/workouttype.enum';
 
 @Entity('daily_logs')
@@ -17,6 +18,9 @@ export class DailyLog {
 
     @OneToMany(() => ProgramDay, (d) => d.dailyLog)
     programDays: ProgramDay[];
+
+    @OneToMany(() => WorkoutExecution, (e) => e.dailyLog)
+    workoutExecutions: WorkoutExecution[];
 
     @CreateDateColumn()
     createdAt: Date;

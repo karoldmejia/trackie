@@ -3,7 +3,7 @@ import { CreateDailyLogDto } from "../dtos/dailylog.dto";
 import { DailyLog } from "../entities/dailylog.entity";
 import { DailyLogMetric } from "../entities/daily-log-metric.entity";
 import { MetricType } from "../entities/metric-type.entity";
-import { Between, Repository } from "typeorm";
+import { WorkoutExecution } from "../entities/workout-execution.entity";import { Between, Repository } from "typeorm";
 import { InjectRepository } from "@nestjs/typeorm";
 import { MetricValueType } from "../enums/metric-value-type.enum";
 import { ProgramService } from "./program.service";
@@ -24,6 +24,37 @@ export interface DailyLogMetricResponse {
     isDerived: boolean;
 }
 
+export interface WorkoutBlockExecutionResponse {
+    id: string;
+    templateId: string | null;
+    kindSnapshot: string;
+    nameSnapshot: string;
+    metricTypeSnapshot: string;
+    plannedRounds: number;
+    actualRounds: number;
+    targetDistanceMeters: number | null;
+    actualDistanceMeters: number | null;
+    targetDurationSeconds: number | null;
+    actualDurationSeconds: number | null;
+    targetReps: number | null;
+    actualReps: number | null;
+    completed: boolean;
+}
+
+export interface WorkoutExecutionResponse {
+    id: string;
+    routineId: string | null;
+    workoutId: string | null;
+    workoutNameSnapshot: string;
+    workoutTypeSnapshot: string;
+    totalDistanceMeters: number;
+    totalDurationSeconds: number;
+    totalRounds: number;
+    completed: boolean;
+    notes: string | null;
+    blocks: WorkoutBlockExecutionResponse[];
+}
+
 export interface DailyLogResponse {
     id: string;
     date: string;
@@ -33,8 +64,8 @@ export interface DailyLogResponse {
     metrics: DailyLogMetricResponse[];
     /** Mapa plano { metricKey: value } para el front. */
     extraMetrics: Record<string, number | null>;
-    /** Ejecuciones de workouts (vacío hasta Fase 4). */
-    workouts: unknown[];
+    /** Ejecuciones de workouts del log. */
+    workouts: WorkoutExecutionResponse[];
 }
 
 @Injectable()
@@ -52,7 +83,7 @@ export class DailyLogService {
         private readonly programService: ProgramService,
     ) { }
 
-    private readonly relations = { metrics: { metricType: true } } as const;
+    private readonly relations = { metrics: { metricType: true }, workoutExecutions: { blocks: true } } as const;
 
     /** Función auxiliar para obtener la fecha local en formato YYYY-MM-DD */
     private getLocalDate(date: Date = new Date()): string {
@@ -240,13 +271,28 @@ export class DailyLogService {
     }
 
     /**
-     * Métricas derivadas desde las workoutExecutions del log.
-     * Fase 4 rellenará esta función (workout_count, workout_total_km,
-     * workout_total_minutes). Por ahora devuelve {} al no existir
-     * workout_executions todavía.
+     * Métricas derivadas desde las workoutExecutions del log:
+     * - workout_count: número de ejecuciones
+     * - workout_total_km: suma de totalDistanceMeters / 1000
+     * - workout_total_minutes: suma de totalDurationSeconds / 60
+     * Usa las relaciones cargadas (workoutExecutions).
      */
-    computeDerivedMetrics(_dailyLog: DailyLog): Record<string, number> {
-        return {};
+    computeDerivedMetrics(dailyLog: DailyLog): Record<string, number> {
+        const executions = dailyLog.workoutExecutions ?? [];
+        if (executions.length === 0) {
+            return {};
+        }
+        let meters = 0;
+        let seconds = 0;
+        for (const execution of executions) {
+            meters += execution.totalDistanceMeters ?? 0;
+            seconds += execution.totalDurationSeconds ?? 0;
+        }
+        return {
+            workout_count: executions.length,
+            workout_total_km: Number((meters / 1000).toFixed(2)),
+            workout_total_minutes: Number((seconds / 60).toFixed(2)),
+        };
     }
 
     /** Shape plano del DailyLog para el front. */
@@ -273,7 +319,38 @@ export class DailyLogService {
             updatedAt: log.updatedAt,
             metrics,
             extraMetrics,
-            workouts: [],
+            workouts: (log.workoutExecutions ?? []).map((execution) => this.workoutToResponse(execution)),
+        };
+    }
+
+    private workoutToResponse(execution: WorkoutExecution) {
+        return {
+            id: execution.id,
+            routineId: execution.routineId,
+            workoutId: execution.workoutId,
+            workoutNameSnapshot: execution.workoutNameSnapshot,
+            workoutTypeSnapshot: execution.workoutTypeSnapshot,
+            totalDistanceMeters: execution.totalDistanceMeters,
+            totalDurationSeconds: execution.totalDurationSeconds,
+            totalRounds: execution.totalRounds,
+            completed: execution.completed,
+            notes: execution.notes,
+            blocks: (execution.blocks ?? []).map((b) => ({
+                id: b.id,
+                templateId: b.templateId,
+                kindSnapshot: b.kindSnapshot,
+                nameSnapshot: b.nameSnapshot,
+                metricTypeSnapshot: b.metricTypeSnapshot,
+                plannedRounds: b.plannedRounds,
+                actualRounds: b.actualRounds,
+                targetDistanceMeters: b.targetDistanceMeters,
+                actualDistanceMeters: b.actualDistanceMeters,
+                targetDurationSeconds: b.targetDurationSeconds,
+                actualDurationSeconds: b.actualDurationSeconds,
+                targetReps: b.targetReps,
+                actualReps: b.actualReps,
+                completed: b.completed,
+            })),
         };
     }
 

@@ -40,6 +40,18 @@ import { ProgramDay } from './entities/program-day.entity';
 import { BodyMetricType } from './entities/body-metric-type.entity';
 import { WeightLogMetric } from './entities/weight-log-metric.entity';
 import { ProgramMeasurement } from './entities/program-measurement.entity';
+import { WorkoutRoutine } from './entities/workout-routine.entity';
+import { WorkoutTemplate } from './entities/workout-template.entity';
+import { WorkoutBlockTemplate } from './entities/workout-block-template.entity';
+import { WorkoutExecution } from './entities/workout-execution.entity';
+import { WorkoutBlockExecution } from './entities/workout-block-execution.entity';
+import { ProgramRoutine } from './entities/program-routine.entity';
+import { WorkoutService } from './services/workout.service';
+import { WorkoutRoutineController } from './controllers/workout-routine.controller';
+import { WorkoutTemplateController } from './controllers/workout-template.controller';
+import { WorkoutBlockTemplateController } from './controllers/workout-block-template.controller';
+import { WorkoutExecutionController } from './controllers/workout-execution.controller';
+import { ProgramRoutineController } from './controllers/program-routine.controller';
 
 @Module({
   imports: [
@@ -56,7 +68,7 @@ import { ProgramMeasurement } from './entities/program-measurement.entity';
       password: process.env.POSTGRES_PASSWORD,
       database: process.env.POSTGRES_DB,
       // El schema se gestiona con migraciones (src/migrations). Ver `npm run migration:run`.
-      entities: [DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay, MetricType, DailyLogMetric, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, ProgramMeasurement],
+      entities: [DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay, MetricType, DailyLogMetric, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, ProgramMeasurement, WorkoutRoutine, WorkoutTemplate, WorkoutBlockTemplate, WorkoutExecution, WorkoutBlockExecution, ProgramRoutine],
       synchronize: false,
       // Por defecto se fuerza SSL cuando hay DATABASE_URL (producción). Para desarrollo local: DATABASE_SSL=false
       ssl: process.env.DATABASE_URL && process.env.DATABASE_SSL !== 'false'
@@ -64,7 +76,7 @@ import { ProgramMeasurement } from './entities/program-measurement.entity';
         : false,
     }),
 
-    TypeOrmModule.forFeature([DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay, MetricType, DailyLogMetric, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, ProgramMeasurement]),
+    TypeOrmModule.forFeature([DailyLog, WeightLog, Settings, DayPlan, PlannedMeal, Dish, ShoppingItem, ShoppingList, CutPhase, CutPhaseDay, MetricType, DailyLogMetric, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, ProgramMeasurement, WorkoutRoutine, WorkoutTemplate, WorkoutBlockTemplate, WorkoutExecution, WorkoutBlockExecution, ProgramRoutine]),
 
     MulterModule.register({
       limits: {
@@ -80,6 +92,11 @@ import { ProgramMeasurement } from './entities/program-measurement.entity';
     ShoppingListController,
     CutPhaseController,
     ProgramController,
+    WorkoutRoutineController,
+    WorkoutTemplateController,
+    WorkoutBlockTemplateController,
+    WorkoutExecutionController,
+    ProgramRoutineController,
   ],
   providers: [
     DailyLogService,
@@ -92,6 +109,7 @@ import { ProgramMeasurement } from './entities/program-measurement.entity';
     CutPhaseService,
     MetricService,
     ProgramService,
+    WorkoutService,
   ],
 })
 export class AppModule {}

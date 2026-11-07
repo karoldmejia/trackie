@@ -1,6 +1,7 @@
 import { Client } from 'pg';
 import { DataSource } from 'typeorm';
 import { Fase1ModularMetrics1794017539549 } from '../migrations/1794017539549-Fase1ModularMetrics';
+import { Fase4Workouts1794019149030 } from '../migrations/1794019149030-Fase4Workouts';
 import { MetricType } from './metric-type.entity';
 import { DailyLogMetric } from './daily-log-metric.entity';
 import { DailyLog } from './dailylog.entity';
@@ -13,6 +14,12 @@ import { WeightLog } from './weightlog.entity';
 import { ProgramMeasurement } from './program-measurement.entity';
 import { ProgramMeasurementKind } from '../enums/program-measurement-kind.enum';
 import { ProgramKind } from '../enums/program-kind.enum';
+import { WorkoutRoutine } from './workout-routine.entity';
+import { WorkoutTemplate } from './workout-template.entity';
+import { WorkoutBlockTemplate } from './workout-block-template.entity';
+import { WorkoutExecution } from './workout-execution.entity';
+import { WorkoutBlockExecution } from './workout-block-execution.entity';
+import { ProgramRoutine } from './program-routine.entity';
 
 /**
  * Verifica que el UNIQUE(programId, bodyMetricTypeId, kind) de program_measurements
@@ -46,8 +53,8 @@ describe('ProgramMeasurement unique constraint', () => {
         dataSource = new DataSource({
             type: 'postgres',
             url: TEST_URL,
-            entities: [MetricType, DailyLogMetric, DailyLog, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, WeightLog, ProgramMeasurement],
-            migrations: [Fase1ModularMetrics1794017539549],
+            entities: [MetricType, DailyLogMetric, DailyLog, Program, ProgramMetricTarget, ProgramDay, BodyMetricType, WeightLogMetric, WeightLog, ProgramMeasurement, WorkoutRoutine, WorkoutTemplate, WorkoutBlockTemplate, WorkoutExecution, WorkoutBlockExecution, ProgramRoutine],
+            migrations: [Fase1ModularMetrics1794017539549, Fase4Workouts1794019149030],
             synchronize: false,
         });
         await dataSource.initialize();
