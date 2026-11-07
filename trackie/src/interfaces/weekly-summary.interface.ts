@@ -1,13 +1,13 @@
+/**
+ * Resumen semanal genérico: el compliance por métrica vive en
+ * `targetCompliance` ({ metricKey: porcentaje }). No hay keys hardcodeadas.
+ */
 export interface WeeklySummary {
     weekNumber: number;
-    startDate: string;
-    endDate: string;
+    startDate: string | null;
+    endDate: string | null;
     daysCount: number;
     daysWithAllMet: number;
     compliancePercentage: number;
-    caloriesCompliance: number;
-    proteinCompliance: number;
-    stepsCompliance: number;
-    waterCompliance: number;
-    workoutCompliance: number;
+    targetCompliance: Record<string, number>;
 }

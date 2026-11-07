@@ -8,7 +8,21 @@ import { WeightLogService } from './weightlog.service';
 import { CreateCutPhaseDto, UpdateCutPhaseDto } from '../dtos/cutday.dto';
 import { DailyLog } from '../entities/dailylog.entity';
 import { WorkoutType } from '../enums/workouttype.enum';
-import { WeeklySummary } from '../interfaces/weekly-summary.interface';
+// INTERIM (Fase 1 → Fase 6): copia local de la forma antigua para no tocar el
+// contrato del endpoint legacy /cut-phases/weekly-summary. Eliminar en Fase 6.
+interface WeeklySummary {
+    weekNumber: number;
+    startDate: string;
+    endDate: string;
+    daysCount: number;
+    daysWithAllMet: number;
+    compliancePercentage: number;
+    caloriesCompliance: number;
+    proteinCompliance: number;
+    stepsCompliance: number;
+    waterCompliance: number;
+    workoutCompliance: number;
+}
 import { TrendsData, WeeklyTrend } from '../interfaces/weekly-trend.interface';
 import { WeightLog } from 'src/entities/weightlog.entity';
 

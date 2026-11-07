@@ -31,6 +31,7 @@ import { CutPhase } from './entities/cutphase.entity';
 import { CutPhaseDay } from './entities/cutphaseday.entity';
 import { CutPhaseController } from './controllers/cutphase.controller';
 import { CutPhaseService } from './services/cutphase.service';
+import { ProgramController } from './controllers/program.controller';
 import { MetricType } from './entities/metric-type.entity';
 import { DailyLogMetric } from './entities/daily-log-metric.entity';
 import { Program } from './entities/program.entity';
@@ -77,7 +78,8 @@ import { ProgramMeasurement } from './entities/program-measurement.entity';
     SettingsController,
     MealPlannerController,
     ShoppingListController,
-    CutPhaseController
+    CutPhaseController,
+    ProgramController,
   ],
   providers: [
     DailyLogService,
