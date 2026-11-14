@@ -7,18 +7,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Dimensions, KeyboardAvoidingView, Modal, Platform, StyleSheet, Switch, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { FormInput } from '../FormInput';
 import { ThemedText } from '../ThemedText';
-
-/**
- * @deprecated Solo se mantiene exportado porque hooks/useDailyLogEditor.ts todavía
- * lo importa en su firma. El form ya no lo usa. Eliminar en F5.
- */
-export enum WorkoutType {
-    NONE = 'none',
-    UPPER = 'upper',
-    LOWER = 'lower',
-    FULL = 'full',
-    CARDIO = 'cardio',
-}
+console.log('>>> DailyLogForm.tsx module loaded (v2) <<<');
 
 const METRIC_ICONS: Record<string, string> = {
     calories: 'Flame',
@@ -52,6 +41,8 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
     title = 'Registro ciario',
     hideDatePicker = false,
 }) => {
+        console.log('DailyLogForm render, visible =', visible);
+
     const getCurrentLocalDate = () => {
         const now = new Date();
         const year = now.getFullYear();
@@ -74,11 +65,15 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
 
     // Pedir el schema al montar
     useEffect(() => {
+            console.log('useEffect schema corrió');
+
         let cancelled = false;
         setLoadingSchema(true);
         dailyLogService.getFormSchema()
             .then((data) => {
                 if (cancelled) return;
+                console.log('FormSchema recibido:', JSON.stringify(data, null, 2));
+                console.log('Métricas editables:', data.metrics.filter((m: any) => !m.isDerived).map((m: any) => m.key));
                 setSchema(data);
             })
             .catch((error) => {
@@ -160,8 +155,8 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
         setValues(prev => ({ ...prev, [key]: enabled ? 1 : 0 }));
     };
 
-    // TODO(F5): availableToAdd se ignora en esta fase; no se implementa el
-    // botón "Añadir métrica". El form solo muestra schema.metrics.
+    // TODO(DEUDA): availableToAdd no implementado: falta el botón "Añadir métrica"
+    // en el form. El backend ya lo devuelve en el schema; el form solo muestra schema.metrics.
 
     const handleSubmit = () => {
         const metrics: Record<string, number> = {};
@@ -225,6 +220,9 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
     };
 
     if (!visible) return null;
+    const editableMetrics = getEditableMetrics(schema);
+    console.log('Schema:', schema ? `${schema.metrics.length} totales` : 'null');
+    console.log('Editables:', editableMetrics.length, editableMetrics.map(m => m.key));
 
     return (
         <Modal
@@ -326,8 +324,8 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
                         {/* Métricas dinámicas según el FormSchema del backend (solo editables) */}
                         {getEditableMetrics(schema).map(renderMetricInput)}
 
-                        {/* TODO(F5): La sección de workout (WorkoutType / FormSelect) se
-                            elimina hasta que se migren workout_sessions. */}
+                        {/* TODO(DEUDA): workouts no migrados todavía (WorkoutExecutionInput /
+                            workout_sessions). La sección de workout se añadirá cuando exista. */}
 
                         {/* Botón de guardar */}
                         <TouchableOpacity

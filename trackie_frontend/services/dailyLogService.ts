@@ -1,6 +1,6 @@
 import api from './api';
 
-// TODO(F3): GoodBadDaysResult / DayClassification / FullStatsResult siguen
+// TODO(DEUDA): GoodBadDaysResult / DayClassification / FullStatsResult siguen
 // tipados con campos específicos de calorías/pasos (averageCalories,
 // averageSteps, calories, steps, etc.) porque el contrato nuevo de esos
 // endpoints no está definido todavía. Revisar y migrar cuando el backend

@@ -29,6 +29,7 @@ import { ShoppingListController } from './controllers/shopping-list.controller';
 import { ShoppingListService } from './services/shopping-list.service';
 import { ProgramController } from './controllers/program.controller';
 import { MetricType } from './entities/metric-type.entity';
+import { MetricTypeController } from './controllers/metric-type.controller';
 import { DailyLogMetric } from './entities/daily-log-metric.entity';
 import { Program } from './entities/program.entity';
 import { ProgramMetricTarget } from './entities/program-metric-target.entity';
@@ -92,6 +93,7 @@ import { ProgramRoutineController } from './controllers/program-routine.controll
     WorkoutBlockTemplateController,
     WorkoutExecutionController,
     ProgramRoutineController,
+    MetricTypeController,
   ],
   providers: [
     DailyLogService,

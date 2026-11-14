@@ -127,7 +127,7 @@ export const weightLogService = {
 
     // Crear o actualizar por fecha (upsert)
     upsert: async (data: CreateWeightLogDto) => {
-        // TODO(F6a): Verificar contra el DTO del backend (src/dtos/weightlog.dto.ts) si
+        // TODO(DEUDA): Verificar contra el DTO del backend (src/dtos/weightlog.dto.ts) si
         // acepta campos planos (weight, bodyfat, ...) o `metrics: Record<string, number>`.
         // Si el backend ya migró a metrics, este FormData tendrá que cambiar en una
         // tarea posterior — se deja como está intencionadamente.
@@ -168,7 +168,7 @@ export const weightLogService = {
 
     // Crear nuevo registro de peso con fotos
     create: async (data: CreateWeightLogDto) => {
-        // TODO(F6a): Verificar contra el DTO del backend (src/dtos/weightlog.dto.ts) si
+        // TODO(DEUDA): Verificar contra el DTO del backend (src/dtos/weightlog.dto.ts) si
         // acepta campos planos (weight, bodyfat, ...) o `metrics: Record<string, number>`.
         // Si el backend ya migró a metrics, este FormData tendrá que cambiar en una
         // tarea posterior — se deja como está intencionadamente.
@@ -206,7 +206,7 @@ export const weightLogService = {
 
     // Actualizar registro de peso por ID
     update: async (id: string, data: UpdateWeightLogDto) => {
-        // TODO(F6a): Verificar contra el DTO del backend (src/dtos/weightlog.dto.ts) si
+        // TODO(DEUDA): Verificar contra el DTO del backend (src/dtos/weightlog.dto.ts) si
         // acepta campos planos (weight, bodyfat, ...) o `metrics: Record<string, number>`.
         // Si el backend ya migró a metrics, este FormData tendrá que cambiar en una
         // tarea posterior — se deja como está intencionadamente.

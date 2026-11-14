@@ -196,7 +196,6 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
             kind,
             startDate: formatDate(startDate),
             endDate: formatDate(endDate),
-            totalWeeks: weeks,
             workoutsPerWeek: workouts || 0,
             isActive: true,
             targets: targetsPayload,
@@ -207,8 +206,10 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
             await onSubmit(data);
             handleClose();
         } catch (error) {
-            console.error('Error creating program:', error);
-            alert('Error al crear el programa. Por favor intenta de nuevo.');
+            // El padre (ProgramsLogs) muestra el Alert con el mensaje del backend.
+            if (__DEV__) {
+                console.error('Error creating program:', error);
+            }
         } finally {
             setIsSubmitting(false);
         }

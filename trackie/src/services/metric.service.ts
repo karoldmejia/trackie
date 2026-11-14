@@ -1,12 +1,13 @@
-import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
-import { In, Repository } from "typeorm";
-import { UpsertMetricDto } from "../dtos/metric.dto";
-import { MetricType } from "../entities/metric-type.entity";
-import { MetricTypeUnit } from "../enums/metric-type-unit.enum";
-import { MetricValueType } from "../enums/metric-value-type.enum";
-import { Program } from "../entities/program.entity";
-import { ProgramMetricTarget } from "../entities/program-metric-target.entity";
+import { BadRequestException, ConflictException, Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { In, QueryRunner, Repository } from 'typeorm';
+import { SelectQueryBuilder } from 'typeorm';
+import { UpsertMetricDto } from '../dtos/metric.dto';
+import { MetricType } from '../entities/metric-type.entity';
+import { MetricTypeUnit } from '../enums/metric-type-unit.enum';
+import { MetricValueType } from '../enums/metric-value-type.enum';
+import { Program } from '../entities/program.entity';
+import { ProgramMetricTarget } from '../entities/program-metric-target.entity';
 
 export interface FormSchema {
     metrics: MetricType[];
@@ -72,17 +73,56 @@ export class MetricService {
         return this.metricRepo.save(metric);
     }
 
+    /**
+     * findAllActive: métricas activas ordenadas por label ASC.
+     */
     async findAllActive(): Promise<MetricType[]> {
         return this.metricRepo.find({ where: { isActive: true }, order: { label: 'ASC' } });
     }
 
+    /**
+     * findByKeys: busca métricas por sus keys.
+     */
     async findByKeys(keys: string[]): Promise<MetricType[]> {
         if (keys.length === 0) return [];
         return this.metricRepo.find({ where: { key: In(keys) } });
     }
 
     /**
-     * Esquema del formulario de DailyLog:
+     * findAll: lista general de métricas con filtros opcionales.
+     * - active: si true (default), filtra isActive = true
+     * - includeDerived: si false (default), filtra isDerived = false
+     * - Ordenado por: isUniversal DESC, label ASC
+     */
+    async findAll(active?: boolean, includeDerived?: boolean): Promise<MetricType[]> {
+        const where: any = {};
+
+        if (active === undefined || active) {
+            where.isActive = true;
+        }
+
+        if (includeDerived === undefined || !includeDerived) {
+            where.isDerived = false;
+        }
+
+        return this.metricRepo.find({
+            where,
+            order: {
+                isUniversal: 'DESC',
+                label: 'ASC',
+            },
+        });
+    }
+
+    /**
+     * findById: busca una métrica por su ID.
+     */
+    async findById(id: string): Promise<MetricType | null> {
+        return this.metricRepo.findOne({ where: { id } });
+    }
+
+    /**
+     * getFormSchema: esquema del formulario de DailyLog.
      * - metrics = universales + las de los targets del programa (el indicado por `programId`,
      *   o el activo si no se pasa ninguno).
      * - availableToAdd = activas, no derivadas y no incluidas en metrics.
@@ -142,6 +182,44 @@ export class MetricService {
         this.logger.log('Métricas universales sembradas (idempotente)');
     }
 
+    /**
+     * isMetricInUse: verifica si una métrica tiene filas en daily_log_metrics o program_metric_targets.
+     */
+    async isMetricInUse(metricId: string): Promise<{ inDailyLogs: boolean, inProgramTargets: boolean }> {
+        const dailyCount = await this.metricRepo.query(
+            `SELECT COUNT(*) AS count FROM daily_log_metrics WHERE metric_type_id = (SELECT id FROM metric_types WHERE id = $1)`,
+            [metricId],
+        );
+
+        const programCount = await this.metricRepo.query(
+            `SELECT COUNT(*) AS count FROM program_metric_targets WHERE metric_type_id = (SELECT id FROM metric_types WHERE id = $1)`,
+            [metricId],
+        );
+
+        const daily = (dailyCount as any[])[0]?.count > 0;
+        const program = (programCount as any[])[0]?.count > 0;
+
+        return { inDailyLogs: daily, inProgramTargets: program };
+    }
+
+    /**
+     * softDelete: marca isActive = false de una métrica.
+     * Retorna la métrica actualizada.
+     */
+    async softDelete(metricId: string): Promise<MetricType> {
+        const existent = await this.metricRepo.findOne({ where: { id: metricId } });
+        if (!existent) {
+            throw new NotFoundException(`Métrica ${metricId} no encontrada`);
+        }
+
+        // Soft delete: marcar isActive = false
+        existent.isActive = false;
+        return this.metricRepo.save(existent);
+    }
+
+    /**
+     * getProgramTargetMetrics: obtiene las métricas de los targets de un programa.
+     */
     private async getProgramTargetMetrics(programId: string): Promise<MetricType[]> {
         const exists = await this.programRepo.findOne({ where: { id: programId } });
         if (!exists) {
@@ -155,7 +233,6 @@ export class MetricService {
     }
 
     private async findActiveProgram(): Promise<Program | null> {
-        // Misma regla que ProgramService.findActive(): isActive y hoy dentro del rango
         const today = this.getLocalDate();
         return this.programRepo
             .createQueryBuilder('program')

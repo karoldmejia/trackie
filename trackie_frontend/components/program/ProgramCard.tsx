@@ -6,9 +6,8 @@ import { formatShortDate } from '@/utils/date';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-// TODO(F7): El backend ya devuelve `kind` ('cut'|'bulk'|'maintain'), pero la card no muestra
-// el nombre ni el tipo porque no había hueco previsto en el diseño; se omite el badge
-// intencionadamente. Añadirlo cuando se autorice un ajuste visual.
+// TODO(DEUDA): La card no muestra el `kind` del programa ('cut'|'bulk'|'maintain') porque
+// no había hueco previsto en el diseño; el badge se añadirá cuando se autorice un ajuste visual.
 interface ProgramCardProps {
     program: Pick<
         Program,

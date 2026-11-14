@@ -1,8 +1,8 @@
 import api from './api';
 
-// TODO(F7): `notes` e `initialWeight`/`initialWaist`/`initialHips`/`initialBodyfat`
+// Nota: `notes` e `initialWeight`/`initialWaist`/`initialHips`/`initialBodyfat`
 // se eliminaron de Program (el backend ya no los devuelve ni los acepta). Las
-// mediciones iniciales viven en /weight-logs; los % de cumplimiento, en program_metric_targets.
+// mediciones iniciales viven en /weight-logs; los targets viven en program_metric_targets.
 
 export type ProgramKind = 'cut' | 'bulk' | 'maintain';
 
@@ -207,7 +207,7 @@ export const programService = {
         return response.data;
     },
 
-    // TODO(F7): getWeeklySummary/getTrends/getMeasurements/getSummary/getStats/getCalendar
+    // TODO(DEUDA): getWeeklySummary/getTrends/getMeasurements/getSummary/getStats/getCalendar
     // se mantienen sin shape tipado porque el backend no publica contrato individual.
     getWeeklySummary: async (id: string): Promise<WeeklySummary[]> => {
         const response = await api.get<WeeklySummary[]>(`/programs/${id}/weekly-summary`);
