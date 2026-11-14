@@ -1,4 +1,4 @@
-import { DailyLog } from '@/services/dailyLogService';
+import { DailyLog, getMetric } from '@/services/dailyLogService';
 
 export interface WeeklyDailyAverage {
     weekStart: string;
@@ -73,10 +73,10 @@ export const calculateWeeklyAveragesFromDailyLogs = (
     }
 
     for (const [weekKey, logsInWeek] of weekMap) {
-        const avgCalories = logsInWeek.reduce((sum, l) => sum + l.calories, 0) / logsInWeek.length;
-        const avgSteps = logsInWeek.reduce((sum, l) => sum + l.steps, 0) / logsInWeek.length;
-        const avgproteinGrams = logsInWeek.reduce((sum, l) => sum + l.proteinGrams, 0) / logsInWeek.length;
-        const avgWaterLiters = logsInWeek.reduce((sum, l) => sum + l.waterLiters, 0) / logsInWeek.length;
+        const avgCalories = logsInWeek.reduce((sum, l) => sum + getMetric(l, 'calories'), 0) / logsInWeek.length;
+        const avgSteps = logsInWeek.reduce((sum, l) => sum + getMetric(l, 'steps'), 0) / logsInWeek.length;
+        const avgproteinGrams = logsInWeek.reduce((sum, l) => sum + getMetric(l, 'protein'), 0) / logsInWeek.length;
+        const avgWaterLiters = logsInWeek.reduce((sum, l) => sum + getMetric(l, 'water'), 0) / logsInWeek.length;
 
         const weekStart = parseLocalDate(weekKey);
         const weekEnd = getWeekEndDate(weekStart);

@@ -1,5 +1,5 @@
 import { StatCard } from '@/components/home/StatCard';
-import { DailyLog } from '@/services/dailyLogService';
+import { DailyLog, getMetric } from '@/services/dailyLogService';
 import { Settings } from '@/services/settingsService';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -42,10 +42,10 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                 <View style={styles.cardWrapper}>
                     <StatCard
                         title="Calorías"
-                        value={dailyLog?.calories || 0}
+                        value={dailyLog ? getMetric(dailyLog, 'calories') : 0}
                         unit="kcal"
                         limit={settings?.calorieLimit}
-                        currentValue={dailyLog?.calories}
+                        currentValue={dailyLog ? getMetric(dailyLog, 'calories') : undefined}
                         type="calories"
                         backgroundImage={caloriesBg}
                         onPress={onCaloriesPress}
@@ -56,10 +56,10 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
                 <View style={styles.cardWrapper}>
                     <StatCard
                         title="Pasos"
-                        value={dailyLog?.steps || 0}
+                        value={dailyLog ? getMetric(dailyLog, 'steps') : 0}
                         unit="pasos"
                         limit={settings?.stepsLimit}
-                        currentValue={dailyLog?.steps}
+                        currentValue={dailyLog ? getMetric(dailyLog, 'steps') : undefined}
                         type="steps"
                         backgroundImage={stepsBg}
                         onPress={onStepsPress}

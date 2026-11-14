@@ -3,7 +3,7 @@ import { AnalysisCard } from '@/components/home/AnalysisCard';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { Settings, settingsService } from '@/services/settingsService';
-import { WeightLog, weightLogService, WeightStats } from '@/services/weightLog.service';
+import { WeightLog, weightLogService, WeightStats, getBodyMetric } from '@/services/weightLog.service';
 import { theme } from '@/theme';
 import { getMonthEndDate, getMonthStartDate, getWeekEndDate, getWeekStartDate, getYearEndDate, getYearStartDate } from '@/utils/dateHelpers';
 import { useRouter } from 'expo-router';
@@ -163,10 +163,10 @@ export const MetricOverviewScreen: React.FC<MetricOverviewScreenProps> = ({
             const logDate = parseLocalDate(log.date);
             let value = 0;
             switch (metricKey) {
-                case 'weight': value = log.weight; break;
-                case 'waist': value = log.waist || 0; break;
-                case 'bodyfat': value = log.bodyfat || 0; break;
-                case 'hips': value = log.hips || 0; break;
+                case 'weight': value = getBodyMetric(log, 'weight'); break;
+                case 'waist': value = getBodyMetric(log, 'waist'); break;
+                case 'bodyfat': value = getBodyMetric(log, 'bodyfat'); break;
+                case 'hips': value = getBodyMetric(log, 'hips'); break;
             }
             return {
                 value: value,

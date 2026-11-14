@@ -1,9 +1,9 @@
-// app/cut-phases-logs.tsx
-import CutPhaseCard from '@/components/cutphase/CutPhaseCard';
-import CutPhaseForm from '@/components/cutphase/CutPhaseForm';
+// app/programs-logs.tsx
+import ProgramCard from '@/components/program/ProgramCard';
+import ProgramForm from '@/components/program/ProgramForm';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
-import { CreateCutPhaseDto, CutPhase, cutPhaseService } from '@/services/cutPhaseService';
+import { CreateProgramDto, Program, programService } from '@/services/programService';
 import { theme } from '@/theme';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -16,17 +16,17 @@ import {
     View
 } from 'react-native';
 
-interface PhaseWithData extends CutPhase {
+interface ProgramWithData extends Program {
     averageScore: number;
     weightDifference?: number | null;
     waistDifference?: number | null;
     hipsDifference?: number | null;
 }
 
-const CutPhasesLogs: React.FC = () => {
+const ProgramsLogs: React.FC = () => {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
-    const [phases, setPhases] = useState<PhaseWithData[]>([]);
+    const [phases, setPhases] = useState<ProgramWithData[]>([]);
     const [refreshing, setRefreshing] = useState(false);
     const [formVisible, setFormVisible] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
@@ -36,16 +36,16 @@ const CutPhasesLogs: React.FC = () => {
     };
 
     const handlePhasePress = (phaseId: string) => {
-        router.push(`/cutphase/${phaseId}`);
+        router.push(`/program/${phaseId}`);
     };
 
-    const handleCreatePhase = async (data: CreateCutPhaseDto) => {
+    const handleCreatePhase = async (data: CreateProgramDto) => {
         try {
             setIsCreating(true);
-            await cutPhaseService.create(data);
+            await programService.create(data);
             await fetchData();
         } catch (error) {
-            console.error('Error creating cut phase:', error);
+            console.error('Error creating program:', error);
             throw error;
         } finally {
             setIsCreating(false);
@@ -55,13 +55,13 @@ const CutPhasesLogs: React.FC = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const allPhases = await cutPhaseService.findAll();
+            const allPhases = await programService.findAll();
 
             // Obtener dashboard para cada fase
             const phasesWithData = await Promise.all(
                 allPhases.map(async (phase) => {
                     try {
-                        const dashboard = await cutPhaseService.getDashboard(phase.id);
+                        const dashboard = await programService.getDashboard(phase.id);
                         return {
                             ...phase,
                             averageScore: dashboard.summary?.averageScore || 0,
@@ -70,7 +70,7 @@ const CutPhasesLogs: React.FC = () => {
                             hipsDifference: dashboard.measurements?.hips?.difference || null,
                         };
                     } catch (error) {
-                        console.error(`Error fetching dashboard for phase ${phase.id}:`, error);
+                        console.error(`Error fetching dashboard for program ${phase.id}:`, error);
                         return {
                             ...phase,
                             averageScore: 0,
@@ -91,7 +91,7 @@ const CutPhasesLogs: React.FC = () => {
 
             setPhases(sortedPhases);
         } catch (error) {
-            console.error('Error fetching cut phases:', error);
+            console.error('Error fetching programs:', error);
         } finally {
             setLoading(false);
         }
@@ -116,7 +116,7 @@ const CutPhasesLogs: React.FC = () => {
                     </TouchableOpacity>
                     <View style={styles.titleContainer}>
                         <ThemedText variant="medium" size={14} color={theme.colors.text}>
-                            Mis fases nutricionales
+                            Mis programas
                         </ThemedText>
                     </View>
                     <TouchableOpacity
@@ -148,7 +148,7 @@ const CutPhasesLogs: React.FC = () => {
                 </TouchableOpacity>
                 <View style={styles.titleContainer}>
                     <ThemedText variant="medium" size={14} color={theme.colors.text}>
-                        Mis fases nutricionales
+                        Mis programas
                     </ThemedText>
                 </View>
                 <TouchableOpacity
@@ -183,15 +183,17 @@ const CutPhasesLogs: React.FC = () => {
                                 padding={0}
                             />
                             <ThemedText variant="regular" size={14} color={theme.colors.textLight}>
-                                No hay fases nutricionales aún
+                                No hay programas aún
                             </ThemedText>
                         </View>
                     ) : (
                         phases.map((phase) => (
-                            <CutPhaseCard
+                            <ProgramCard
                                 key={phase.id}
-                                phase={{
+                                program={{
                                     id: phase.id,
+                                    name: phase.name,
+                                    kind: phase.kind,
                                     startDate: phase.startDate,
                                     endDate: phase.endDate,
                                     totalWeeks: phase.totalWeeks,
@@ -209,7 +211,7 @@ const CutPhasesLogs: React.FC = () => {
             </ScrollView>
 
             {/* Modal del formulario */}
-            <CutPhaseForm
+            <ProgramForm
                 visible={formVisible}
                 onClose={() => {
                     setFormVisible(false);
@@ -278,4 +280,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default CutPhasesLogs;
+export default ProgramsLogs;

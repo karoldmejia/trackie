@@ -1,4 +1,4 @@
-import { WeightLog } from '@/services/weightLog.service';
+import { WeightLog, getBodyMetric } from '@/services/weightLog.service';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -37,28 +37,28 @@ export const WeightMetricsGrid: React.FC<WeightMetricsGridProps> = ({
         {
             key: 'weight',
             title: 'Peso',
-            value: latestLog?.weight || 0,
+            value: latestLog ? getBodyMetric(latestLog, 'weight') : 0,
             unit: 'kg',
             iconName: 'Weight' as const,
         },
         {
             key: 'waist',
             title: 'Cintura',
-            value: latestLog?.waist || 0,
+            value: latestLog ? getBodyMetric(latestLog, 'waist') : 0,
             unit: 'cm',
             iconName: 'Ruler' as const,
         },
         {
             key: 'bodyfat',
             title: 'Body Fat',
-            value: latestLog?.bodyfat || 0,
+            value: latestLog ? getBodyMetric(latestLog, 'bodyfat') : 0,
             unit: '%',
             iconName: 'Activity' as const,
         },
         {
             key: 'hips',
             title: 'Cadera',
-            value: latestLog?.hips || 0,
+            value: latestLog ? getBodyMetric(latestLog, 'hips') : 0,
             unit: 'cm',
             iconName: 'BicepsFlexed' as const,
         },

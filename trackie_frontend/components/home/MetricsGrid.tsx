@@ -1,4 +1,4 @@
-import { DailyLog } from '@/services/dailyLogService';
+import { DailyLog, getMetric } from '@/services/dailyLogService';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { MetricCard } from './MetricCard';
@@ -9,10 +9,10 @@ interface MetricsGridProps {
 
 export const MetricsGrid: React.FC<MetricsGridProps> = ({ dailyLog }) => {
     const metrics = [
-        { title: 'Calorías', value: dailyLog?.calories ?? 0, unit: '' },
-        { title: 'Pasos', value: dailyLog?.steps ?? 0, unit: '' },
-        { title: 'Proteína', value: dailyLog?.proteinGrams ?? 0, unit: 'g' },
-        { title: 'Agua', value: dailyLog?.waterLiters ?? 0, unit: 'L' },
+        { title: 'Calorías', value: dailyLog ? getMetric(dailyLog, 'calories') : 0, unit: '' },
+        { title: 'Pasos', value: dailyLog ? getMetric(dailyLog, 'steps') : 0, unit: '' },
+        { title: 'Proteína', value: dailyLog ? getMetric(dailyLog, 'protein') : 0, unit: 'g' },
+        { title: 'Agua', value: dailyLog ? getMetric(dailyLog, 'water') : 0, unit: 'L' },
     ];
 
     return (

@@ -1,13 +1,17 @@
 import { Icon } from '@/components/icon';
+import { DailyLog, FormMetric, FormSchema, dailyLogService, getMetric } from '@/services/dailyLogService';
 import { theme } from '@/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useKeyboard } from '@react-native-community/hooks';
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, KeyboardAvoidingView, Modal, Platform, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Animated, Dimensions, KeyboardAvoidingView, Modal, Platform, StyleSheet, Switch, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 import { FormInput } from '../FormInput';
-import { FormSelect } from '../FormSelect';
 import { ThemedText } from '../ThemedText';
 
+/**
+ * @deprecated Solo se mantiene exportado porque hooks/useDailyLogEditor.ts todavía
+ * lo importa en su firma. El form ya no lo usa. Eliminar en F5.
+ */
 export enum WorkoutType {
     NONE = 'none',
     UPPER = 'upper',
@@ -16,33 +20,26 @@ export enum WorkoutType {
     CARDIO = 'cardio',
 }
 
-const WORKOUT_OPTIONS = [
-    { label: 'Ninguno', value: WorkoutType.NONE },
-    { label: 'Superior', value: WorkoutType.UPPER },
-    { label: 'Glúteos y pierna', value: WorkoutType.LOWER },
-    { label: 'Full body', value: WorkoutType.FULL },
-    { label: 'Cardio', value: WorkoutType.CARDIO },
-];
+const METRIC_ICONS: Record<string, string> = {
+    calories: 'Flame',
+    steps: 'Footprints',
+    protein: 'Beef',
+    water: 'Droplets',
+    meditation: 'Brain',
+    reading: 'BookOpen',
+};
+
+const getEditableMetrics = (schema: FormSchema | null): FormMetric[] =>
+    (schema?.metrics ?? []).filter(m => !m.isDerived);
 
 interface DailyLogFormProps {
     visible: boolean;
     onClose: () => void;
     onSubmit: (data: {
         date: string;
-        calories: string;
-        steps: string;
-        proteinGrams: string;
-        waterLiters: string;
-        workout: WorkoutType;
+        metrics: Record<string, number>;
     }) => void;
-    initialData?: {
-        date?: string;
-        calories?: number;
-        steps?: number;
-        proteinGrams?: number;
-        waterLiters?: number;
-        workout?: string;
-    };
+    initialData?: DailyLog;
     title?: string;
     hideDatePicker?: boolean;
 }
@@ -65,32 +62,54 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
 
     const [date, setDate] = useState(getCurrentLocalDate());
     const [showDatePicker, setShowDatePicker] = useState(false);
-    const [calories, setCalories] = useState('');
-    const [steps, setSteps] = useState('');
-    const [proteinGrams, setproteinGrams] = useState('');
-    const [waterLiters, setWaterLiters] = useState('');
-    const [workout, setWorkout] = useState<WorkoutType>(WorkoutType.NONE);
+    const [schema, setSchema] = useState<FormSchema | null>(null);
+    const [loadingSchema, setLoadingSchema] = useState(false);
+    // Estado del form: clave = metric.key, valor = número.
+    // Los inputs numéricos guardan NaN mientras están vacíos; NaN → 0 en el submit.
+    const [values, setValues] = useState<Record<string, number>>({});
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const screenHeight = Dimensions.get('window').height;
     const { keyboardHeight, keyboardShown } = useKeyboard();
 
+    // Pedir el schema al montar
     useEffect(() => {
-        if (initialData) {
-            if (initialData.date) {
-                const [year, month, day] = initialData.date.split('-').map(Number);
-                const initialDate = new Date(year, month - 1, day);
-                if (!isNaN(initialDate.getTime())) {
-                    setDate(initialDate);
-                }
-            }
-            if (initialData.calories) setCalories(initialData.calories.toString());
-            if (initialData.steps) setSteps(initialData.steps.toString());
-            if (initialData.proteinGrams) setproteinGrams(initialData.proteinGrams.toString());
-            if (initialData.waterLiters) setWaterLiters(initialData.waterLiters.toString());
-            if (initialData.workout) setWorkout(initialData.workout as WorkoutType);
+        let cancelled = false;
+        setLoadingSchema(true);
+        dailyLogService.getFormSchema()
+            .then((data) => {
+                if (cancelled) return;
+                setSchema(data);
+            })
+            .catch((error) => {
+                console.error('Error loading form schema:', error);
+                if (!cancelled) setSchema(null);
+            })
+            .finally(() => {
+                if (!cancelled) setLoadingSchema(false);
+            });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+
+    // Inicializar valores cuando llega el schema (o cambia initialData)
+    useEffect(() => {
+        if (!schema) return;
+        const initialValues: Record<string, number> = {};
+        for (const metric of schema.metrics) {
+            initialValues[metric.key] = initialData ? getMetric(initialData, metric.key) : 0;
         }
-    }, [initialData]);
+        setValues(initialValues);
+
+        if (initialData?.date) {
+            const [year, month, day] = initialData.date.split('-').map(Number);
+            const initialDate = new Date(year, month - 1, day);
+            if (!isNaN(initialDate.getTime())) {
+                setDate(initialDate);
+            }
+        }
+    }, [schema, initialData]);
 
     useEffect(() => {
         if (visible) {
@@ -132,26 +151,77 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
         }
     };
 
+    const setNumericValue = (key: string, text: string) => {
+        const parsed = parseFloat(text);
+        setValues(prev => ({ ...prev, [key]: isNaN(parsed) ? NaN : parsed }));
+    };
+
+    const setBooleanValue = (key: string, enabled: boolean) => {
+        setValues(prev => ({ ...prev, [key]: enabled ? 1 : 0 }));
+    };
+
+    // TODO(F5): availableToAdd se ignora en esta fase; no se implementa el
+    // botón "Añadir métrica". El form solo muestra schema.metrics.
+
     const handleSubmit = () => {
+        const metrics: Record<string, number> = {};
+        for (const metric of getEditableMetrics(schema)) {
+            const raw = values[metric.key];
+            metrics[metric.key] = raw === undefined || isNaN(raw) ? 0 : raw;
+        }
         onSubmit({
             date: formatDate(date),
-            calories,
-            steps,
-            proteinGrams,
-            waterLiters,
-            workout,
+            metrics,
         });
         handleClose();
     };
 
     const handleClose = () => {
         setDate(getCurrentLocalDate());
-        setCalories('');
-        setSteps('');
-        setproteinGrams('');
-        setWaterLiters('');
-        setWorkout(WorkoutType.NONE);
+        setValues({});
         onClose();
+    };
+
+    const renderMetricInput = (metric: FormMetric) => {
+        const value = values[metric.key];
+        const icon = (METRIC_ICONS[metric.key] ?? 'Activity') as any;
+
+        if (metric.valueType === 'boolean') {
+            return (
+                <View style={styles.boolRow} key={metric.key}>
+                    <ThemedText variant="regular" size={14} color={theme.colors.text}>
+                        {metric.label}
+                    </ThemedText>
+                    <Switch
+                        value={value === 1}
+                        onValueChange={(enabled) => setBooleanValue(metric.key, enabled)}
+                        trackColor={{ false: theme.colors.background, true: theme.colors.primary }}
+                        thumbColor={theme.colors.white}
+                    />
+                </View>
+            );
+        }
+
+        const isDuration = metric.valueType === 'duration';
+        const placeholder = isDuration
+            ? `${metric.label} (${metric.unit ?? 'min'})`
+            : metric.unit
+                ? `${metric.label} (${metric.unit})`
+                : metric.label;
+        const displayValue = value === undefined || isNaN(value) ? '' : String(value);
+
+        return (
+            <View style={styles.metricRow} key={metric.key}>
+                <FormInput
+                    icon={icon}
+                    placeholder={placeholder}
+                    value={displayValue}
+                    onChangeText={(text) => setNumericValue(metric.key, text)}
+                    keyboardType="numeric"
+                    rounded={false}
+                />
+            </View>
+        );
     };
 
     if (!visible) return null;
@@ -242,68 +312,22 @@ export const DailyLogForm: React.FC<DailyLogFormProps> = ({
                             </>
                         )}
 
-                        {/* Primera fila - 2 columnas */}
-                        <View style={styles.row}>
-                            <View style={styles.halfColumn}>
-                                <FormInput
-                                    icon="Flame"
-                                    placeholder="Calorías"
-                                    value={calories}
-                                    onChangeText={setCalories}
-                                    keyboardType="numeric"
-                                    rounded={false}
-                                    containerStyle={styles.topLeftInput}
-                                />
-                            </View>
-                            <View style={styles.halfColumn}>
-                                <FormInput
-                                    icon="Footprints"
-                                    placeholder="Pasos"
-                                    value={steps}
-                                    onChangeText={setSteps}
-                                    keyboardType="numeric"
-                                    rounded={false}
-                                    containerStyle={styles.topRightInput}
-                                />
-                            </View>
-                        </View>
+                        {loadingSchema && (
+                            <ThemedText
+                                variant="regular"
+                                size={12}
+                                color={theme.colors.textLight}
+                                style={styles.loadingText}
+                            >
+                                Cargando...
+                            </ThemedText>
+                        )}
 
-                        {/* Segunda fila - 2 columnas */}
-                        <View style={styles.row}>
-                            <View style={styles.halfColumn}>
-                                <FormInput
-                                    icon="Beef"
-                                    placeholder="Proteína"
-                                    value={proteinGrams}
-                                    onChangeText={setproteinGrams}
-                                    keyboardType="numeric"
-                                    rounded={false}
-                                    containerStyle={styles.topLeftInput}
-                                />
-                            </View>
-                            <View style={styles.halfColumn}>
-                                <FormInput
-                                    icon="Droplets"
-                                    placeholder="Litros de agua"
-                                    value={waterLiters}
-                                    onChangeText={setWaterLiters}
-                                    keyboardType="numeric"
-                                    rounded={false}
-                                    containerStyle={styles.topRightInput}
-                                />
-                            </View>
-                        </View>
+                        {/* Métricas dinámicas según el FormSchema del backend (solo editables) */}
+                        {getEditableMetrics(schema).map(renderMetricInput)}
 
-                        {/* Tercera fila - campo completo */}
-                        <View style={styles.fullRow}>
-                            <FormSelect
-                                icon="Dumbbell"
-                                placeholder="Tipo de entrenamiento"
-                                value={workout}
-                                options={WORKOUT_OPTIONS}
-                                onSelect={(value) => setWorkout(value as WorkoutType)}
-                            />
-                        </View>
+                        {/* TODO(F5): La sección de workout (WorkoutType / FormSelect) se
+                            elimina hasta que se migren workout_sessions. */}
 
                         {/* Botón de guardar */}
                         <TouchableOpacity
@@ -383,29 +407,22 @@ const styles = StyleSheet.create({
     dateTextContainer: {
         flex: 1,
     },
-    row: {
-        flexDirection: 'row',
+    metricRow: {
         marginBottom: 12,
     },
-    halfColumn: {
-        flex: 1,
+    boolRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: theme.colors.background,
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        marginBottom: 12,
     },
-    fullRow: {
-        marginBottom: 20,
-    },
-    topLeftInput: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 0,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 0,
-        marginRight: 6,
-    },
-    topRightInput: {
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 20,
-        borderBottomLeftRadius: 0,
-        borderBottomRightRadius: 20,
-        marginLeft: 6,
+    loadingText: {
+        textAlign: 'center',
+        marginBottom: 12,
     },
     submitButton: {
         backgroundColor: theme.colors.primary || '#4CAF50',

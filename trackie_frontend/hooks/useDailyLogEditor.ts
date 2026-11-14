@@ -1,4 +1,3 @@
-import { WorkoutType } from '@/components/home/DailyLogForm';
 import { CreateDailyLogDto, DailyLog, dailyLogService } from '@/services/dailyLogService';
 import { useCallback, useState } from 'react';
 
@@ -23,28 +22,11 @@ export const useDailyLogEditor = ({ onSaved }: UseDailyLogEditorOptions = {}) =>
     const submit = useCallback(
         async (data: {
             date: string;
-            calories: string;
-            steps: string;
-            proteinGrams: string;
-            waterLiters: string;
-            workout: WorkoutType;
+            metrics: Record<string, number>;
         }) => {
-            const toInt = (v: string) => {
-                const n = parseInt(v);
-                return isNaN(n) ? 0 : n;
-            };
-            const toFloat = (v: string) => {
-                const n = parseFloat(v);
-                return isNaN(n) ? 0 : n;
-            };
-
             const dto: CreateDailyLogDto = {
                 date: data.date,
-                calories: toInt(data.calories),
-                steps: toInt(data.steps),
-                proteinGrams: toFloat(data.proteinGrams),
-                waterLiters: toFloat(data.waterLiters),
-                workout: data.workout,
+                metrics: data.metrics,
             };
 
             try {
@@ -58,16 +40,7 @@ export const useDailyLogEditor = ({ onSaved }: UseDailyLogEditorOptions = {}) =>
         [onSaved, close],
     );
 
-    const initialData = editingLog
-        ? {
-            date: editingLog.date,
-            calories: editingLog.calories ?? 0,
-            steps: editingLog.steps ?? 0,
-            proteinGrams:editingLog.proteinGrams ?? 0,
-            waterLiters: editingLog.waterLiters ?? 0,
-            workout: editingLog.workout as WorkoutType,
-        }
-        : undefined;
+    const initialData = editingLog ?? undefined;
 
     return { visible, editingLog, open, close, submit, initialData };
 };

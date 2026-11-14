@@ -307,14 +307,7 @@ const AllWeightLogs: React.FC = () => {
                     setEditingLog(null);
                 }}
                 onSubmit={handleEditFormSubmit}
-                initialData={editingLog ? {
-                    date: editingLog.date,
-                    weight: editingLog.weight,
-                    waist: editingLog.waist,
-                    bodyfat: editingLog.bodyfat,
-                    hips: editingLog.hips,
-                    photos: editingLog.photos,
-                } : undefined}
+                initialData={editingLog ?? undefined}
                 title="Editar Registro de Peso"
                 hideDatePicker={true}
             />

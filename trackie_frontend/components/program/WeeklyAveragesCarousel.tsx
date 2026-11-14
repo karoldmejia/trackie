@@ -1,4 +1,4 @@
-// components/cutphase/WeeklyAveragesCarousel.tsx
+// components/program/WeeklyAveragesCarousel.tsx
 
 import { ThemedText } from '@/components/ThemedText';
 import { theme } from '@/theme';
@@ -10,12 +10,7 @@ const CARD_WIDTH = screenWidth - 70;
 
 interface WeeklyAverage {
     weekNumber: number;
-    averages: {
-        calories: number;
-        protein: number;
-        steps: number;
-        water: number;
-    };
+    averages: Record<string, number>;
     daysWithData: number;
 }
 
@@ -90,7 +85,7 @@ const WeeklyAveragesCarousel: React.FC<WeeklyAveragesCarouselProps> = ({
                     <View style={styles.metricsGrid}>
                         <View style={styles.metricItem}>
                             <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {item.averages.calories}
+                                {item.averages['calories'] ?? 0}
                             </ThemedText>
                             <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
                                 kcal
@@ -98,7 +93,7 @@ const WeeklyAveragesCarousel: React.FC<WeeklyAveragesCarouselProps> = ({
                         </View>
                         <View style={styles.metricItem}>
                             <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {item.averages.protein}
+                                {item.averages['protein'] ?? 0}
                             </ThemedText>
                             <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
                                 g
@@ -106,7 +101,7 @@ const WeeklyAveragesCarousel: React.FC<WeeklyAveragesCarouselProps> = ({
                         </View>
                         <View style={styles.metricItem}>
                             <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {item.averages.steps}
+                                {item.averages['steps'] ?? 0}
                             </ThemedText>
                             <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
                                 pasos
@@ -114,7 +109,7 @@ const WeeklyAveragesCarousel: React.FC<WeeklyAveragesCarouselProps> = ({
                         </View>
                         <View style={styles.metricItem}>
                             <ThemedText variant="semiBold" size={16} color={theme.colors.text}>
-                                {item.averages.water}
+                                {item.averages['water'] ?? 0}
                             </ThemedText>
                             <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
                                 L

@@ -16,6 +16,7 @@ import {
     View
 } from 'react-native';
 import { FormInput } from '../FormInput';
+import { WeightLog, getBodyMetric } from '@/services/weightLog.service';
 import { WeightImagePicker } from './WeightImagePicker';
 
 
@@ -30,14 +31,7 @@ interface WeightLogFormProps {
         hips: string;
         photos: string[];
     }) => void;
-    initialData?: {
-        date?: string;
-        weight?: number;
-        waist?: number;
-        bodyfat?: number;
-        hips?: number;
-        photos?: string[];
-    };
+    initialData?: WeightLog;
     title?: string;
     hideDatePicker?: boolean;
 }
@@ -76,10 +70,14 @@ export const WeightLogForm: React.FC<WeightLogFormProps> = ({
                     setDate(initialDate);
                 }
             }
-            if (initialData.weight) setWeight(initialData.weight.toString());
-            if (initialData.waist) setWaist(initialData.waist.toString());
-            if (initialData.bodyfat) setBodyfat(initialData.bodyfat.toString());
-            if (initialData.hips) setHips(initialData.hips.toString());
+            const weightValue = getBodyMetric(initialData, 'weight');
+            const waistValue = getBodyMetric(initialData, 'waist');
+            const bodyfatValue = getBodyMetric(initialData, 'bodyfat');
+            const hipsValue = getBodyMetric(initialData, 'hips');
+            if (weightValue) setWeight(weightValue.toString());
+            if (waistValue) setWaist(waistValue.toString());
+            if (bodyfatValue) setBodyfat(bodyfatValue.toString());
+            if (hipsValue) setHips(hipsValue.toString());
             if (initialData.photos) setPhotos(initialData.photos);
         }
     }, [initialData]);

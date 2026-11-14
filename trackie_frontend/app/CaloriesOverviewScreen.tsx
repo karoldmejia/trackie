@@ -2,7 +2,7 @@ import { LineChartComponent, TimeRange } from '@/components/charts/LineChartComp
 import { AnalysisCard } from '@/components/home/AnalysisCard';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
-import { DailyLog, dailyLogService, FullStatsResult } from '@/services/dailyLogService';
+import { DailyLog, dailyLogService, FullStatsResult, getMetric } from '@/services/dailyLogService';
 import { Settings, settingsService } from '@/services/settingsService';
 import { theme } from '@/theme';
 import { formatLocalDate, getMonthEndDate, getMonthStartDate, getWeekEndDate, getWeekStartDate, getYearEndDate, getYearStartDate, parseLocalDate } from '@/utils/dateHelpers';
@@ -138,7 +138,7 @@ const CaloriesOverviewScreen: React.FC = () => {
         const data = sortedLogs.map(log => {
             const logDate = parseLocalDate(log.date);
             return {
-                value: log.calories,
+                value: getMetric(log, 'calories'),
                 label: `${logDate.getDate()}/${logDate.getMonth() + 1}`,
                 date: logDate,
             };

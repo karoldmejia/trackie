@@ -88,11 +88,13 @@ export class DailyLogController {
         return { deleted: true };
     }
 
+    // Shape del catálogo para el front: la columna en BD sigue llamándose
+    // `type` (sin cambios); aquí se expone como `valueType`.
     private toMetricResponse(m: MetricType) {
         return {
             key: m.key,
             label: m.label,
-            type: m.type,
+            valueType: m.type,
             unit: m.unit,
             isUniversal: m.isUniversal,
             isDerived: m.isDerived,

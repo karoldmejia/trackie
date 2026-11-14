@@ -5,21 +5,14 @@ import React, { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, TouchableOpacity, View, useWindowDimensions } from 'react-native';
 import { Icon } from '../icon';
 
+// El backend ya no devuelve los valores de las métricas en `days`, solo el
+// cumplimiento por métrica (metricResults: key -> boolean).
 interface DayData {
     date: string;
     weekNumber: number;
     dailyScore: number;
     allMet: boolean;
-    caloriesMet: boolean;
-    proteinMet: boolean;
-    stepsMet: boolean;
-    waterMet: boolean;
-    workoutMet: boolean;
-    calories: number;
-    protein: number;
-    steps: number;
-    water: number;
-    workout: string;
+    metricResults: Record<string, boolean>;
 }
 
 interface AdherenceCalendarProps {
@@ -94,16 +87,8 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
         setModalVisible(true);
     };
 
-    const getWorkoutLabel = (workout: string): string => {
-        const translations: Record<string, string> = {
-            'none': 'Ninguno',
-            'upper': 'Superior',
-            'lower': 'Glúteos y pierna',
-            'full': 'Full body',
-            'cardio': 'Cardio',
-        };
-        return translations[workout] || workout;
-    };
+    // Los valores ya no existen en el payload; mostramos cumplimiento (Sí/No).
+    const metText = (met?: boolean): string => (met ? 'Sí' : 'No');
 
     return (
         <View style={styles.container}>
@@ -256,9 +241,9 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
                                         </ThemedText>
                                         <View style={styles.modalStatus}>
                                             <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
-                                                {selectedDay.calories}
+                                                {metText(selectedDay.metricResults['calories'])}
                                             </ThemedText>
-                                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.caloriesMet) }]} />
+                                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.metricResults['calories'] ?? false) }]} />
                                         </View>
                                     </View>
 
@@ -268,9 +253,9 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
                                         </ThemedText>
                                         <View style={styles.modalStatus}>
                                             <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
-                                                {selectedDay.protein}g
+                                                {metText(selectedDay.metricResults['protein'])}
                                             </ThemedText>
-                                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.proteinMet) }]} />
+                                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.metricResults['protein'] ?? false) }]} />
                                         </View>
                                     </View>
 
@@ -280,9 +265,9 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
                                         </ThemedText>
                                         <View style={styles.modalStatus}>
                                             <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
-                                                {selectedDay.steps}
+                                                {metText(selectedDay.metricResults['steps'])}
                                             </ThemedText>
-                                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.stepsMet) }]} />
+                                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.metricResults['steps'] ?? false) }]} />
                                         </View>
                                     </View>
 
@@ -292,9 +277,9 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
                                         </ThemedText>
                                         <View style={styles.modalStatus}>
                                             <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
-                                                {selectedDay.water}L
+                                                {metText(selectedDay.metricResults['water'])}
                                             </ThemedText>
-                                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.waterMet) }]} />
+                                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.metricResults['water'] ?? false) }]} />
                                         </View>
                                     </View>
 
@@ -304,9 +289,9 @@ export const AdherenceCalendar: React.FC<AdherenceCalendarProps> = ({ days, tota
                                         </ThemedText>
                                         <View style={styles.modalStatus}>
                                             <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
-                                                {getWorkoutLabel(selectedDay.workout)}
+                                                {metText(selectedDay.metricResults['workout_count'])}
                                             </ThemedText>
-                                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.workoutMet) }]} />
+                                            <View style={[styles.statusDot, { backgroundColor: getStatusColor(selectedDay.metricResults['workout_count'] ?? false) }]} />
                                         </View>
                                     </View>
                                 </View>

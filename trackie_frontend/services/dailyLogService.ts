@@ -1,22 +1,93 @@
 import api from './api';
 
+// TODO(F3): GoodBadDaysResult / DayClassification / FullStatsResult siguen
+// tipados con campos específicos de calorías/pasos (averageCalories,
+// averageSteps, calories, steps, etc.) porque el contrato nuevo de esos
+// endpoints no está definido todavía. Revisar y migrar cuando el backend
+// publique el nuevo shape.
+
+export type MetricValueType = 'boolean' | 'number' | 'duration';
+
+export interface MetricEntry {
+    key: string;
+    label: string;
+    valueType: MetricValueType;
+    unit?: string;
+    value: number;
+}
+
+export interface WorkoutBlockExecution {
+    id: string;
+    kindSnapshot: string;
+    nameSnapshot: string;
+    metricTypeSnapshot: string;
+    plannedRounds: number;
+    actualRounds: number;
+    actualDistanceMeters?: number;
+    actualDurationSeconds?: number;
+    actualReps?: number;
+    completed: boolean;
+}
+
+export interface WorkoutExecution {
+    id: string;
+    routineId?: string;
+    workoutId?: string;
+    workoutNameSnapshot: string;
+    workoutTypeSnapshot: string;
+    totalDistanceMeters: number;
+    totalDurationSeconds: number;
+    totalRounds: number;
+    completed: boolean;
+    blocks: WorkoutBlockExecution[];
+}
+
 export interface DailyLog {
     id: string;
     date: string;
-    calories: number;
-    steps: number;
-    workout: string;
-    proteinGrams: number;
-    waterLiters: number;
+    metrics: MetricEntry[];
+    extraMetrics: Record<string, number>;
+    workouts: WorkoutExecution[];
+}
+
+export interface WorkoutBlockExecutionInput {
+    templateId?: string;
+    actualRounds?: number;
+    actualDistanceMeters?: number;
+    actualDurationSeconds?: number;
+    actualReps?: number;
+    completed?: boolean;
+}
+
+export interface WorkoutExecutionInput {
+    workoutId: string;
+    routineId?: string;
+    completed?: boolean;
+    blocks?: WorkoutBlockExecutionInput[];
 }
 
 export interface CreateDailyLogDto {
     date?: string;
-    calories?: number;
-    steps?: number;
-    workout?: string;
-    proteinGrams?: number;
-    waterLiters?: number;
+    metrics?: Record<string, number>;
+    workouts?: WorkoutExecutionInput[];
+}
+
+export interface FormMetric {
+    key: string;
+    label: string;
+    valueType: MetricValueType;
+    unit?: string;
+    isUniversal: boolean;
+    isDerived?: boolean;
+    target?: number;
+    direction?: 'at_least' | 'at_most' | 'exact';
+    weight?: number;
+    isOptional?: boolean;
+}
+
+export interface FormSchema {
+    metrics: FormMetric[];
+    availableToAdd: FormMetric[];
 }
 
 export interface GoodBadDaysResult {
@@ -67,6 +138,21 @@ export interface PaginatedDailyLogs {
     hasMore: boolean;
 }
 
+/**
+ * Lee el valor de una métrica por su key.
+ * Prioriza `metrics` (array con metadata) y cae a `extraMetrics` (record plano).
+ * Es el único punto de acceso a métricas: si el contrato cambia, solo se toca aquí.
+ */
+export const getMetric = (
+    log: Pick<DailyLog, 'metrics' | 'extraMetrics'>,
+    key: string,
+    fallback = 0,
+): number => {
+    const entry = log.metrics?.find(m => m.key === key);
+    if (entry) return entry.value;
+    return log.extraMetrics?.[key] ?? fallback;
+};
+
 export const dailyLogService = {
     // Obtener todos los logs
     getAll: async () => {
@@ -82,6 +168,12 @@ export const dailyLogService = {
     // Obtener log por fecha
     getByDate: async (date: string) => {
         const response = await api.get<DailyLog>(`/daily-logs/date/${date}`);
+        return response.data;
+    },
+
+    // Obtener schema del formulario (métricas disponibles y objetivos)
+    getFormSchema: async (): Promise<FormSchema> => {
+        const response = await api.get<FormSchema>('/daily-logs/form-schema');
         return response.data;
     },
 

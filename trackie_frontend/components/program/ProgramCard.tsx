@@ -1,17 +1,19 @@
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
+import { Program } from '@/services/programService';
 import { theme } from '@/theme';
 import { formatShortDate } from '@/utils/date';
 import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
-interface CutPhaseCardProps {
-    phase: {
-        id: string;
-        startDate: string;
-        endDate: string;
-        totalWeeks: number;
-        isActive: boolean;
+// TODO(F7): El backend ya devuelve `kind` ('cut'|'bulk'|'maintain'), pero la card no muestra
+// el nombre ni el tipo porque no había hueco previsto en el diseño; se omite el badge
+// intencionadamente. Añadirlo cuando se autorice un ajuste visual.
+interface ProgramCardProps {
+    program: Pick<
+        Program,
+        'id' | 'name' | 'kind' | 'startDate' | 'endDate' | 'totalWeeks' | 'isActive'
+    > & {
         averageScore: number;
         weightDifference?: number | null;
         waistDifference?: number | null;
@@ -26,10 +28,10 @@ const getDifferenceText = (difference: number | null | undefined): string => {
     return `${sign}${difference.toFixed(1)}`;
 };
 
-export const CutPhaseCard: React.FC<CutPhaseCardProps> = ({ phase, onPress }) => {
-    const formattedStartDate = formatShortDate(phase.startDate);
-    const formattedEndDate = formatShortDate(phase.endDate);
-    const compliance = Math.round(phase.averageScore);
+export const ProgramCard: React.FC<ProgramCardProps> = ({ program, onPress }) => {
+    const formattedStartDate = formatShortDate(program.startDate);
+    const formattedEndDate = formatShortDate(program.endDate);
+    const compliance = Math.round(program.averageScore);
 
     return (
         <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
@@ -52,12 +54,12 @@ export const CutPhaseCard: React.FC<CutPhaseCardProps> = ({ phase, onPress }) =>
                             color={theme.colors.textLight}
                             style={styles.weeksText}
                         >
-                            {phase.totalWeeks} semanas
+                            {program.totalWeeks} semanas
                         </ThemedText>
                         <Icon 
                             name="Asterisk" 
                             size={16} 
-                            color={phase.isActive ? theme.colors.primary : theme.colors.placeholder}
+                            color={program.isActive ? theme.colors.primary : theme.colors.placeholder}
                             backgroundColor="transparent"
                             style={styles.asterikIcon}
                         />
@@ -74,7 +76,7 @@ export const CutPhaseCard: React.FC<CutPhaseCardProps> = ({ phase, onPress }) =>
                     </View>
                     <View style={styles.historyStat}>
                         <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                            {getDifferenceText(phase.weightDifference)}
+                            {getDifferenceText(program.weightDifference)}
                         </ThemedText>
                         <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
                             kg
@@ -82,7 +84,7 @@ export const CutPhaseCard: React.FC<CutPhaseCardProps> = ({ phase, onPress }) =>
                     </View>
                     <View style={styles.historyStat}>
                         <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                            {getDifferenceText(phase.waistDifference)}
+                            {getDifferenceText(program.waistDifference)}
                         </ThemedText>
                         <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
                             cm
@@ -90,7 +92,7 @@ export const CutPhaseCard: React.FC<CutPhaseCardProps> = ({ phase, onPress }) =>
                     </View>
                     <View style={styles.historyStat}>
                         <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                            {getDifferenceText(phase.hipsDifference)}
+                            {getDifferenceText(program.hipsDifference)}
                         </ThemedText>
                         <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
                             cm
@@ -165,4 +167,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default CutPhaseCard;
+export default ProgramCard;

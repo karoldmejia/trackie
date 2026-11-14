@@ -8,7 +8,7 @@ import { WeightLogList } from '@/components/weight/WeightLogList';
 import { WeightMetricsGrid } from '@/components/weight/WeightMetricsGrid';
 import { WeightProgressCard } from '@/components/weight/WeightProgressCard';
 import { Settings, settingsService } from '@/services/settingsService';
-import { CreateWeightLogDto, WeightLog, weightLogService } from '@/services/weightLog.service';
+import { CreateWeightLogDto, WeightLog, weightLogService, getBodyMetric } from '@/services/weightLog.service';
 import { theme } from '@/theme';
 import { formatShortDate } from '@/utils/date';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -77,6 +77,33 @@ const WeightScreen: React.FC = () => {
     return sum / validValues.length;
   };
 
+  // Construye un WeightLog sintético para los promedios mensuales que renderiza WeightLogList/WeightLogCard.
+  // Las keys de métricas son las del backend: weight, bodyfat, waist, hips.
+  const buildAverageLog = (
+    monthKey: string,
+    values: { weight: number; waist: number; bodyfat: number; hips: number },
+  ): WeightLog => {
+    const metric = (key: 'weight' | 'waist' | 'bodyfat' | 'hips', value: number, unit: string) => ({
+      id: `monthly-avg-${monthKey}-${key}`,
+      weightLogId: monthKey,
+      bodyMetricTypeId: key,
+      value,
+      bodyMetricType: { id: key, key, label: key, type: 'number', unit, isActive: true },
+    });
+
+    return {
+      id: `monthly-avg-${monthKey}`,
+      date: monthKey,
+      photos: [],
+      metrics: [
+        metric('weight', Math.round(values.weight * 100) / 100, 'kg'),
+        metric('waist', values.waist > 0 ? Math.round(values.waist * 100) / 100 : 0, 'cm'),
+        metric('bodyfat', values.bodyfat > 0 ? Math.round(values.bodyfat * 100) / 100 : 0, '%'),
+        metric('hips', values.hips > 0 ? Math.round(values.hips * 100) / 100 : 0, 'cm'),
+      ],
+    };
+  };
+
   const calculateMonthsFromLogs = (logs: WeightLog[]): WeightLog[] => {
     if (!logs.length) return [];
 
@@ -101,27 +128,19 @@ const WeightScreen: React.FC = () => {
     for (const [monthKey, logsInMonth] of monthMap) {
       // Usar la función auxiliar para calcular promedios
       const avgWeight = calculateAverageFilteringZeros(
-        logsInMonth.map(l => l.weight)
+        logsInMonth.map(l => getBodyMetric(l, 'weight'))
       );
       const avgWaist = calculateAverageFilteringZeros(
-        logsInMonth.map(l => l.waist || 0)
+        logsInMonth.map(l => getBodyMetric(l, 'waist'))
       );
       const avgBodyfat = calculateAverageFilteringZeros(
-        logsInMonth.map(l => l.bodyfat || 0)
+        logsInMonth.map(l => getBodyMetric(l, 'bodyfat'))
       );
       const avgHips = calculateAverageFilteringZeros(
-        logsInMonth.map(l => l.hips || 0)
+        logsInMonth.map(l => getBodyMetric(l, 'hips'))
       );
 
-      months.push({
-        id: monthKey,
-        date: monthKey,
-        weight: Math.round(avgWeight * 100) / 100,
-        waist: avgWaist > 0 ? Math.round(avgWaist * 100) / 100 : 0,
-        bodyfat: avgBodyfat > 0 ? Math.round(avgBodyfat * 100) / 100 : 0,
-        hips: avgHips > 0 ? Math.round(avgHips * 100) / 100 : 0,
-        photos: [],
-      });
+      months.push(buildAverageLog(monthKey, { weight: avgWeight, waist: avgWaist, bodyfat: avgBodyfat, hips: avgHips }));
     }
 
     return months.sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
@@ -324,7 +343,7 @@ const WeightScreen: React.FC = () => {
   };
 
   const initialWeight = settings?.startWeight || 70;
-  const currentWeight = latestWeight?.weight || 0;
+  const currentWeight = latestWeight ? getBodyMetric(latestWeight, 'weight') : 0;
   const targetWeight = settings?.targetWeight || 0;
 
   const onRefresh = async () => {
@@ -359,27 +378,19 @@ const WeightScreen: React.FC = () => {
 
     for (const [monthKey, logsInMonth] of monthMap) {
       const avgWeight = calculateAverageFilteringZeros(
-        logsInMonth.map(l => l.weight)
+        logsInMonth.map(l => getBodyMetric(l, 'weight'))
       );
       const avgWaist = calculateAverageFilteringZeros(
-        logsInMonth.map(l => l.waist || 0)
+        logsInMonth.map(l => getBodyMetric(l, 'waist'))
       );
       const avgBodyfat = calculateAverageFilteringZeros(
-        logsInMonth.map(l => l.bodyfat || 0)
+        logsInMonth.map(l => getBodyMetric(l, 'bodyfat'))
       );
       const avgHips = calculateAverageFilteringZeros(
-        logsInMonth.map(l => l.hips || 0)
+        logsInMonth.map(l => getBodyMetric(l, 'hips'))
       );
 
-      months.push({
-        id: monthKey,
-        date: monthKey,
-        weight: Math.round(avgWeight * 100) / 100,
-        waist: avgWaist > 0 ? Math.round(avgWaist * 100) / 100 : 0,
-        bodyfat: avgBodyfat > 0 ? Math.round(avgBodyfat * 100) / 100 : 0,
-        hips: avgHips > 0 ? Math.round(avgHips * 100) / 100 : 0,
-        photos: [],
-      });
+      months.push(buildAverageLog(monthKey, { weight: avgWeight, waist: avgWaist, bodyfat: avgBodyfat, hips: avgHips }));
     }
 
     return months.sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
@@ -391,7 +402,7 @@ const WeightScreen: React.FC = () => {
 
   const getCurrentMonthAverage = (monthlyAverages: WeightLog[]): number => {
     if (monthlyAverages.length === 0) return 0;
-    return monthlyAverages[0].weight;
+    return getBodyMetric(monthlyAverages[0], 'weight');
   };
 
   const progress = Math.min(Math.max(((initialWeight - currentWeight) / (initialWeight - targetWeight)) * 100, 0), 100);
@@ -490,14 +501,7 @@ const WeightScreen: React.FC = () => {
           setEditingLog(null);
         }}
         onSubmit={handleFormSubmit}
-        initialData={editingLog ? {
-          date: editingLog.date,
-          weight: editingLog.weight,
-          waist: editingLog.waist,
-          bodyfat: editingLog.bodyfat,
-          hips: editingLog.hips,
-          photos: editingLog.photos,
-        } : undefined}
+        initialData={editingLog ?? undefined}
         title="Editar Registro de Peso"
         hideDatePicker={true}
       />

@@ -1,4 +1,5 @@
 import { Icon } from '@/components/icon';
+import { DailyLog, getMetric } from '@/services/dailyLogService';
 import { theme } from '@/theme';
 import { formatShortDate } from '@/utils/date';
 import React, { useRef } from 'react';
@@ -8,15 +9,7 @@ import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimat
 import { ThemedText } from '../ThemedText';
 
 interface DailyLogCardProps {
-    log: {
-        id: string;
-        date: string;
-        calories: number;
-        steps: number;
-        proteinGrams: number;
-        waterLiters: number;
-        workout: string;
-    };
+    log: DailyLog;
     onPress: () => void;
     onDelete?: () => void;
 
@@ -68,7 +61,11 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({
     const swipeableRef = useRef<SwipeableMethods>(null);
 
     const formattedDate = formatShortDate(log.date);
-    const translatedWorkout = getTranslatedWorkout(log.workout);
+    const translatedWorkout = getTranslatedWorkout(log.workouts?.[0]?.workoutTypeSnapshot ?? 'none');
+    const calories = getMetric(log, 'calories');
+    const steps = getMetric(log, 'steps');
+    const protein = getMetric(log, 'protein');
+    const water = getMetric(log, 'water');
 
     const handleDelete = () => {
         swipeableRef.current?.close();
@@ -81,7 +78,7 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({
                 <View style={styles.header}>
                     <View style={styles.headerLeft}>
                         <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                            {log.calories} calorías, {log.steps} pasos
+                            {calories} calorías, {steps} pasos
                         </ThemedText>
                     </View>
                     <View style={styles.headerRight}>
@@ -119,7 +116,7 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({
                             color={theme.colors.textLight}
                             style={styles.statText}
                         >
-                            {log.proteinGrams}g de proteína, {log.waterLiters} litros de agua
+                            {protein}g de proteína, {water} litros de agua
                         </ThemedText>
                     </View>
                 </View>

@@ -1,4 +1,4 @@
-import { DailyLogForm, WorkoutType } from '@/components/home/DailyLogForm';
+import { DailyLogForm } from '@/components/home/DailyLogForm';
 import { DateHeader } from '@/components/home/DateHeader';
 import { MetricsGrid } from '@/components/home/MetricsGrid';
 import { SearchModal } from '@/components/home/SearchModal';
@@ -9,7 +9,7 @@ import { WorkoutVideo } from '@/components/home/WorkoutVideo';
 import { Icon } from '@/components/icon';
 import { LongButton } from '@/components/LongButton';
 import { NavBar } from '@/components/navbar';
-import { CreateDailyLogDto, DailyLog, dailyLogService } from '@/services/dailyLogService';
+import { DailyLog, dailyLogService } from '@/services/dailyLogService';
 import { Settings, settingsService } from '@/services/settingsService';
 import { theme } from '@/theme';
 import { calculateWeeklyAveragesFromDailyLogs, WeeklyDailyAverage } from '@/utils/weeklyAverages';
@@ -120,24 +120,14 @@ const HomeScreen: React.FC = () => {
     };
 
     const handleFormSubmit = async (data: {
-        date?: string;
-        calories: string;
-        steps: string;
-        proteinGrams: string;
-        waterLiters: string;
-        workout: WorkoutType;
+        date: string;
+        metrics: Record<string, number>;
     }) => {
         try {
-            const newLog: CreateDailyLogDto = {
+            await dailyLogService.upsert({
                 date: data.date || today,
-                calories: parseInt(data.calories) || 0,
-                steps: parseInt(data.steps) || 0,
-                proteinGrams: parseInt(data.proteinGrams) || 0,
-                waterLiters: parseFloat(data.waterLiters) || 0,
-                workout: data.workout,
-            };
-
-            await dailyLogService.upsert(newLog);
+                metrics: data.metrics,
+            });
             await fetchData();
             setFormVisible(false);
         } catch (error) {
@@ -152,23 +142,13 @@ const HomeScreen: React.FC = () => {
 
     const handleEditFormSubmit = async (data: {
         date: string;
-        calories: string;
-        steps: string;
-        proteinGrams: string;
-        waterLiters: string;
-        workout: WorkoutType;
+        metrics: Record<string, number>;
     }) => {
         try {
-            const updatedLog: CreateDailyLogDto = {
+            await dailyLogService.upsert({
                 date: data.date,
-                calories: parseInt(data.calories) || 0,
-                steps: parseInt(data.steps) || 0,
-                proteinGrams: parseInt(data.proteinGrams) || 0,
-                waterLiters: parseFloat(data.waterLiters) || 0,
-                workout: data.workout,
-            };
-
-            await dailyLogService.upsert(updatedLog);
+                metrics: data.metrics,
+            });
             await fetchData();
             setEditFormVisible(false);
             setEditingLog(null);
@@ -200,8 +180,8 @@ const HomeScreen: React.FC = () => {
         router.push('/AllDailyLogs');
     };
 
-    const handleCutPhasesPress = () => {
-        router.push('/CutPhasesLogs');
+    const handleProgramsPress = () => {
+        router.push('/ProgramsLogs');
     };
 
 
@@ -249,7 +229,7 @@ const HomeScreen: React.FC = () => {
                     onStepsPress={handleStepsPress}
                     leftComponent={
                         <WorkoutVideo
-                            workout={dailyLog?.workout}
+                            workout={dailyLog?.workouts?.[0]?.workoutTypeSnapshot}
                             videoSource={workoutVideo}
                         />
                     }
@@ -263,8 +243,8 @@ const HomeScreen: React.FC = () => {
                 </View>
                 <View style={styles.gallerySection}>
                     <LongButton
-                        onPress={handleCutPhasesPress}
-                        text="Fases nutricionales"
+                        onPress={handleProgramsPress}
+                        text="Programas"
                         iconLeft="TrendingDown"
                     />
                 </View>
@@ -313,14 +293,7 @@ const HomeScreen: React.FC = () => {
                     setEditingLog(null);
                 }}
                 onSubmit={handleEditFormSubmit}
-                initialData={editingLog ? {
-                    date: editingLog.date,
-                    calories: editingLog.calories,
-                    steps: editingLog.steps,
-                    proteinGrams: editingLog.proteinGrams,
-                    waterLiters: editingLog.waterLiters,
-                    workout: editingLog.workout,
-                } : undefined}
+                initialData={editingLog ?? undefined}
                 title="Editar registro"
                 hideDatePicker={true}
             />

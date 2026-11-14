@@ -1,5 +1,5 @@
 import { ThemedText } from '@/components/ThemedText';
-import { WeightLog } from '@/services/weightLog.service';
+import { WeightLog, getBodyMetric } from '@/services/weightLog.service';
 import { theme } from '@/theme';
 import React from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
@@ -17,6 +17,11 @@ export const WeightLogCard: React.FC<WeightLogCardProps> = ({
     onPress,
     formatDisplayDate,
 }) => {
+    const weight = getBodyMetric(log, 'weight');
+    const waist = getBodyMetric(log, 'waist');
+    const bodyfat = getBodyMetric(log, 'bodyfat');
+    const hips = getBodyMetric(log, 'hips');
+
     const getImageUrl = (uri: string): string => {
         if (!uri) return '';
         if (uri.startsWith('http')) return uri;
@@ -41,36 +46,36 @@ export const WeightLogCard: React.FC<WeightLogCardProps> = ({
                 <View style={styles.historyStats}>
                     <View style={styles.historyStat}>
                         <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                            {log.weight}
+                            {weight}
                         </ThemedText>
                         <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
                             kg
                         </ThemedText>
                     </View>
-                    {log.waist !== undefined && log.waist > 0 && (
+                    {waist > 0 && (
                         <View style={styles.historyStat}>
                             <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                                {log.waist}
+                                {waist}
                             </ThemedText>
                             <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
                                 cm
                             </ThemedText>
                         </View>
                     )}
-                    {log.bodyfat !== undefined && log.bodyfat > 0 && (
+                    {bodyfat > 0 && (
                         <View style={styles.historyStat}>
                             <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                                {log.bodyfat}
+                                {bodyfat}
                             </ThemedText>
                             <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
                                 %
                             </ThemedText>
                         </View>
                     )}
-                    {log.hips !== undefined && log.hips > 0 && (
+                    {hips > 0 && (
                         <View style={styles.historyStat}>
                             <ThemedText variant="semiBold" size={14} color={theme.colors.text}>
-                                {log.hips}
+                                {hips}
                             </ThemedText>
                             <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
                                 cm

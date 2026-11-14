@@ -1,22 +1,12 @@
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
+import { ProgramMeasurements } from '@/services/programService';
 import { theme } from '@/theme';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-interface MeasurementData {
-    initial: number | null;
-    current: number | null;
-    difference: number | null;
-}
-
 interface MeasurementsTableProps {
-    measurements: {
-        weight: MeasurementData;
-        bodyfat: MeasurementData;
-        waist: MeasurementData;
-        hips: MeasurementData;
-    };
+    measurements: ProgramMeasurements;
 }
 
 const formatValue = (value: number | null, unit: string): string => {
@@ -84,7 +74,10 @@ export const MeasurementsTable: React.FC<MeasurementsTableProps> = ({ measuremen
                 {/* Filas de datos */}
                 {rows.map((row) => {
                     const data = measurements[row.key];
-                    const differenceColor = getDifferenceColor(data.difference);
+                    const first = data?.first?.value ?? null;
+                    const last = data?.last?.value ?? null;
+                    const difference = data?.difference ?? null;
+                    const differenceColor = getDifferenceColor(difference);
 
                     return (
                         <View key={row.key} style={[styles.row, styles.dataRow]}>
@@ -95,18 +88,18 @@ export const MeasurementsTable: React.FC<MeasurementsTableProps> = ({ measuremen
                             </View>
                             <View style={styles.valueCell}>
                                 <ThemedText variant="regular" size={13} color={theme.colors.textLight}>
-                                    {formatValue(data.initial, row.unit)}
+                                    {formatValue(first, row.unit)}
                                 </ThemedText>
                             </View>
                             <View style={styles.valueCell}>
                                 <View style={styles.currentValueContainer}>
                                     <ThemedText variant="medium" size={13} color={theme.colors.text}>
-                                        {formatValue(data.current, row.unit)}
+                                        {formatValue(last, row.unit)}
                                     </ThemedText>
-                                    {data.difference !== null && data.difference !== undefined && (
+                                    {difference !== null && difference !== undefined && (
                                     <ThemedText variant="medium" size={13} color={theme.colors.text}>
 
-                                            ({formatDifference(data.difference, row.unit)})
+                                            ({formatDifference(difference, row.unit)})
                                         </ThemedText>
                                     )}
                                 </View>

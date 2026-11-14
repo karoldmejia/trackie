@@ -1,14 +1,41 @@
 import api from './api';
 
+export interface BodyMetricType {
+    id: string;
+    key: string;              // 'weight' | 'bodyfat' | 'waist' | 'hips'
+    label: string;
+    type: string;
+    unit: string;
+    isActive: boolean;
+}
+
+export interface WeightLogMetric {
+    id: string;
+    weightLogId: string;
+    bodyMetricTypeId: string;
+    value: number;
+    bodyMetricType: BodyMetricType;
+}
+
 export interface WeightLog {
     id: string;
     date: string;
-    weight: number;
-    bodyfat?: number;
-    hips?: number;
-    waist?: number;
-    photos?: string[];
+    photos: string[] | null;
+    metrics: WeightLogMetric[];
 }
+
+/**
+ * Lee el valor de una métrica corporal por key ('weight', 'bodyfat', 'waist', 'hips').
+ * OJO: la key vive en `metric.bodyMetricType.key`, no en `metric.key`.
+ */
+export const getBodyMetric = (
+    log: Pick<WeightLog, 'metrics'>,
+    key: string,
+    fallback = 0,
+): number => {
+    const entry = log.metrics?.find(m => m.bodyMetricType?.key === key);
+    return entry?.value ?? fallback;
+};
 
 export interface CreateWeightLogDto {
     date: string;
@@ -100,6 +127,10 @@ export const weightLogService = {
 
     // Crear o actualizar por fecha (upsert)
     upsert: async (data: CreateWeightLogDto) => {
+        // TODO(F6a): Verificar contra el DTO del backend (src/dtos/weightlog.dto.ts) si
+        // acepta campos planos (weight, bodyfat, ...) o `metrics: Record<string, number>`.
+        // Si el backend ya migró a metrics, este FormData tendrá que cambiar en una
+        // tarea posterior — se deja como está intencionadamente.
         const formData = new FormData();
 
         formData.append('date', data.date);
@@ -137,6 +168,10 @@ export const weightLogService = {
 
     // Crear nuevo registro de peso con fotos
     create: async (data: CreateWeightLogDto) => {
+        // TODO(F6a): Verificar contra el DTO del backend (src/dtos/weightlog.dto.ts) si
+        // acepta campos planos (weight, bodyfat, ...) o `metrics: Record<string, number>`.
+        // Si el backend ya migró a metrics, este FormData tendrá que cambiar en una
+        // tarea posterior — se deja como está intencionadamente.
         const formData = new FormData();
 
         formData.append('date', data.date);
@@ -171,6 +206,10 @@ export const weightLogService = {
 
     // Actualizar registro de peso por ID
     update: async (id: string, data: UpdateWeightLogDto) => {
+        // TODO(F6a): Verificar contra el DTO del backend (src/dtos/weightlog.dto.ts) si
+        // acepta campos planos (weight, bodyfat, ...) o `metrics: Record<string, number>`.
+        // Si el backend ya migró a metrics, este FormData tendrá que cambiar en una
+        // tarea posterior — se deja como está intencionadamente.
         const formData = new FormData();
 
         if (data.weight !== undefined) {

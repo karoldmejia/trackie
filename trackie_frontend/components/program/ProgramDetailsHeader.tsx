@@ -1,25 +1,20 @@
 import { ThemedText } from '@/components/ThemedText';
+import { ProgramTarget } from '@/services/programService';
 import { theme } from '@/theme';
 import { formatShortDate } from '@/utils/date';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-interface CutPhaseDetailsHeaderProps {
+interface ProgramDetailsHeaderProps {
     startDate: string;
     endDate: string;
     totalWeeks: number;
     currentWeek: number;
     averageScore: number;
-    targets: {
-        calories: number;
-        protein: number;
-        steps: number;
-        water: number;
-        workoutsPerWeek: number;
-    };
+    targets: ProgramTarget[];
 }
 
-export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
+export const ProgramDetailsHeader: React.FC<ProgramDetailsHeaderProps> = ({
     startDate,
     endDate,
     totalWeeks,
@@ -30,6 +25,15 @@ export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
     const formattedStartDate = formatShortDate(startDate);
     const formattedEndDate = formatShortDate(endDate);
     const progress = totalWeeks > 0 ? (currentWeek / totalWeeks) * 100 : 0;
+
+    const targetValue = (key: string): number =>
+        targets.find(t => t.key === key)?.target ?? 0;
+
+    const calories = targetValue('calories');
+    const protein = targetValue('protein');
+    const steps = targetValue('steps');
+    const water = targetValue('water');
+    const workoutsPerWeek = targetValue('workout_count');
 
     return (
         <View style={styles.card}>
@@ -51,7 +55,7 @@ export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
                     <View style={styles.targetsRow}>
                         <View style={styles.targetItem}>
                             <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
-                                {targets.calories}
+                                {calories}
                             </ThemedText>
                             <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
                                 kcal
@@ -59,7 +63,7 @@ export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
                         </View>
                         <View style={styles.targetItem}>
                             <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
-                                {targets.protein}
+                                {protein}
                             </ThemedText>
                             <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
                                 g
@@ -67,7 +71,7 @@ export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
                         </View>
                         <View style={styles.targetItem}>
                             <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
-                                {targets.steps}
+                                {steps}
                             </ThemedText>
                             <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
                                 pasos
@@ -75,7 +79,7 @@ export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
                         </View>
                         <View style={styles.targetItem}>
                             <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
-                                {targets.water}
+                                {water}
                             </ThemedText>
                             <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
                                 L
@@ -83,7 +87,7 @@ export const CutPhaseDetailsHeader: React.FC<CutPhaseDetailsHeaderProps> = ({
                         </View>
                         <View style={styles.targetItem}>
                             <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
-                                {targets.workoutsPerWeek}
+                                {workoutsPerWeek}
                             </ThemedText>
                             <ThemedText variant="regular" size={9} color={theme.colors.textLight}>
                                 ejerc.
@@ -200,4 +204,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default CutPhaseDetailsHeader;
+export default ProgramDetailsHeader;

@@ -2,7 +2,7 @@ import { LineChartComponent, TimeRange } from '@/components/charts/LineChartComp
 import { AnalysisCard } from '@/components/home/AnalysisCard';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
-import { DailyLog, dailyLogService, FullStatsResult } from '@/services/dailyLogService';
+import { DailyLog, dailyLogService, FullStatsResult, getMetric } from '@/services/dailyLogService';
 import { Settings, settingsService } from '@/services/settingsService';
 import { theme } from '@/theme';
 import { getMonthEndDate, getMonthStartDate, getWeekEndDate, getWeekStartDate, getYearEndDate, getYearStartDate } from '@/utils/dateHelpers';
@@ -156,7 +156,7 @@ const StepsOverviewScreen: React.FC = () => {
         const data = sortedLogs.map(log => {
             const logDate = parseLocalDate(log.date);
             return {
-                value: log.steps,
+                value: getMetric(log, 'steps'),
                 label: `${logDate.getDate()}/${logDate.getMonth() + 1}`,
                 date: logDate,
             };

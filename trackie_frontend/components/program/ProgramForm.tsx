@@ -2,7 +2,7 @@ import { FormInput } from '@/components/FormInput';
 import { FormSelect } from '@/components/FormSelect';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
-import { CreateCutPhaseDto } from '@/services/cutPhaseService';
+import { CreateProgramDto, ProgramKind, ProgramMetricTargetInput } from '@/services/programService';
 import { theme } from '@/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useKeyboard } from '@react-native-community/hooks';
@@ -13,17 +13,57 @@ import {
     KeyboardAvoidingView,
     Modal,
     Platform,
+    ScrollView,
     StyleSheet,
+    Switch,
     TouchableOpacity,
     TouchableWithoutFeedback,
     View,
 } from 'react-native';
 
-interface CutPhaseFormProps {
+interface ProgramFormProps {
     visible: boolean;
     onClose: () => void;
-    onSubmit: (data: CreateCutPhaseDto) => Promise<void>;
+    onSubmit: (data: CreateProgramDto) => Promise<void>;
 }
+
+const DIRECTION_OPTIONS = [
+    { label: 'Máximo', value: 'at_most' },
+    { label: 'Mínimo', value: 'at_least' },
+    { label: 'Exacto', value: 'exact' },
+];
+
+type ProgramTargetFormRow = ProgramMetricTargetInput & { enabled: boolean };
+
+const DEFAULT_TARGETS: ProgramTargetFormRow[] = [
+    { key: 'calories',      target: 2000, direction: 'at_most',  weight: 0.30, isOptional: false, enabled: true },
+    { key: 'protein',       target: 150,  direction: 'at_least', weight: 0.30, isOptional: false, enabled: true },
+    { key: 'steps',         target: 8000, direction: 'at_least', weight: 0.25, isOptional: false, enabled: true },
+    { key: 'water',         target: 2.5,  direction: 'at_least', weight: 0.10, isOptional: false, enabled: true },
+    { key: 'workout_count', target: 1,    direction: 'at_least', weight: 0.05, isOptional: false, enabled: true },
+];
+
+const TARGET_LABELS: Record<string, string> = {
+    calories: 'Calorías',
+    protein: 'Proteína',
+    steps: 'Pasos',
+    water: 'Agua',
+    workout_count: 'Entrenamientos',
+};
+
+const TARGET_ICONS: Record<string, string> = {
+    calories: 'Flame',
+    protein: 'Beef',
+    steps: 'Footprints',
+    water: 'Droplet',
+    workout_count: 'Dumbbell',
+};
+
+const KIND_OPTIONS = [
+    { label: 'Definición', value: 'cut' },
+    { label: 'Volumen', value: 'bulk' },
+    { label: 'Mantenimiento', value: 'maintain' },
+];
 
 const CUT_DURATION_OPTIONS = [
     { label: '4 semanas', value: '4' },
@@ -47,19 +87,19 @@ const WORKOUTS_PER_WEEK_OPTIONS = [
     { label: '7 días', value: '7' },
 ];
 
-export const CutPhaseForm: React.FC<CutPhaseFormProps> = ({
+export const ProgramForm: React.FC<ProgramFormProps> = ({
     visible,
     onClose,
     onSubmit,
 }) => {
+    const [name, setName] = useState('');
+    const [kind, setKind] = useState<ProgramKind>('cut');
     const [startDate, setStartDate] = useState(new Date());
     const [showStartDatePicker, setShowStartDatePicker] = useState(false);
     const [durationWeeks, setDurationWeeks] = useState('8');
-    const [targetCalories, setTargetCalories] = useState('');
-    const [targetProtein, setTargetProtein] = useState('');
-    const [targetSteps, setTargetSteps] = useState('');
-    const [targetWater, setTargetWater] = useState('');
     const [workoutsPerWeek, setWorkoutsPerWeek] = useState('4');
+    // Estado local de targets: `enabled` solo controla filas (no se envía al backend)
+    const [targets, setTargets] = useState<ProgramTargetFormRow[]>(() => DEFAULT_TARGETS.map(t => ({ ...t })));
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const slideAnim = useRef(new Animated.Value(0)).current;
@@ -70,12 +110,11 @@ export const CutPhaseForm: React.FC<CutPhaseFormProps> = ({
         if (visible) {
             // Resetear formulario
             setStartDate(new Date());
+            setName('');
+            setKind('cut');
             setDurationWeeks('8');
-            setTargetCalories('');
-            setTargetProtein('');
-            setTargetSteps('');
-            setTargetWater('');
             setWorkoutsPerWeek('4');
+            setTargets(DEFAULT_TARGETS.map(t => ({ ...t })));
             setIsSubmitting(false);
 
             Animated.spring(slideAnim, {
@@ -114,47 +153,53 @@ export const CutPhaseForm: React.FC<CutPhaseFormProps> = ({
         }
     };
 
+    const setTargetEnabled = (index: number, enabled: boolean) => {
+        setTargets(prev => prev.map((t, i) => (i === index ? { ...t, enabled } : t)));
+    };
+
+    // Campos numéricos: NaN representa "vacío" y se traduce a 0 al enviar
+    const setTargetNumber = (index: number, field: 'target' | 'weight', text: string) => {
+        const parsed = parseFloat(text);
+        setTargets(prev => prev.map((t, i) => (i === index ? { ...t, [field]: isNaN(parsed) ? NaN : parsed } : t)));
+    };
+
+    const setTargetDirection = (index: number, direction: string) => {
+        setTargets(prev => prev.map((t, i) => (i === index ? { ...t, direction: direction as ProgramMetricTargetInput['direction'] } : t)));
+    };
+
     const handleSubmit = async () => {
         // Validaciones
-        const calories = parseFloat(targetCalories);
-        const protein = parseFloat(targetProtein);
-        const steps = parseInt(targetSteps);
-        const water = parseFloat(targetWater);
         const weeks = parseInt(durationWeeks);
         const workouts = parseInt(workoutsPerWeek);
 
-        if (!targetCalories || isNaN(calories) || calories <= 0) {
-            alert('Por favor ingresa un objetivo de calorías válido');
+        if (!name.trim()) {
+            alert('Por favor ingresa un nombre para el programa');
             return;
         }
 
-        if (!targetProtein || isNaN(protein) || protein <= 0) {
-            alert('Por favor ingresa un objetivo de proteína válido');
-            return;
-        }
-
-        if (!targetSteps || isNaN(steps) || steps <= 0) {
-            alert('Por favor ingresa un objetivo de pasos válido');
-            return;
-        }
-
-        if (!targetWater || isNaN(water) || water <= 0) {
-            alert('Por favor ingresa un objetivo de agua válido');
+        const activeTargets = targets.filter(t => t.enabled);
+        if (activeTargets.length === 0) {
+            alert('Activa al menos un objetivo para el programa');
             return;
         }
 
         const endDate = calculateEndDate(startDate, weeks);
 
-        const data: CreateCutPhaseDto = {
+        const targetsPayload = activeTargets.map(({ enabled, ...rest }) => ({
+            ...rest,
+            target: isNaN(rest.target) ? 0 : rest.target,
+            weight: isNaN(rest.weight) || rest.weight < 0 ? 0 : Math.min(rest.weight, 1),
+        }));
+
+        const data: CreateProgramDto = {
+            name: name.trim(),
+            kind,
             startDate: formatDate(startDate),
             endDate: formatDate(endDate),
-            totalWeeks: weeks, 
-            targetCalories: calories,
-            targetProtein: protein,
-            targetSteps: steps,
-            targetWater: water,
-            workoutsPerWeek: workouts,
+            totalWeeks: weeks,
+            workoutsPerWeek: workouts || 0,
             isActive: true,
+            targets: targetsPayload,
         };
 
         setIsSubmitting(true);
@@ -162,8 +207,8 @@ export const CutPhaseForm: React.FC<CutPhaseFormProps> = ({
             await onSubmit(data);
             handleClose();
         } catch (error) {
-            console.error('Error creating cut phase:', error);
-            alert('Error al crear la etapa. Por favor intenta de nuevo.');
+            console.error('Error creating program:', error);
+            alert('Error al crear el programa. Por favor intenta de nuevo.');
         } finally {
             setIsSubmitting(false);
         }
@@ -216,10 +261,34 @@ export const CutPhaseForm: React.FC<CutPhaseFormProps> = ({
                         color={theme.colors.textLight}
                         style={styles.title}
                     >
-                        NUEVA ETAPA DE CUT
+                        NUEVO PROGRAMA
                     </ThemedText>
 
-                    <View style={styles.formContainer}>
+                    <ScrollView
+                        style={styles.formContainer}
+                        contentContainerStyle={styles.formContainerContent}
+                        keyboardShouldPersistTaps="handled"
+                    >
+                        {/* Nombre y tipo de programa */}
+                        <View style={styles.fullRow}>
+                            <FormInput
+                                icon="Tag"
+                                placeholder="Nombre del programa"
+                                value={name}
+                                onChangeText={setName}
+                                rounded={false}
+                            />
+                        </View>
+                        <View style={styles.fullRow}>
+                            <FormSelect
+                                icon="Target"
+                                placeholder="Tipo de programa"
+                                value={kind}
+                                options={KIND_OPTIONS}
+                                onSelect={(value) => setKind(value as ProgramKind)}
+                            />
+                        </View>
+
                         {/* Fila 1: Fecha de inicio y Duración */}
                         <View style={styles.row}>
                             <View style={styles.halfColumn}>
@@ -288,64 +357,68 @@ export const CutPhaseForm: React.FC<CutPhaseFormProps> = ({
                             />
                         </View>
 
-                        {/* Separador */}
-                        <View style={styles.divider}>
+                        {/* Objetivos del programa */}
+                        <View style={styles.sectionHeader}>
                             <ThemedText variant="medium" size={11} color={theme.colors.textLight}>
-                                OBJETIVOS DIARIOS
+                                OBJETIVOS DEL PROGRAMA
                             </ThemedText>
                         </View>
 
-                        {/* Fila 3: Calorías y Proteína */}
-                        <View style={styles.row}>
-                            <View style={styles.halfColumn}>
-                                <FormInput
-                                    icon="Flame"
-                                    placeholder="Calorías"
-                                    value={targetCalories}
-                                    onChangeText={setTargetCalories}
-                                    keyboardType="numeric"
-                                    rounded={false}
-                                    containerStyle={styles.topLeftInput}
-                                />
+                        {targets.map((target, index) => (
+                            <View key={target.key} style={styles.targetRow}>
+                                <View style={styles.targetRowHeader}>
+                                    <Switch
+                                        value={target.enabled}
+                                        onValueChange={(value) => setTargetEnabled(index, value)}
+                                        trackColor={{ false: theme.colors.background, true: theme.colors.primary }}
+                                        thumbColor={theme.colors.white}
+                                    />
+                                    <ThemedText
+                                        variant="regular"
+                                        size={13}
+                                        color={target.enabled ? theme.colors.text : theme.colors.textLight}
+                                    >
+                                        {TARGET_LABELS[target.key]}
+                                    </ThemedText>
+                                </View>
+                                <View
+                                    style={!target.enabled && styles.targetRowDisabled}
+                                    pointerEvents={target.enabled ? 'auto' : 'none'}
+                                >
+                                    <View style={styles.row}>
+                                        <View style={styles.targetInputCol}>
+                                            <FormInput
+                                                icon={(TARGET_ICONS[target.key] ?? 'Target') as any}
+                                                placeholder="Objetivo"
+                                                value={isNaN(target.target) ? '' : String(target.target)}
+                                                onChangeText={(text) => setTargetNumber(index, 'target', text)}
+                                                keyboardType="numeric"
+                                                rounded={false}
+                                            />
+                                        </View>
+                                        <View style={styles.weightInputCol}>
+                                            <FormInput
+                                                icon="Scale"
+                                                placeholder="Peso (0-1)"
+                                                value={isNaN(target.weight) ? '' : String(target.weight)}
+                                                onChangeText={(text) => setTargetNumber(index, 'weight', text)}
+                                                keyboardType="numeric"
+                                                rounded={false}
+                                            />
+                                        </View>
+                                    </View>
+                                    <View style={styles.directionRow}>
+                                        <FormSelect
+                                            icon="ArrowLeftRight"
+                                            placeholder="Dirección"
+                                            value={target.direction}
+                                            options={DIRECTION_OPTIONS}
+                                            onSelect={(value) => setTargetDirection(index, value)}
+                                        />
+                                    </View>
+                                </View>
                             </View>
-                            <View style={styles.halfColumn}>
-                                <FormInput
-                                    icon="Beef"
-                                    placeholder="Proteína"
-                                    value={targetProtein}
-                                    onChangeText={setTargetProtein}
-                                    keyboardType="numeric"
-                                    rounded={false}
-                                    containerStyle={styles.topRightInput}
-                                />
-                            </View>
-                        </View>
-
-                        {/* Fila 4: Pasos y Agua */}
-                        <View style={styles.row}>
-                            <View style={styles.halfColumn}>
-                                <FormInput
-                                    icon="Footprints"
-                                    placeholder="Pasos"
-                                    value={targetSteps}
-                                    onChangeText={setTargetSteps}
-                                    keyboardType="numeric"
-                                    rounded={false}
-                                    containerStyle={styles.bottomLeftInput}
-                                />
-                            </View>
-                            <View style={styles.halfColumn}>
-                                <FormInput
-                                    icon="Droplet"
-                                    placeholder="Agua"
-                                    value={targetWater}
-                                    onChangeText={setTargetWater}
-                                    keyboardType="numeric"
-                                    rounded={false}
-                                    containerStyle={styles.bottomRightInput}
-                                />
-                            </View>
-                        </View>
+                        ))}
 
                         {/* Botón Guardar */}
                         <TouchableOpacity
@@ -358,10 +431,10 @@ export const CutPhaseForm: React.FC<CutPhaseFormProps> = ({
                             activeOpacity={0.8}
                         >
                             <ThemedText variant="semiBold" size={14} color={theme.colors.white}>
-                                {isSubmitting ? 'Creando...' : 'Crear etapa'}
+                                {isSubmitting ? 'Creando...' : 'Crear programa'}
                             </ThemedText>
                         </TouchableOpacity>
-                    </View>
+                    </ScrollView>
                 </KeyboardAvoidingView>
             </Animated.View>
 
@@ -415,6 +488,38 @@ const styles = StyleSheet.create({
         paddingHorizontal: 20,
         paddingBottom: 30,
     },
+    formContainerContent: {
+        paddingBottom: 30,
+    },
+    sectionHeader: {
+        alignItems: 'center',
+        marginVertical: 5,
+        paddingVertical: 4,
+    },
+    targetRow: {
+        marginBottom: 10,
+        padding: 10,
+        backgroundColor: theme.colors.background,
+        borderRadius: 10,
+        gap: 8,
+    },
+    targetRowHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 10,
+    },
+    targetRowDisabled: {
+        opacity: 0.5,
+    },
+    targetInputCol: {
+        flex: 2,
+    },
+    weightInputCol: {
+        flex: 1,
+    },
+    directionRow: {
+        marginTop: 4,
+    },
     row: {
         flexDirection: 'row',
         marginBottom: 10,
@@ -453,11 +558,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 0,
     },
-    divider: {
-        alignItems: 'center',
-        marginVertical: 5,
-        paddingVertical: 4,
-    },
     submitButton: {
         backgroundColor: theme.colors.primary,
         borderRadius: 10,
@@ -468,31 +568,6 @@ const styles = StyleSheet.create({
     submitButtonDisabled: {
         opacity: 0.5,
     },
-    // Estilos para bordes redondeados de FormInput en filas
-    topLeftInput: {
-        borderTopLeftRadius: 20,
-        borderTopRightRadius: 0,
-        borderBottomLeftRadius: 0,
-        borderBottomRightRadius: 0,
-    },
-    topRightInput: {
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 20,
-        borderBottomLeftRadius: 0,
-        borderBottomRightRadius: 0,
-    },
-    bottomLeftInput: {
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 0,
-        borderBottomLeftRadius: 20,
-        borderBottomRightRadius: 0,
-    },
-    bottomRightInput: {
-        borderTopLeftRadius: 0,
-        borderTopRightRadius: 0,
-        borderBottomLeftRadius: 0,
-        borderBottomRightRadius: 20,
-    },
 });
 
-export default CutPhaseForm;
+export default ProgramForm;

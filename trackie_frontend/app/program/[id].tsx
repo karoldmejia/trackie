@@ -1,96 +1,23 @@
-import AdherenceCalendar from '@/components/cutphase/AdherenceCalendar';
-import CutPhaseDetailsHeader from '@/components/cutphase/CutPhaseDetailsHeader';
-import MeasurementsTable from '@/components/cutphase/MeasurementsTable';
-import MetricSquare from '@/components/cutphase/MetricSquare';
-import WeeklyAveragesCarousel from '@/components/cutphase/WeeklyAveragesCarousel';
+import AdherenceCalendar from '@/components/program/AdherenceCalendar';
+import ProgramDetailsHeader from '@/components/program/ProgramDetailsHeader';
+import MeasurementsTable from '@/components/program/MeasurementsTable';
+import MetricSquare from '@/components/program/MetricSquare';
+import WeeklyAveragesCarousel from '@/components/program/WeeklyAveragesCarousel';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
-import { cutPhaseService } from '@/services/cutPhaseService';
+import { ProgramDashboard, Streaks, programService } from '@/services/programService';
 import { theme } from '@/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, RefreshControl, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
-interface DayData {
-    date: string;
-    weekNumber: number;
-    dailyScore: number;
-    allMet: boolean;
-    caloriesMet: boolean;
-    proteinMet: boolean;
-    stepsMet: boolean;
-    waterMet: boolean;
-    workoutMet: boolean;
-    calories: number;
-    protein: number;
-    steps: number;
-    water: number;
-    workout: string;
-}
-
-interface DashboardData {
-    cutPhaseId: string;
-    startDate: string;
-    endDate: string;
-    totalWeeks: number;
-    currentWeek: number;
-    targets: {
-        calories: number;
-        protein: number;
-        steps: number;
-        water: number;
-        workoutsPerWeek: number;
-    };
-    summary: {
-        totalDays: number;
-        daysWithAllMet: number;
-        compliancePercentage: number;
-        averageScore: number;
-    };
-    measurements: {
-        weight: { initial: number | null; current: number | null; difference: number | null };
-        bodyfat: { initial: number | null; current: number | null; difference: number | null };
-        waist: { initial: number | null; current: number | null; difference: number | null };
-        hips: { initial: number | null; current: number | null; difference: number | null };
-    };
-    weeklySummary: any[];
-    trends: any;
-    days: DayData[];
-    streaks: any;
-    caloriesCarryover?: {
-        runningBalance: number;
-        adjustedBudget: number;
-        daysRemaining: number;
-        averagePerDay: number;
-    };
-    stepsCarryover?: {
-        totalSteps: number;
-        stepBalance: number;
-        daysRemaining: number;
-        stepsRemaining: number;
-        averageNeeded: number;
-        isAhead: boolean;
-        isBehind: boolean;
-    };
-    weeklyAverages: Array<{
-        weekNumber: number;
-        averages: {
-            calories: number;
-            protein: number;
-            steps: number;
-            water: number;
-        };
-        daysWithData: number;
-    }>;
-}
-
-const CutPhaseDetail: React.FC = () => {
+const ProgramDetail: React.FC = () => {
     const router = useRouter();
     const { id } = useLocalSearchParams<{ id: string }>();
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-    const [streaks, setStreaks] = useState<{ currentStreak: number; bestStreak: number; lastFailedDate: string | null } | null>(null);
+    const [dashboard, setDashboard] = useState<ProgramDashboard | null>(null);
+    const [streaks, setStreaks] = useState<Streaks | null>(null);
 
     const handleGoBack = () => {
         router.back();
@@ -113,8 +40,8 @@ const CutPhaseDetail: React.FC = () => {
         try {
             setLoading(true);
             const [data, streaksData] = await Promise.all([
-                cutPhaseService.getDashboard(id),
-                cutPhaseService.getStreaks(id)
+                programService.getDashboard(id),
+                programService.getStreaks(id)
             ]);
 
             setDashboard(data);
@@ -146,7 +73,7 @@ const CutPhaseDetail: React.FC = () => {
                     </TouchableOpacity>
                     <View style={styles.titleContainer}>
                         <ThemedText variant="medium" size={14} color={theme.colors.text}>
-                            Detalle de etapa
+                            Detalle de programa
                         </ThemedText>
                     </View>
                     <View style={styles.placeholderButton} />
@@ -167,14 +94,14 @@ const CutPhaseDetail: React.FC = () => {
                     </TouchableOpacity>
                     <View style={styles.titleContainer}>
                         <ThemedText variant="medium" size={14} color={theme.colors.text}>
-                            Detalle de etapa
+                            Detalle de programa
                         </ThemedText>
                     </View>
                     <View style={styles.placeholderButton} />
                 </View>
                 <View style={styles.errorContainer}>
                     <ThemedText variant="regular" size={14} color={theme.colors.textLight}>
-                        No se encontró la etapa
+                        No se encontró el programa
                     </ThemedText>
                 </View>
             </View>
@@ -189,7 +116,7 @@ const CutPhaseDetail: React.FC = () => {
                 </TouchableOpacity>
                 <View style={styles.titleContainer}>
                     <ThemedText variant="medium" size={14} color={theme.colors.text}>
-                        Detalle de etapa
+                        Detalle de programa
                     </ThemedText>
                 </View>
                 <View style={styles.placeholderButton} />
@@ -202,17 +129,17 @@ const CutPhaseDetail: React.FC = () => {
                 }
             >
                 {/* Información general */}
-                <CutPhaseDetailsHeader
-                    startDate={dashboard.startDate}
-                    endDate={dashboard.endDate}
-                    totalWeeks={dashboard.totalWeeks}
-                    currentWeek={dashboard.currentWeek}
+                <ProgramDetailsHeader
+                    startDate={dashboard.program.startDate}
+                    endDate={dashboard.program.endDate}
+                    totalWeeks={dashboard.program.totalWeeks}
+                    currentWeek={dashboard.program.currentWeek}
                     averageScore={dashboard.summary.averageScore}
                     targets={dashboard.targets}
                 />
                 <AdherenceCalendar
                     days={dashboard.days}
-                    totalWeeks={dashboard.totalWeeks}
+                    totalWeeks={dashboard.program.totalWeeks}
                 />
                 <View style={styles.metricsRow}>
                     <MetricSquare
@@ -229,8 +156,8 @@ const CutPhaseDetail: React.FC = () => {
                 </View>
                 <WeeklyAveragesCarousel
                     weeklyAverages={dashboard.weeklyAverages || []}
-                    currentWeek={dashboard.currentWeek}
-                    totalWeeks={dashboard.totalWeeks}
+                    currentWeek={dashboard.program.currentWeek}
+                    totalWeeks={dashboard.program.totalWeeks}
                 />
                 {/* 
 
@@ -358,4 +285,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default CutPhaseDetail;
+export default ProgramDetail;
