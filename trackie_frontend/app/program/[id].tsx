@@ -6,6 +6,7 @@ import WeeklyAveragesCarousel from '@/components/program/WeeklyAveragesCarousel'
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { ProgramDashboard, Streaks, programService } from '@/services/programService';
+import { workoutService, WorkoutRoutine } from '@/services/workoutService';
 import { theme } from '@/theme';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -18,6 +19,7 @@ const ProgramDetail: React.FC = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [dashboard, setDashboard] = useState<ProgramDashboard | null>(null);
     const [streaks, setStreaks] = useState<Streaks | null>(null);
+    const [programRoutines, setProgramRoutines] = useState<Array<{ routine: WorkoutRoutine; workoutCount: number }>>([]);
 
     const handleGoBack = () => {
         router.back();
@@ -46,6 +48,32 @@ const ProgramDetail: React.FC = () => {
 
             setDashboard(data);
             setStreaks(streaksData);
+
+            // Rutinas asignadas al programa (listado anidado con su rutina)
+            try {
+                const assigned = await programService.listRoutines(id);
+                const enriched = await Promise.all(
+                    assigned.map(async (a) => {
+                        const fallback: WorkoutRoutine = {
+                            id: a.routineId,
+                            name: a.routine?.name ?? a.routineId,
+                            isActive: a.routine?.isActive ?? true,
+                            createdAt: a.routine?.createdAt ?? '',
+                            updatedAt: a.routine?.updatedAt ?? '',
+                        };
+                        try {
+                            const templates = await workoutService.listTemplates(a.routineId);
+                            return { routine: a.routine ?? fallback, workoutCount: templates.length };
+                        } catch {
+                            return { routine: a.routine ?? fallback, workoutCount: 0 };
+                        }
+                    }),
+                );
+                setProgramRoutines(enriched);
+            } catch (error) {
+                console.error('Error fetching program routines:', error);
+                setProgramRoutines([]);
+            }
         } catch (error) {
             console.error('Error fetching dashboard:', error);
         } finally {
@@ -159,6 +187,35 @@ const ProgramDetail: React.FC = () => {
                     currentWeek={dashboard.program.currentWeek}
                     totalWeeks={dashboard.program.totalWeeks}
                 />
+                {/* Rutinas del programa */}
+                <View style={styles.routinesSection}>
+                    <ThemedText variant="medium" size={11} color={theme.colors.textLight} style={styles.routinesTitle}>
+                        RUTINAS DEL PROGRAMA
+                    </ThemedText>
+                    {programRoutines.length === 0 ? (
+                        <View style={styles.card}>
+                            <ThemedText variant="regular" size={12} color={theme.colors.textLight} style={styles.routineEmpty}>
+                                Este programa no tiene rutinas asignadas
+                            </ThemedText>
+                        </View>
+                    ) : (
+                        programRoutines.map(({ routine, workoutCount }) => (
+                            <View key={routine.id} style={styles.card}>
+                                <View style={styles.routineRow}>
+                                    <View style={styles.routineInfo}>
+                                        <ThemedText variant="semiBold" size={13} color={theme.colors.text}>
+                                            {routine.name}
+                                        </ThemedText>
+                                        <ThemedText variant="regular" size={11} color={theme.colors.textLight}>
+                                            {workoutCount} workout{workoutCount === 1 ? '' : 's'}
+                                        </ThemedText>
+                                    </View>
+                                    <Icon name="Dumbbell" size={18} color={theme.colors.placeholder} backgroundColor="transparent" padding={0} />
+                                </View>
+                            </View>
+                        ))
+                    )}
+                </View>
                 {/* 
 
                 {streaks && (
@@ -276,6 +333,26 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         gap: 12,
         marginBottom: 12,
+    },
+    routinesSection: {
+        marginBottom: 12,
+    },
+    routinesTitle: {
+        marginBottom: 8,
+        letterSpacing: 1,
+    },
+    routineRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+    },
+    routineInfo: {
+        flex: 1,
+        gap: 2,
+    },
+    routineEmpty: {
+        textAlign: 'center',
     },
     leftMetric: {
         flex: 1,

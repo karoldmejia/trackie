@@ -10,10 +10,8 @@ interface StatCardProps {
     title: string;
     value: number;
     unit: string;
-    limit?: number;
-    currentValue?: number;
-    type: 'calories' | 'steps';
     backgroundImage: any;
+    subtitle?: string;
     onPress?: () => void;
     headerIcon?: LucideIconName;
     headerIconColor?: string;
@@ -21,82 +19,17 @@ interface StatCardProps {
 }
 
 export const StatCard: React.FC<StatCardProps> = ({
-    title, 
-    value, 
-    unit, 
-    limit, 
-    currentValue, 
-    type, 
-    backgroundImage, 
+    title,
+    value,
+    unit,
+    backgroundImage,
+    subtitle,
     onPress,
     headerIcon = 'MoreHorizontal',
     headerIconColor,
-    headerIconSize = 20,
+    headerIconSize = 18,
 }) => {
-    const hasData = currentValue !== undefined && currentValue !== null;
-    
-    const calculateDifference = () => {
-        if (limit === undefined) return null;
-        
-        if (!hasData) {
-            const absoluteDifference = limit;
-            
-            if (type === 'calories') {
-                return {
-                    icon: 'ArrowDown',
-                    text: `${absoluteDifference} restantes`,
-                    color: theme.colors.white,
-                };
-            } else {
-                // steps
-                return {
-                    icon: 'ArrowDown',
-                    text: `${absoluteDifference} faltantes`,
-                    color: theme.colors.white,
-                };
-            }
-        }
-        
-        const difference = limit - currentValue;
-        const isPositive = difference > 0;
-        const absoluteDifference = Math.abs(difference);
-        
-        if (type === 'calories') {
-            if (isPositive) {
-                return {
-                    icon: 'ArrowDown',
-                    text: `${absoluteDifference} restantes`,
-                    color: theme.colors.white,
-                };
-            } else {
-                return {
-                    icon: 'ArrowUp',
-                    text: `${absoluteDifference} excedidas`,
-                    color: theme.colors.white,
-                };
-            }
-        } else {
-            // steps
-            if (isPositive) {
-                return {
-                    icon: 'ArrowDown',
-                    text: `${absoluteDifference} faltantes`,
-                    color: theme.colors.white,
-                };
-            } else {
-                return {
-                    icon: 'ArrowUp',
-                    text: `${absoluteDifference} extra`,
-                    color: theme.colors.white || '#F44336',
-                };
-            }
-        }
-    };
-
-    const differenceData = calculateDifference();
-    const finalHeaderIconColor = headerIconColor || theme.colors.white;
-    
-    const displayValue = hasData ? value : 0;
+    const displayValue = value;
     
     const cardContent = (
         <View style={styles.card}>
@@ -108,17 +41,19 @@ export const StatCard: React.FC<StatCardProps> = ({
                 <View style={styles.content}>
                     {/* Header con título e ícono */}
                     <View style={styles.header}>
-                        <ThemedText variant="medium" size={16} color={theme.colors.white}>
+                        <ThemedText variant="medium" size={14} color={theme.colors.white}>
                             {title}
                         </ThemedText>
-                        <Icon 
+                        <Icon
                             name={headerIcon}
-                            size={headerIconSize}                         />
+                            size={headerIconSize}
+                            color={headerIconColor ?? theme.colors.text}
+                        />
                     </View>
 
                     {/* Valor principal */}
                     <View style={styles.valueContainer}>
-                        <ThemedText variant="bold" size={28} color={theme.colors.white}>
+                        <ThemedText variant="bold" size={24} color={theme.colors.white}>
                             {Math.round(displayValue).toLocaleString()}
                         </ThemedText>
                         <ThemedText 
@@ -131,24 +66,26 @@ export const StatCard: React.FC<StatCardProps> = ({
                         </ThemedText>
                     </View>
 
-                    {/* Diferencia con límite */}
-                    {differenceData && (
+                    {/* Subtítulo (ej. "3 semanas restantes" o "5 workouts esta semana") */}
+                    {subtitle && (
                         <View style={styles.differenceContainer}>
-                            <Icon 
-                                name={differenceData.icon as any} 
-                                size={14} 
-                                padding={2}
-                                color={theme.colors.primary}
-                                backgroundColor={theme.colors.text}
-                            />
-                            <ThemedText 
-                                variant="medium" 
-                                size={14} 
-                                color={differenceData.color}
-                                style={styles.differenceText}
+                            <ThemedText
+                                variant="medium"
+                                size={11}
+                                color={theme.colors.white}
+                                style={[styles.differenceText, styles.subtitleText]}
+                                numberOfLines={2}
                             >
-                                {differenceData.text}
+                                {subtitle}
                             </ThemedText>
+                            <Icon
+                                name="ChevronRight"
+                                size={16}
+                                color={theme.colors.white}
+                                backgroundColor="transparent"
+                                padding={0}
+                                style={styles.chevron}
+                            />
                         </View>
                     )}
                 </View>
@@ -178,18 +115,22 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.005,
         shadowRadius: 8,
         elevation: 2,
+        minHeight: 150,
         maxHeight: 150,
     },
     backgroundImage: {
         width: '100%',
         height: '100%',
+        flex: 1,
     },
     backgroundImageStyle: {
         borderRadius: 20,
     },
     content: {
-        padding: 20,
+        padding: 16,
         backgroundColor: 'rgba(0,0,0,0.09)',
+        flex: 1,
+        justifyContent: 'space-between',
     },
     header: {
         flexDirection: 'row',
@@ -205,12 +146,21 @@ const styles = StyleSheet.create({
         opacity: 0.9,
     },
     differenceContainer: {
+        width: '100%',
         flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
-        marginTop: 8,
+        marginTop: 4,
     },
     differenceText: {
-        marginLeft: 6,
+        marginLeft: 0,
+    },
+    subtitleText: {
+        flex: 1,
+    },
+    chevron: {
+        flexShrink: 0,
+        marginLeft: 4,
     },
     noDataContainer: {
         marginTop: 12,

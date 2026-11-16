@@ -1,5 +1,4 @@
 import { DailyLogCard } from '@/components/home/DailyLogCard';
-import { DailyLogEditorHandle, DailyLogEditorHost } from '@/components/home/DailyLogEditorHost';
 import { SearchModal } from '@/components/home/SearchModal';
 import { SearchResults } from '@/components/home/SearchResults';
 import { Icon } from '@/components/icon';
@@ -7,7 +6,7 @@ import { ThemedText } from '@/components/ThemedText';
 import { DailyLog, dailyLogService } from '@/services/dailyLogService';
 import { theme } from '@/theme';
 import { useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -31,7 +30,6 @@ const AllDailyLogs: React.FC = () => {
     const [allLogs, setAllLogs] = useState<DailyLog[]>([]);
     const [refreshing, setRefreshing] = useState(false);
 
-    const editorRef = useRef<DailyLogEditorHandle>(null);
     const [loadingMore, setLoadingMore] = useState(false);
 
     const [hasMore, setHasMore] = useState(true);
@@ -70,7 +68,7 @@ const AllDailyLogs: React.FC = () => {
     };
 
     const handleLogPress = (log: DailyLog) => {
-        editorRef.current?.open(log);
+        router.push(`/daily-log?date=${log.date}`);
     };
 
     const fetchData = async () => {
@@ -254,8 +252,6 @@ const AllDailyLogs: React.FC = () => {
                 onClose={() => setSearchModalVisible(false)}
                 onSearch={handleSearch}
             />
-
-            <DailyLogEditorHost ref={editorRef} onSaved={fetchData} />
 
         </View>
     );

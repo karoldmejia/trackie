@@ -1,12 +1,11 @@
 import { DailyLogCard } from '@/components/home/DailyLogCard';
-import { DailyLogEditorHandle, DailyLogEditorHost } from '@/components/home/DailyLogEditorHost';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
 import { DailyLog, dailyLogService } from '@/services/dailyLogService';
 import { theme } from '@/theme';
 import { formatShortWeekRange } from '@/utils/date';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     RefreshControl,
@@ -23,7 +22,6 @@ const WeekDetailScreen: React.FC = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [weekLogs, setWeekLogs] = useState<DailyLog[]>([]);
     const [allLogs, setAllLogs] = useState<DailyLog[]>([]);
-    const editorRef = useRef<DailyLogEditorHandle>(null);
 
     const handleGoBack = () => {
         router.back();
@@ -83,7 +81,7 @@ const WeekDetailScreen: React.FC = () => {
     }, [weekStart, weekEnd]);
 
     const handleLogPress = (log: DailyLog) => {
-        editorRef.current?.open(log);
+        router.push(`/daily-log?date=${log.date}`);
     };
 
     if (loading) {
@@ -155,8 +153,6 @@ const WeekDetailScreen: React.FC = () => {
                     </View>
                 )}
             </ScrollView>
-            <DailyLogEditorHost ref={editorRef} onSaved={fetchData} />
-
         </View>
     );
 };

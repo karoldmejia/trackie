@@ -5,6 +5,7 @@ export const theme = {
         primary: '#FFB6C1',
         secondary: '#F7C8E4',
         background: '#F5F5F5',
+        inputBackground: '#EAEAEA',
         white: '#FFFFFF',
         text: '#242424',
         textLight: '#494949',

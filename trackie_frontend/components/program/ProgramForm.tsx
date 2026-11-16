@@ -2,12 +2,15 @@ import { FormInput } from '@/components/FormInput';
 import { FormSelect } from '@/components/FormSelect';
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
-import { CreateProgramDto, ProgramKind, ProgramMetricTargetInput } from '@/services/programService';
+import { CreateProgramDto, DEFAULT_TARGET_CONFIG, DEFAULT_TARGET_FALLBACK, Program, ProgramKind, ProgramMetricTargetInput, programService, ProgramRoutine } from '@/services/programService';
+import { MetricTypeItem, metricService } from '@/services/metricService';
+import { workoutService, WorkoutRoutine } from '@/services/workoutService';
 import { theme } from '@/theme';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { useKeyboard } from '@react-native-community/hooks';
 import React, { useEffect, useRef, useState } from 'react';
 import {
+    Alert,
     Animated,
     Dimensions,
     KeyboardAvoidingView,
@@ -21,10 +24,24 @@ import {
     View,
 } from 'react-native';
 
+export interface ProgramFormInitialData {
+    id?: string;
+    name?: string;
+    kind?: ProgramKind;
+    startDate?: string;
+    endDate?: string;
+    totalWeeks?: number;
+    workoutsPerWeek?: number;
+    isActive?: boolean;
+    targets?: ProgramMetricTargetInput[];
+}
+
 interface ProgramFormProps {
     visible: boolean;
     onClose: () => void;
-    onSubmit: (data: CreateProgramDto) => Promise<void>;
+    onSubmit: (data: CreateProgramDto) => Promise<Program | void>;
+    mode?: 'create' | 'edit';
+    initialData?: ProgramFormInitialData | null;
 }
 
 const DIRECTION_OPTIONS = [
@@ -34,22 +51,6 @@ const DIRECTION_OPTIONS = [
 ];
 
 type ProgramTargetFormRow = ProgramMetricTargetInput & { enabled: boolean };
-
-const DEFAULT_TARGETS: ProgramTargetFormRow[] = [
-    { key: 'calories',      target: 2000, direction: 'at_most',  weight: 0.30, isOptional: false, enabled: true },
-    { key: 'protein',       target: 150,  direction: 'at_least', weight: 0.30, isOptional: false, enabled: true },
-    { key: 'steps',         target: 8000, direction: 'at_least', weight: 0.25, isOptional: false, enabled: true },
-    { key: 'water',         target: 2.5,  direction: 'at_least', weight: 0.10, isOptional: false, enabled: true },
-    { key: 'workout_count', target: 1,    direction: 'at_least', weight: 0.05, isOptional: false, enabled: true },
-];
-
-const TARGET_LABELS: Record<string, string> = {
-    calories: 'Calorías',
-    protein: 'Proteína',
-    steps: 'Pasos',
-    water: 'Agua',
-    workout_count: 'Entrenamientos',
-};
 
 const TARGET_ICONS: Record<string, string> = {
     calories: 'Flame',
@@ -91,6 +92,8 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
     visible,
     onClose,
     onSubmit,
+    mode = 'create',
+    initialData = null,
 }) => {
     const [name, setName] = useState('');
     const [kind, setKind] = useState<ProgramKind>('cut');
@@ -98,9 +101,19 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
     const [showStartDatePicker, setShowStartDatePicker] = useState(false);
     const [durationWeeks, setDurationWeeks] = useState('8');
     const [workoutsPerWeek, setWorkoutsPerWeek] = useState('4');
+    const [isActive, setIsActive] = useState(true);
     // Estado local de targets: `enabled` solo controla filas (no se envía al backend)
-    const [targets, setTargets] = useState<ProgramTargetFormRow[]>(() => DEFAULT_TARGETS.map(t => ({ ...t })));
+    const [targets, setTargets] = useState<ProgramTargetFormRow[]>([]);
+    const [availableMetrics, setAvailableMetrics] = useState<MetricTypeItem[]>([]);
+    const [loadingMetrics, setLoadingMetrics] = useState(false);
+    const [metricsError, setMetricsError] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    // Rutinas disponibles y seleccionadas para el programa
+    const [availableRoutines, setAvailableRoutines] = useState<WorkoutRoutine[]>([]);
+    const [selectedRoutineIds, setSelectedRoutineIds] = useState<string[]>([]);
+    const [initialRoutineIds, setInitialRoutineIds] = useState<string[]>([]);
+    const [loadingRoutines, setLoadingRoutines] = useState(false);
+    const [routinesError, setRoutinesError] = useState<string | null>(null);
 
     const slideAnim = useRef(new Animated.Value(0)).current;
     const screenHeight = Dimensions.get('window').height;
@@ -108,14 +121,108 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
 
     useEffect(() => {
         if (visible) {
-            // Resetear formulario
-            setStartDate(new Date());
-            setName('');
-            setKind('cut');
-            setDurationWeeks('8');
-            setWorkoutsPerWeek('4');
-            setTargets(DEFAULT_TARGETS.map(t => ({ ...t })));
+            // Resetear formulario (o precargar en modo edición)
+            if (mode === 'edit' && initialData) {
+                setStartDate(initialData.startDate ? parseLocalDateStr(initialData.startDate) : new Date());
+                setName(initialData.name ?? '');
+                setKind(initialData.kind ?? 'cut');
+                setDurationWeeks(String(initialData.totalWeeks ?? 8));
+                setWorkoutsPerWeek(String(initialData.workoutsPerWeek ?? '4'));
+                setIsActive(initialData.isActive ?? true);
+            } else {
+                setStartDate(new Date());
+                setName('');
+                setKind('cut');
+                setDurationWeeks('8');
+                setWorkoutsPerWeek('4');
+                setIsActive(true);
+            }
+            setTargets([]);
             setIsSubmitting(false);
+
+            // Cargar el catálogo de métricas (activas, sin derivadas:
+            // las derivadas las calcula el backend, no se miden)
+            setLoadingMetrics(true);
+            setMetricsError(false);
+            metricService.listMetricTypes({ active: true, includeDerived: false })
+                .then((metrics) => {
+                    const editable = metrics.filter(m => !m.isDerived);
+                    const initialTargets = (mode === 'edit' && initialData?.targets) ? initialData.targets : [];
+                    // Cargar rutinas disponibles y (en edición) las asignadas al programa
+                    setLoadingRoutines(true);
+                    setRoutinesError(null);
+                    Promise.all([
+                        workoutService.listRoutines(),
+                        (mode === 'edit' && initialData?.id) ? programService.listRoutines(initialData.id) : Promise.resolve([] as ProgramRoutine[]),
+                    ])
+                        .then(([available, assigned]) => {
+                            setAvailableRoutines(available);
+                            const assignedIds = assigned.map(a => a.routineId);
+                            setSelectedRoutineIds(assignedIds);
+                            setInitialRoutineIds(assignedIds);
+                        })
+                        .catch((error) => {
+                            console.error('Error loading routines:', error);
+                            setAvailableRoutines([]);
+                            setSelectedRoutineIds([]);
+                            setInitialRoutineIds([]);
+                            setRoutinesError('No se pudieron cargar las rutinas');
+                        })
+                        .finally(() => {
+                            setLoadingRoutines(false);
+                        });
+                    const initialByKey = new Map(initialTargets.map(t => [t.key, t]));
+                    const known = new Set(editable.map(m => m.key));
+
+                    const rows: ProgramTargetFormRow[] = editable.map((m) => {
+                        const initial = initialByKey.get(m.key);
+                        const cfg = DEFAULT_TARGET_CONFIG[m.key] ?? DEFAULT_TARGET_FALLBACK;
+                        return {
+                            key: m.key,
+                            target: initial?.target ?? cfg.target,
+                            direction: initial?.direction ?? cfg.direction,
+                            weight: initial?.weight ?? cfg.weight,
+                            isOptional: initial?.isOptional ?? false,
+                            // En edición: activos los targets del programa. En creación: las 5 universales.
+                            enabled: mode === 'edit' ? !!initial : m.key in DEFAULT_TARGET_CONFIG,
+                        };
+                    });
+
+                    // Targets del programa que ya no están en el catálogo activo (p.ej. métrica
+                    // desactivada): se conservan como filas para no perderlos al guardar (replace-all).
+                    const pseudoMetrics: MetricTypeItem[] = [];
+                    for (const t of initialTargets) {
+                        if (known.has(t.key)) continue;
+                        pseudoMetrics.push({
+                            id: t.key,
+                            key: t.key,
+                            label: t.key,
+                            valueType: 'number',
+                            isUniversal: false,
+                            isDerived: false,
+                            isActive: true,
+                        });
+                        rows.push({
+                            key: t.key,
+                            target: t.target,
+                            direction: t.direction,
+                            weight: t.weight,
+                            isOptional: t.isOptional ?? false,
+                            enabled: true,
+                        });
+                    }
+
+                    setAvailableMetrics([...editable, ...pseudoMetrics]);
+                    setTargets(rows);
+                })
+                .catch((error) => {
+                    console.error('Error loading metric types:', error);
+                    setAvailableMetrics([]);
+                    setMetricsError(true);
+                })
+                .finally(() => {
+                    setLoadingMetrics(false);
+                });
 
             Animated.spring(slideAnim, {
                 toValue: 1,
@@ -132,6 +239,11 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
             }).start();
         }
     }, [visible]);
+
+    const parseLocalDateStr = (dateString: string): Date => {
+        const [year, month, day] = dateString.split('-').map(Number);
+        return new Date(year, month - 1, day);
+    };
 
     const formatDate = (date: Date) => {
         const year = date.getFullYear();
@@ -167,6 +279,11 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
         setTargets(prev => prev.map((t, i) => (i === index ? { ...t, direction: direction as ProgramMetricTargetInput['direction'] } : t)));
     };
 
+    const toggleRoutine = (routineId: string) => {
+        setSelectedRoutineIds(prev =>
+            prev.includes(routineId) ? prev.filter(r => r !== routineId) : [...prev, routineId]);
+    };
+
     const handleSubmit = async () => {
         // Validaciones
         const weeks = parseInt(durationWeeks);
@@ -174,6 +291,11 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
 
         if (!name.trim()) {
             alert('Por favor ingresa un nombre para el programa');
+            return;
+        }
+
+        if (metricsError || availableMetrics.length === 0) {
+            alert('No se pudieron cargar las métricas. Intenta de nuevo.');
             return;
         }
 
@@ -197,18 +319,49 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
             startDate: formatDate(startDate),
             endDate: formatDate(endDate),
             workoutsPerWeek: workouts || 0,
-            isActive: true,
+            isActive,
             targets: targetsPayload,
         };
 
         setIsSubmitting(true);
         try {
-            await onSubmit(data);
+            const saved = await onSubmit(data);
+            const savedProgram = saved as Program | undefined;
+            const savedId = (mode === 'edit' && initialData?.id) ? initialData.id : savedProgram?.id;
+
+            // Paso 2 y 3: sincronizar rutinas asignadas al programa
+            if (savedId) {
+                const toAssign = selectedRoutineIds.filter(rid => !initialRoutineIds.includes(rid));
+                const toRemove = initialRoutineIds.filter(rid => !selectedRoutineIds.includes(rid));
+                const failures: string[] = [];
+                for (const rid of toAssign) {
+                    try {
+                        await programService.assignRoutine(savedId, rid);
+                    } catch (error) {
+                        console.error('Error assigning routine:', error);
+                        failures.push(availableRoutines.find(r => r.id === rid)?.name ?? rid);
+                    }
+                }
+                for (const rid of toRemove) {
+                    try {
+                        await programService.removeRoutine(savedId, rid);
+                    } catch (error) {
+                        console.error('Error removing routine:', error);
+                        failures.push(availableRoutines.find(r => r.id === rid)?.name ?? rid);
+                    }
+                }
+                if (failures.length > 0) {
+                    Alert.alert(
+                        'El programa se guardó',
+                        `Pero algunas rutinas no se pudieron actualizar: ${failures.join(', ')}.`,
+                    );
+                }
+            }
             handleClose();
         } catch (error) {
             // El padre (ProgramsLogs) muestra el Alert con el mensaje del backend.
             if (__DEV__) {
-                console.error('Error creating program:', error);
+                console.error('Error saving program:', error);
             }
         } finally {
             setIsSubmitting(false);
@@ -262,7 +415,7 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
                         color={theme.colors.textLight}
                         style={styles.title}
                     >
-                        NUEVO PROGRAMA
+                        {mode === 'edit' ? 'EDITAR PROGRAMA' : 'NUEVO PROGRAMA'}
                     </ThemedText>
 
                     <ScrollView
@@ -365,7 +518,22 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
                             </ThemedText>
                         </View>
 
-                        {targets.map((target, index) => (
+                        {loadingMetrics && (
+                            <ThemedText variant="regular" size={12} color={theme.colors.textLight} style={styles.loadingText}>
+                                Cargando métricas...
+                            </ThemedText>
+                        )}
+
+                        {metricsError && (
+                            <ThemedText variant="regular" size={12} color={theme.colors.textLight} style={styles.loadingText}>
+                                No se pudieron cargar las métricas
+                            </ThemedText>
+                        )}
+
+                        {!loadingMetrics && !metricsError && targets.map((target, index) => {
+                            const metric = availableMetrics[index];
+                            if (!metric) return null;
+                            return (
                             <View key={target.key} style={styles.targetRow}>
                                 <View style={styles.targetRowHeader}>
                                     <Switch
@@ -379,7 +547,7 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
                                         size={13}
                                         color={target.enabled ? theme.colors.text : theme.colors.textLight}
                                     >
-                                        {TARGET_LABELS[target.key]}
+                                        {metric.label}{metric.unit ? ` (${metric.unit})` : ''}
                                     </ThemedText>
                                 </View>
                                 <View
@@ -389,7 +557,7 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
                                     <View style={styles.row}>
                                         <View style={styles.targetInputCol}>
                                             <FormInput
-                                                icon={(TARGET_ICONS[target.key] ?? 'Target') as any}
+                                                icon={(TARGET_ICONS[target.key] ?? 'Activity') as any}
                                                 placeholder="Objetivo"
                                                 value={isNaN(target.target) ? '' : String(target.target)}
                                                 onChangeText={(text) => setTargetNumber(index, 'target', text)}
@@ -419,20 +587,73 @@ export const ProgramForm: React.FC<ProgramFormProps> = ({
                                     </View>
                                 </View>
                             </View>
+                        );
+                        })}
+
+                        {/* Rutinas del programa */}
+                        <View style={styles.sectionHeader}>
+                            <ThemedText variant="medium" size={11} color={theme.colors.textLight}>
+                                RUTINAS DEL PROGRAMA
+                            </ThemedText>
+                        </View>
+
+                        {loadingRoutines && (
+                            <ThemedText variant="regular" size={12} color={theme.colors.textLight} style={styles.loadingText}>
+                                Cargando rutinas...
+                            </ThemedText>
+                        )}
+
+                        {routinesError && (
+                            <ThemedText variant="regular" size={12} color={theme.colors.textLight} style={styles.loadingText}>
+                                {routinesError}
+                            </ThemedText>
+                        )}
+
+                        {!loadingRoutines && !routinesError && availableRoutines.length === 0 && (
+                            <ThemedText variant="regular" size={12} color={theme.colors.textLight} style={styles.loadingText}>
+                                No hay rutinas creadas
+                            </ThemedText>
+                        )}
+
+                        {!loadingRoutines && !routinesError && availableRoutines.map((routine) => (
+                            <View key={routine.id} style={styles.routineRow}>
+                                <View style={styles.routineInfo}>
+                                    <ThemedText
+                                        variant="regular"
+                                        size={13}
+                                        color={theme.colors.text}
+                                    >
+                                        {routine.name}
+                                    </ThemedText>
+                                    {!routine.isActive && (
+                                        <ThemedText variant="regular" size={10} color={theme.colors.textLight}>
+                                            inactiva
+                                        </ThemedText>
+                                    )}
+                                </View>
+                                <Switch
+                                    value={selectedRoutineIds.includes(routine.id)}
+                                    onValueChange={() => toggleRoutine(routine.id)}
+                                    trackColor={{ false: theme.colors.background, true: theme.colors.primary }}
+                                    thumbColor={theme.colors.white}
+                                />
+                            </View>
                         ))}
 
                         {/* Botón Guardar */}
                         <TouchableOpacity
                             style={[
                                 styles.submitButton,
-                                isSubmitting && styles.submitButtonDisabled
+                                (isSubmitting || metricsError || availableMetrics.length === 0) && styles.submitButtonDisabled
                             ]}
                             onPress={handleSubmit}
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || metricsError || availableMetrics.length === 0}
                             activeOpacity={0.8}
                         >
                             <ThemedText variant="semiBold" size={14} color={theme.colors.white}>
-                                {isSubmitting ? 'Creando...' : 'Crear programa'}
+                                {isSubmitting
+                                    ? (mode === 'edit' ? 'Guardando...' : 'Creando...')
+                                    : (mode === 'edit' ? 'Guardar cambios' : 'Crear programa')}
                             </ThemedText>
                         </TouchableOpacity>
                     </ScrollView>
@@ -496,6 +717,25 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginVertical: 5,
         paddingVertical: 4,
+    },
+    routineRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        backgroundColor: theme.colors.background,
+        borderRadius: 20,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+        marginBottom: 8,
+        gap: 12,
+    },
+    routineInfo: {
+        flex: 1,
+        gap: 2,
+    },
+    loadingText: {
+        textAlign: 'center',
+        marginBottom: 12,
     },
     targetRow: {
         marginBottom: 10,

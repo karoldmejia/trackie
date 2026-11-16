@@ -2,10 +2,9 @@ import { Icon } from '@/components/icon';
 import { DailyLog, getMetric } from '@/services/dailyLogService';
 import { theme } from '@/theme';
 import { formatShortDate } from '@/utils/date';
-import React, { useRef } from 'react';
+import React from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import ReanimatedSwipeable, { SwipeableMethods } from 'react-native-gesture-handler/ReanimatedSwipeable';
-import Reanimated, { SharedValue, useAnimatedStyle } from 'react-native-reanimated';
+import { SwipeableCard } from '@/components/common/SwipeableCard';
 import { ThemedText } from '../ThemedText';
 
 interface DailyLogCardProps {
@@ -31,35 +30,11 @@ const getTranslatedWorkout = (workoutValue?: string): string => {
     return translated || workoutValue;
 };
 
-const RightAction: React.FC<{
-    drag: SharedValue<number>;
-    onDelete?: () => void;
-}> = ({ drag, onDelete }) => {
-    const styleAnimation = useAnimatedStyle(() => ({
-        transform: [{ translateX: drag.value + 72 }],
-    }));
-
-    return (
-        <Reanimated.View style={styleAnimation}>
-            <TouchableOpacity
-                onPress={onDelete}
-                style={styles.deleteButton}
-                activeOpacity={0.7}
-            >
-                <Icon name="Trash" size={20} color={theme.colors.placeholder} />
-            </TouchableOpacity>
-        </Reanimated.View>
-    );
-};
-
-
 export const DailyLogCard: React.FC<DailyLogCardProps> = ({
     log,
     onPress,
     onDelete,
 }) => {
-    const swipeableRef = useRef<SwipeableMethods>(null);
-
     const formattedDate = formatShortDate(log.date);
     const translatedWorkout = getTranslatedWorkout(log.workouts?.[0]?.workoutTypeSnapshot ?? 'none');
     const calories = getMetric(log, 'calories');
@@ -67,10 +42,6 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({
     const protein = getMetric(log, 'protein');
     const water = getMetric(log, 'water');
 
-    const handleDelete = () => {
-        swipeableRef.current?.close();
-        onDelete?.();
-    };
 
     const card = (
         <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
@@ -143,20 +114,10 @@ export const DailyLogCard: React.FC<DailyLogCardProps> = ({
         </TouchableOpacity>
     );
 
-    if (!onDelete) return card;
-
     return (
-        <ReanimatedSwipeable
-            ref={swipeableRef}
-            friction={2}
-            rightThreshold={40}
-            renderRightActions={(progress, drag) => (
-                <RightAction drag={drag} onDelete={handleDelete} />
-            )}
-            overshootRight={false}
-        >
+        <SwipeableCard onDelete={onDelete}>
             {card}
-        </ReanimatedSwipeable>
+        </SwipeableCard>
     );
 };
 

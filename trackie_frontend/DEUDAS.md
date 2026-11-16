@@ -14,6 +14,11 @@
   averageSteps, calories, steps) porque el contrato nuevo de esos
   endpoints no está definido todavía. Revisar y migrar cuando el
   backend publique el nuevo shape.
+- Edición de daily log no precarga los workouts existentes en el form
+  (no se hizo W4): la page /daily-log solo precarga métricas; las
+  ejecuciones del día no se muestran ni se pueden editar desde el form.
+  Al guardar, los workouts seleccionados se envían como NUEVAS
+  ejecuciones (podrían duplicarse si ya existían).
 
 ## Weight
 - weightLog.service.ts envía FormData con campos planos (weight,

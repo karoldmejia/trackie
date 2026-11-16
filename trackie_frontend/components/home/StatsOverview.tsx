@@ -1,35 +1,38 @@
 import { StatCard } from '@/components/home/StatCard';
-import { DailyLog, getMetric } from '@/services/dailyLogService';
-import { Settings } from '@/services/settingsService';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 
-const caloriesBg = require('@/assets/stats_bg.jpg');
-const stepsBg = require('@/assets/stats_bg.jpg');
+const programBg = require('@/assets/stats_bg.jpg');
+const routinesBg = require('@/assets/stats_bg.jpg');
 
 interface StatsOverviewProps {
-    dailyLog: DailyLog | null;
-    settings: Settings | null;
-    onCaloriesPress?: () => void;
-    onStepsPress?: () => void;
+    programScore?: number;
+    programWeeksRemaining?: number;
+    programTotalWeeks?: number;
+    activeRoutinesCount?: number;
+    workoutsThisWeek?: number;
+    onProgramPress?: () => void;
+    onRoutinesPress?: () => void;
     leftComponent?: React.ReactNode;
-    caloriesHeaderIcon?: string;
-    stepsHeaderIcon?: string;
-    caloriesHeaderIconColor?: string;
-    stepsHeaderIconColor?: string;
 }
 
 export const StatsOverview: React.FC<StatsOverviewProps> = ({
-    dailyLog,
-    settings,
-    onCaloriesPress,
-    onStepsPress,
+    programScore = 0,
+    programWeeksRemaining = 0,
+    activeRoutinesCount = 0,
+    workoutsThisWeek = 0,
+    onProgramPress,
+    onRoutinesPress,
     leftComponent,
-    caloriesHeaderIcon = 'Flame', // Icono por defecto para calorías
-    stepsHeaderIcon = 'Footprints', // Icono por defecto para pasos
-    caloriesHeaderIconColor,
-    stepsHeaderIconColor,
 }) => {
+    const programSubtitle = (programScore === 0 && programWeeksRemaining === 0)
+        ? 'Sin programa activo'
+        : `${programWeeksRemaining} ${programWeeksRemaining === 1 ? 'semana restante' : 'semanas restantes'}`;
+
+    const routinesSubtitle = activeRoutinesCount === 0
+        ? 'Sin rutinas activas'
+        : `${workoutsThisWeek} workout${workoutsThisWeek === 1 ? '' : 's'} esta semana`;
+
     return (
         <View style={styles.container}>
             {/* Lado izquierdo - componente opcional */}
@@ -41,30 +44,24 @@ export const StatsOverview: React.FC<StatsOverviewProps> = ({
             <View style={styles.rightContainer}>
                 <View style={styles.cardWrapper}>
                     <StatCard
-                        title="Calorías"
-                        value={dailyLog ? getMetric(dailyLog, 'calories') : 0}
-                        unit="kcal"
-                        limit={settings?.calorieLimit}
-                        currentValue={dailyLog ? getMetric(dailyLog, 'calories') : undefined}
-                        type="calories"
-                        backgroundImage={caloriesBg}
-                        onPress={onCaloriesPress}
-                        headerIcon={caloriesHeaderIcon as any}
-                        headerIconColor={caloriesHeaderIconColor}
+                        title="Programa"
+                        value={Math.round(programScore)}
+                        unit="puntos"
+                        subtitle={programSubtitle}
+                        backgroundImage={programBg}
+                        onPress={onProgramPress}
+                        headerIcon="Target"
                     />
                 </View>
                 <View style={styles.cardWrapper}>
                     <StatCard
-                        title="Pasos"
-                        value={dailyLog ? getMetric(dailyLog, 'steps') : 0}
-                        unit="pasos"
-                        limit={settings?.stepsLimit}
-                        currentValue={dailyLog ? getMetric(dailyLog, 'steps') : undefined}
-                        type="steps"
-                        backgroundImage={stepsBg}
-                        onPress={onStepsPress}
-                        headerIcon={stepsHeaderIcon as any}
-                        headerIconColor={stepsHeaderIconColor}
+                        title="Rutinas"
+                        value={activeRoutinesCount}
+                        unit="rutinas"
+                        subtitle={routinesSubtitle}
+                        backgroundImage={routinesBg}
+                        onPress={onRoutinesPress}
+                        headerIcon="Dumbbell"
                     />
                 </View>
             </View>

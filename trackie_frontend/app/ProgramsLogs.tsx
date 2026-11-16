@@ -1,7 +1,7 @@
 // app/programs-logs.tsx
 import { Icon } from '@/components/icon';
 import ProgramCard from '@/components/program/ProgramCard';
-import ProgramForm from '@/components/program/ProgramForm';
+import ProgramForm, { ProgramFormInitialData } from '@/components/program/ProgramForm';
 import { ThemedText } from '@/components/ThemedText';
 import { CreateProgramDto, Program, programService } from '@/services/programService';
 import { theme } from '@/theme';
@@ -31,6 +31,9 @@ const ProgramsLogs: React.FC = () => {
     const [refreshing, setRefreshing] = useState(false);
     const [formVisible, setFormVisible] = useState(false);
     const [isCreating, setIsCreating] = useState(false);
+    const [formMode, setFormMode] = useState<'create' | 'edit'>('create');
+    const [editingProgramId, setEditingProgramId] = useState<string | null>(null);
+    const [editInitialData, setEditInitialData] = useState<ProgramFormInitialData | null>(null);
 
     const handleGoBack = () => {
         router.back();
@@ -40,24 +43,78 @@ const ProgramsLogs: React.FC = () => {
         router.push(`/program/${phaseId}`);
     };
 
-    const handleCreatePhase = async (data: CreateProgramDto) => {
+    const handleOpenCreate = () => {
+        setFormMode('create');
+        setEditingProgramId(null);
+        setEditInitialData(null);
+        setFormVisible(true);
+    };
+
+    const handleEditPress = async (phase: ProgramWithData) => {
+        try {
+            // El listado no trae targets; el dashboard sí.
+            const dashboard = await programService.getDashboard(phase.id);
+            setEditingProgramId(phase.id);
+            setEditInitialData({
+                id: phase.id,
+                name: phase.name,
+                kind: phase.kind,
+                startDate: phase.startDate,
+                endDate: phase.endDate,
+                totalWeeks: phase.totalWeeks,
+                workoutsPerWeek: phase.workoutsPerWeek,
+                isActive: phase.isActive,
+                targets: dashboard.targets ?? [],
+            });
+            setFormMode('edit');
+            setFormVisible(true);
+        } catch (error) {
+            if (__DEV__) {
+                console.error('Error fetching program for edit:', error);
+            }
+            Alert.alert('No se pudo cargar el programa', 'Intenta de nuevo.');
+        }
+    };
+
+    const handleFormSubmit = async (data: CreateProgramDto): Promise<Program | void> => {
         try {
             setIsCreating(true);
-            await programService.create(data);
+            let saved: Program | void;
+            if (editingProgramId) {
+                saved = await programService.update(editingProgramId, {
+                    name: data.name,
+                    kind: data.kind,
+                    startDate: data.startDate,
+                    endDate: data.endDate,
+                    workoutsPerWeek: data.workoutsPerWeek,
+                    isActive: data.isActive,
+                    targets: data.targets,
+                });
+            } else {
+                saved = await programService.create(data);
+            }
             await fetchData();
+            return saved;
         } catch (error: any) {
             const backendMessage = error?.response?.data?.message;
             const message = Array.isArray(backendMessage)
                 ? backendMessage.join('\n')
-                : backendMessage ?? 'No se pudo crear el programa. Intenta de nuevo.';
-            Alert.alert('No se pudo crear el programa', message);
+                : backendMessage ?? 'No se pudo guardar el programa. Intenta de nuevo.';
+            Alert.alert('No se pudo guardar el programa', message);
             if (__DEV__) {
                 console.error('Backend error:', error?.response?.data);
             }
         } finally {
-                setIsCreating(false);
-            }
-        };
+            setIsCreating(false);
+        }
+    };
+
+    const handleCloseForm = () => {
+        setFormVisible(false);
+        setFormMode('create');
+        setEditingProgramId(null);
+        setEditInitialData(null);
+    };
 
         const fetchData = async () => {
             try {
@@ -127,7 +184,7 @@ const ProgramsLogs: React.FC = () => {
                             </ThemedText>
                         </View>
                         <TouchableOpacity
-                            onPress={() => setFormVisible(true)}
+                            onPress={handleOpenCreate}
                             style={styles.addButton}
                         >
                             <Icon
@@ -159,7 +216,7 @@ const ProgramsLogs: React.FC = () => {
                         </ThemedText>
                     </View>
                     <TouchableOpacity
-                        onPress={() => setFormVisible(true)}
+                        onPress={handleOpenCreate}
                         style={styles.addButton}
                     >
                         <Icon
@@ -211,6 +268,7 @@ const ProgramsLogs: React.FC = () => {
                                         hipsDifference: phase.hipsDifference,
                                     }}
                                     onPress={() => handlePhasePress(phase.id)}
+                                    onEditPress={() => handleEditPress(phase)}
                                 />
                             ))
                         )}
@@ -220,10 +278,10 @@ const ProgramsLogs: React.FC = () => {
                 {/* Modal del formulario */}
                 <ProgramForm
                     visible={formVisible}
-                    onClose={() => {
-                        setFormVisible(false);
-                    }}
-                    onSubmit={handleCreatePhase}
+                    onClose={handleCloseForm}
+                    onSubmit={handleFormSubmit}
+                    mode={formMode}
+                    initialData={editInitialData}
                 />
             </View>
         );

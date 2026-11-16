@@ -6,7 +6,7 @@ import { StyleSheet, TextInput, TouchableWithoutFeedback, View, ViewStyle } from
 type LucideIconName = keyof typeof import('lucide-react-native');
 
 interface FormInputProps {
-    icon: LucideIconName;
+    icon?: LucideIconName;
     placeholder: string;
     value: string;
     onChangeText: (text: string) => void;
@@ -14,6 +14,7 @@ interface FormInputProps {
     containerStyle?: ViewStyle;
     rounded?: boolean;
     autoFocus?: boolean;
+    compact?: boolean;
 }
 
 export const FormInput: React.FC<FormInputProps> = ({
@@ -25,6 +26,7 @@ export const FormInput: React.FC<FormInputProps> = ({
     containerStyle,
     rounded = true,
     autoFocus = false,
+    compact = false,
 }) => {
     const [isFocused, setIsFocused] = useState(autoFocus);
 
@@ -36,20 +38,23 @@ export const FormInput: React.FC<FormInputProps> = ({
 
     return (
         <TouchableWithoutFeedback onPress={handleContainerPress}>
-            <View style={[styles.container, !rounded && styles.noRounded, containerStyle]}>
-                <View style={styles.iconContainer}>
-                    <Icon
-                        name={icon}
-                        size={18}
-                        color={theme.colors.placeholder}
-                        backgroundColor="transparent"
-                        padding={0}
-                    />
-                </View>
+            <View style={[styles.container, !rounded && styles.noRounded, compact && styles.compact, containerStyle]}>
+                {icon && (
+                    <View style={styles.iconContainer}>
+                        <Icon
+                            name={icon}
+                            size={18}
+                            color={theme.colors.placeholder}
+                            backgroundColor="transparent"
+                            padding={0}
+                        />
+                    </View>
+                )}
 
                 <TextInput
                     style={[
                         styles.input,
+                        compact && styles.inputCompact,
                         {
                             fontFamily: theme.typography.fonts.regular,
                             fontSize: 14,
@@ -89,6 +94,14 @@ const styles = StyleSheet.create({
     },
     noRounded: {
         borderRadius: 0,
+    },
+    compact: {
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        minHeight: 36,
+    },
+    inputCompact: {
+        paddingVertical: 2,
     },
     iconContainer: {
         marginRight: 12,

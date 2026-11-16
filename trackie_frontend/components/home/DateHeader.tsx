@@ -7,12 +7,14 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 interface DateHeaderProps {
     date: string;
     onAddPress?: () => void;
+    onMetricAddPress?: () => void;
     onEditPress?: () => void;
 }
 
 export const DateHeader: React.FC<DateHeaderProps> = ({
     date,
     onAddPress,
+    onMetricAddPress,
     onEditPress
 }) => {
 

@@ -1,4 +1,4 @@
-import { DailyLogForm } from '@/components/home/DailyLogForm';
+import { CreateMetricModal } from '@/components/home/CreateMetricModal';
 import { DateHeader } from '@/components/home/DateHeader';
 import { MetricsGrid } from '@/components/home/MetricsGrid';
 import { SearchModal } from '@/components/home/SearchModal';
@@ -10,9 +10,11 @@ import { Icon } from '@/components/icon';
 import { LongButton } from '@/components/LongButton';
 import { NavBar } from '@/components/navbar';
 import { DailyLog, dailyLogService } from '@/services/dailyLogService';
+import { Program, ProgramDashboard, programService } from '@/services/programService';
 import { Settings, settingsService } from '@/services/settingsService';
+import { WorkoutRoutine, workoutService } from '@/services/workoutService';
 import { theme } from '@/theme';
-import { calculateWeeklyAveragesFromDailyLogs, WeeklyDailyAverage } from '@/utils/weeklyAverages';
+import { calculateWeeklyAveragesFromDailyLogs, getWeekEndDate, getWeekStartDate, parseLocalDate, WeeklyDailyAverage } from '@/utils/weeklyAverages';
 import { useRouter } from 'expo-router';
 import React, { useEffect, useMemo, useState } from 'react';
 import {
@@ -32,13 +34,14 @@ const HomeScreen: React.FC = () => {
     const [isSearching, setIsSearching] = useState(false);
     const [searchModalVisible, setSearchModalVisible] = useState(false);
     const [currentSearchDate, setCurrentSearchDate] = useState<string | undefined>();
+    const [activeProgram, setActiveProgram] = useState<Program | null>(null);
+    const [programDashboard, setProgramDashboard] = useState<ProgramDashboard | null>(null);
+    const [workoutRoutines, setWorkoutRoutines] = useState<WorkoutRoutine[]>([]);
     const [settings, setSettings] = useState<Settings | null>(null);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [formVisible, setFormVisible] = useState(false);
-    const [editFormVisible, setEditFormVisible] = useState(false);
-    const [editingLog, setEditingLog] = useState<DailyLog | null>(null);
+    const [createMetricVisible, setCreateMetricVisible] = useState(false);
     const [isSearchingWeekly, setIsSearchingWeekly] = useState(false);
     const [weeklySearchResults, setWeeklySearchResults] = useState<WeeklyDailyAverage[]>([]);
     const router = useRouter();
@@ -59,23 +62,56 @@ const HomeScreen: React.FC = () => {
         return calculateWeeklyAveragesFromDailyLogs(allLogs, settings.weekStartDay ?? 1);
     }, [allLogs, settings]);
 
+    // Workouts ejecutados en la semana actual (cuenta executions de todos los logs de la semana)
+    const workoutsThisWeek = useMemo(() => {
+        if (!settings) return 0;
+        const weekStartDay = settings.weekStartDay ?? 1;
+        const start = getWeekStartDate(new Date(), weekStartDay);
+        const end = getWeekEndDate(start);
+        return allLogs
+            .filter((log) => {
+                const d = parseLocalDate(log.date);
+                return d >= start && d <= end;
+            })
+            .reduce((sum, log) => sum + (log.workouts?.length ?? 0), 0);
+    }, [allLogs, settings]);
+
+    const activeRoutinesCount = workoutRoutines.filter((r) => r.isActive).length;
+    const programScore = programDashboard?.summary?.averageScore ?? 0;
+    const programCurrentWeek = programDashboard?.program?.currentWeek ?? 0;
+    const programWeeksRemaining = activeProgram
+        ? Math.max(0, activeProgram.totalWeeks - programCurrentWeek)
+        : 0;
+    const programTotalWeeks = activeProgram?.totalWeeks ?? 0;
+
     const fetchData = async () => {
         try {
             setLoading(true);
             setError(null);
 
-            const [logData, settingsData, allLogsData] = await Promise.all([
+            const [logData, settingsData, allLogsData, activeProgramData, routinesData] = await Promise.all([
                 dailyLogService.getByDate(today).catch((err) => {
                     if (err.response?.status === 404) return null;
                     throw err;
                 }),
                 settingsService.getSettings(),
-                dailyLogService.getAll().catch(() => [])
+                dailyLogService.getAll().catch(() => []),
+                programService.findActive().catch(() => null),
+                workoutService.listRoutines().catch(() => []),
             ]);
 
             setDailyLog(logData);
             setSettings(settingsData);
             setAllLogs(allLogsData);
+            setActiveProgram(activeProgramData);
+            setWorkoutRoutines(routinesData);
+
+            if (activeProgramData) {
+                const dashboard = await programService.getDashboard(activeProgramData.id).catch(() => null);
+                setProgramDashboard(dashboard);
+            } else {
+                setProgramDashboard(null);
+            }
         } catch (err: any) {
             setError('Error al cargar los datos');
         } finally {
@@ -116,64 +152,23 @@ const HomeScreen: React.FC = () => {
     };
 
     const handleAdd = () => {
-        setFormVisible(true);
+        router.push('/daily-log');
     };
 
-    const handleFormSubmit = async (data: {
-        date: string;
-        metrics: Record<string, number>;
-    }) => {
-        try {
-            await dailyLogService.upsert({
-                date: data.date || today,
-                metrics: data.metrics,
-            });
-            await fetchData();
-            setFormVisible(false);
-        } catch (error) {
-            console.error('Error saving daily log:', error);
-        }
+    const handleAddMetric = () => {
+        setCreateMetricVisible(true);
+    };
+
+    const handleMetricCreated = () => {
+        fetchData();
     };
 
     const handleLogPress = (log: DailyLog) => {
-        setEditingLog(log);
-        setEditFormVisible(true);
-    };
-
-    const handleEditFormSubmit = async (data: {
-        date: string;
-        metrics: Record<string, number>;
-    }) => {
-        try {
-            await dailyLogService.upsert({
-                date: data.date,
-                metrics: data.metrics,
-            });
-            await fetchData();
-            setEditFormVisible(false);
-            setEditingLog(null);
-
-            if (isSearching && currentSearchDate === data.date) {
-                const updatedResult = await dailyLogService.getByDate(data.date).catch(() => null);
-                if (updatedResult) {
-                    setSearchResults([updatedResult]);
-                }
-            }
-        } catch (error) {
-            console.error('Error updating log:', error);
-        }
+        router.push(`/daily-log?date=${log.date}`);
     };
 
     const handleSearchPress = () => {
         setSearchModalVisible(true);
-    };
-
-    const handleCaloriesPress = () => {
-        router.push('/CaloriesOverviewScreen');
-    };
-
-    const handleStepsPress = () => {
-        router.push('/StepsOverviewScreen');
     };
 
     const handleAllLogsPress = () => {
@@ -182,6 +177,14 @@ const HomeScreen: React.FC = () => {
 
     const handleProgramsPress = () => {
         router.push('/ProgramsLogs');
+    };
+
+    const handleMetricsPress = () => {
+        router.push('/MetricsLogs');
+    };
+
+    const handleRoutinesPress = () => {
+        router.push('/WorkoutRoutinesLogs');
     };
 
 
@@ -218,15 +221,19 @@ const HomeScreen: React.FC = () => {
                     <DateHeader
                         date={today}
                         onAddPress={handleAdd}
+                        onMetricAddPress={handleAddMetric}
                     />
                     <MetricsGrid dailyLog={dailyLog} />
                 </View>
 
                 <StatsOverview
-                    dailyLog={dailyLog}
-                    settings={settings}
-                    onCaloriesPress={handleCaloriesPress}
-                    onStepsPress={handleStepsPress}
+                    programScore={programScore}
+                    programWeeksRemaining={programWeeksRemaining}
+                    programTotalWeeks={programTotalWeeks}
+                    activeRoutinesCount={activeRoutinesCount}
+                    workoutsThisWeek={workoutsThisWeek}
+                    onProgramPress={handleProgramsPress}
+                    onRoutinesPress={handleRoutinesPress}
                     leftComponent={
                         <WorkoutVideo
                             workout={dailyLog?.workouts?.[0]?.workoutTypeSnapshot}
@@ -243,9 +250,9 @@ const HomeScreen: React.FC = () => {
                 </View>
                 <View style={styles.gallerySection}>
                     <LongButton
-                        onPress={handleProgramsPress}
-                        text="Programas"
-                        iconLeft="TrendingDown"
+                        onPress={handleMetricsPress}
+                        text="Métricas"
+                        iconLeft="Sigma"
                     />
                 </View>
                 {isSearching ? (
@@ -277,25 +284,10 @@ const HomeScreen: React.FC = () => {
                 onSearch={handleSearch}
             />
 
-            <DailyLogForm
-                visible={formVisible}
-                onClose={() => setFormVisible(false)}
-                onSubmit={handleFormSubmit}
-                initialData={undefined}
-                title="Registro Diario"
-                hideDatePicker={false}
-            />
-
-            <DailyLogForm
-                visible={editFormVisible}
-                onClose={() => {
-                    setEditFormVisible(false);
-                    setEditingLog(null);
-                }}
-                onSubmit={handleEditFormSubmit}
-                initialData={editingLog ?? undefined}
-                title="Editar registro"
-                hideDatePicker={true}
+            <CreateMetricModal
+                visible={createMetricVisible}
+                onClose={() => setCreateMetricVisible(false)}
+                onCreated={handleMetricCreated}
             />
         </View>
     );

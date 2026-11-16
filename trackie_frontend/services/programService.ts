@@ -1,10 +1,20 @@
 import api from './api';
+import type { WorkoutRoutine } from './workoutService';
 
 // Nota: `notes` e `initialWeight`/`initialWaist`/`initialHips`/`initialBodyfat`
 // se eliminaron de Program (el backend ya no los devuelve ni los acepta). Las
 // mediciones iniciales viven en /weight-logs; los targets viven en program_metric_targets.
 
 export type ProgramKind = 'cut' | 'bulk' | 'maintain';
+
+// Programas <-> Rutinas (backend: ProgramRoutineController en 'programs/:programId/routines')
+export interface ProgramRoutine {
+    id: string;
+    programId: string;
+    routineId: string;
+    order: number;
+    routine?: WorkoutRoutine;
+}
 
 export interface Program {
     id: string;
@@ -18,6 +28,18 @@ export interface Program {
     createdAt: string;
     updatedAt: string;
 }
+
+// Defaults de direction/weight/target por key para el formulario de programas.
+// Las claves no listadas usan DEFAULT_TARGET_FALLBACK.
+export const DEFAULT_TARGET_CONFIG: Record<string, { direction: 'at_least' | 'at_most' | 'exact'; weight: number; target: number }> = {
+    calories:      { direction: 'at_most',  weight: 0.30, target: 2000 },
+    protein:       { direction: 'at_least', weight: 0.30, target: 150  },
+    steps:         { direction: 'at_least', weight: 0.25, target: 8000 },
+    water:         { direction: 'at_least', weight: 0.10, target: 2.5  },
+    workout_count: { direction: 'at_least', weight: 0.05, target: 1    },
+};
+
+export const DEFAULT_TARGET_FALLBACK = { direction: 'at_least' as const, weight: 0, target: 0 };
 
 // Target dinámico de un Program (misma forma que el DTO del backend: src/dtos/program.dto.ts).
 export interface ProgramMetricTargetInput {
@@ -39,15 +61,8 @@ export interface CreateProgramDto {
     targets: ProgramMetricTargetInput[]; // backend exige ArrayMinSize(1)
 }
 
-export interface UpdateProgramDto {
-    name?: string;
-    kind?: ProgramKind;
-    startDate?: string;
-    endDate?: string;
-    totalWeeks?: number;
-    workoutsPerWeek?: number;
-    isActive?: boolean;
-}
+// Partial<CreateProgramDto> — incluye targets opcionales (replace-all en el backend).
+export type UpdateProgramDto = Partial<CreateProgramDto>;
 
 export interface ProgramDay {
     date: string;
@@ -180,6 +195,26 @@ export const programService = {
     findOne: async (id: string): Promise<Program> => {
         const response = await api.get<Program>(`/programs/${id}`);
         return response.data;
+    },
+
+    // Rutinas asignadas a un programa (incluye la rutina anidada)
+    listRoutines: async (programId: string): Promise<ProgramRoutine[]> => {
+        const response = await api.get<ProgramRoutine[]>(`/programs/${programId}/routines`);
+        return response.data;
+    },
+
+    // Asignar una rutina a un programa
+    assignRoutine: async (programId: string, routineId: string, order?: number): Promise<ProgramRoutine> => {
+        const response = await api.post<ProgramRoutine>(`/programs/${programId}/routines`, {
+            routineId,
+            ...(order !== undefined ? { order } : {}),
+        });
+        return response.data;
+    },
+
+    // Quitar una rutina de un programa
+    removeRoutine: async (programId: string, routineId: string): Promise<void> => {
+        await api.delete(`/programs/${programId}/routines/${routineId}`);
     },
 
     update: async (id: string, data: UpdateProgramDto): Promise<Program> => {

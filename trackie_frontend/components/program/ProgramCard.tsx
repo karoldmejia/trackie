@@ -1,5 +1,6 @@
 import { Icon } from '@/components/icon';
 import { ThemedText } from '@/components/ThemedText';
+import { SwipeableCard } from '@/components/common/SwipeableCard';
 import { Program } from '@/services/programService';
 import { theme } from '@/theme';
 import { formatShortDate } from '@/utils/date';
@@ -19,6 +20,7 @@ interface ProgramCardProps {
         hipsDifference?: number | null;
     };
     onPress: () => void;
+    onEditPress?: () => void;
 }
 
 const getDifferenceText = (difference: number | null | undefined): string => {
@@ -27,12 +29,12 @@ const getDifferenceText = (difference: number | null | undefined): string => {
     return `${sign}${difference.toFixed(1)}`;
 };
 
-export const ProgramCard: React.FC<ProgramCardProps> = ({ program, onPress }) => {
+export const ProgramCard: React.FC<ProgramCardProps> = ({ program, onPress, onEditPress }) => {
     const formattedStartDate = formatShortDate(program.startDate);
     const formattedEndDate = formatShortDate(program.endDate);
     const compliance = Math.round(program.averageScore);
 
-    return (
+    const content = (
         <TouchableOpacity onPress={onPress} activeOpacity={0.7}>
             <View style={styles.card}>
                 {/* Header con fechas y estado */}
@@ -55,9 +57,9 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({ program, onPress }) =>
                         >
                             {program.totalWeeks} semanas
                         </ThemedText>
-                        <Icon 
-                            name="Asterisk" 
-                            size={16} 
+                        <Icon
+                            name="Asterisk"
+                            size={16}
                             color={program.isActive ? theme.colors.primary : theme.colors.placeholder}
                             backgroundColor="transparent"
                             style={styles.asterikIcon}
@@ -100,6 +102,12 @@ export const ProgramCard: React.FC<ProgramCardProps> = ({ program, onPress }) =>
                 </View>
             </View>
         </TouchableOpacity>
+    );
+
+    return (
+        <SwipeableCard onEdit={onEditPress}>
+            {content}
+        </SwipeableCard>
     );
 };
 
